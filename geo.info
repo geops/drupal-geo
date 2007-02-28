@@ -1,0 +1,7 @@
+; $Id$
+name = Geo
+description = Incubator for other geo projects eg. geography, geometry, geocoding
+version = "$Name$"
+package = Location
+dependencies = gmap location
+
