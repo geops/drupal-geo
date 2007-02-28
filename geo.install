@@ -1,0 +1,8 @@
+<?php
+
+function geo_install() {
+	$location_weight = db_result(db_query('SELECT weight FROM {system} WHERE name = "location" AND type = "module"'));
+	db_query("UPDATE {system} SET weight = %d WHERE name = 'geo' AND type = 'module'", $location_weight - 1);
+	return true;
+	
+}
