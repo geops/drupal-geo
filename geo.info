@@ -1,7 +1,7 @@
 ; $Id$
 name = Geo
-description = Incubator for other geo projects eg. geography, geometry, geocoding
+description = Provides a storage engine and CCK field for geo-spatial data. 
 version = "$Name$"
-package = Location
-dependencies = gmap location
+package = Geo
+dependencies = content
 
