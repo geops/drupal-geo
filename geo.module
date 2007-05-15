@@ -1,5 +1,16 @@
 <?php
 
+// files we need to include on every page laod
+require_once dirname(__FILE__) . '/geo_cck.inc';
+
+/**
+ * Implementation of hook_init()
+ */
+function geo_init() {
+  if (function_exists('drupal_set_content')) {
+    geo_bootstrap(); // bootstrap the db for non-cached page views
+  }
+}
 /**
  * Implementation of hook_menu().
  */
@@ -14,99 +25,81 @@ function geo_menu($may_cache) {
       'callback' => 'drupal_get_form',
       'callback arguments' => array('geo_admin_settings'),
       'access' => user_access('administer site configuration'),
-      'type' => MENU_NORMAL_ITEM
+      'type' => MENU_NORMAL_ITEM,
       'discription' => t('Configure settings for the geo module'),
     );
+    
+    $items[] = array(
+      'path' => 'test-geo',
+      'title' => t('Testing geo'),
+      'callback' => 'geo_test_page',
+      'type' => MENU_NORMAL_ITEM,
+      'access' => TRUE,
+      'discription' => t('Configure settings for the geo module'),
+      );
+  } else {
+    
   }
 
   return $items;
 }
 
 function geo_admin_settings() {
-  $location_fields = _geo_location_fields();
-  
-  $form['geo_geocode_fields'] = array (
-    '#type' => 'checkboxes',
-    '#title' => t('Geocoding Fields'),
-    '#description' => t('Select which fields to pass to Google for geocoding. More fields may provide more accuracy in some geographic loactions.'),
-    '#options' => $location_fields,
-    '#default_value' => variable_get('geo_geocode_fields', array_keys($location_fields)),
-  );
+  $form = array();
+  switch($GLOBALS['db_type']) {
+    case 'pgsql':
+      $form['geo_postgis'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Use PostGIS'),
+        '#default_value' => variable_get('geo_postgis', false),
+        '#description' => t('If you have install the PostGIS package in your database, you have access to more robust storage and querying services. Only check if you have installed this packed.')
+      );
+      break;
+    case 'mysql':
+      break;
+  }
   return system_settings_form($form);
 }
 
-function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-
-  if ($op == 'submit') {
-
-    if(is_array($node->locations)) {
-
-      foreach($node->locations as $key => $location) {
-
-        // create a crippled location using only the fields whitelisted on the settings page
-        $crippled_location = array();
-        $fields_to_use = variable_get('geo_geocode_fields', array_keys(_geo_location_fields()));
-        foreach($fields_to_use as $subfield) {
-          
-          // provinces come with the country code prepended, strip 'em
-          if($subfield == 'province') {
-            $crippled_location[$subfield] = substr($location[$subfield], 3);
-          } else {
-            $crippled_location[$subfield] = $location[$subfield];
-          }
-        }
-
-        // we need to geocode via google
-        $point = geo_geocode($crippled_location);
-        
-        // update the node
-        $node->locations[$key]['latitude'] = $point['lat'];
-        $node->locations[$key]['longitude'] = $point['lon'];
+/**
+ * Bootstraps the geo modules db storage, etc.
+ *
+ * @param $reset
+ *  Normally, bootstrap should only run once. If you want to run bootstrap a second time, set to true.
+ * @return void
+ * @author Mark Fredrickson
+ **/
+function geo_bootstrap($reset = FALSE) {
+  static $ran;
+  if ($ran) {
+    return;
+  }
+  
+  /* pseudo
+  - find the db type and include the backend file
+  - IDEA! use CCK for the storage engine for non-postgis, non-mysqlspatial (can support postgres and mysql on one code base!)
+  */
+  
+  switch($GLOBALS['db_type']) {
+    case 'pgsql':
+      if (variable_get('geo_postgis', false)) {
+        require_once drupal_get_path('module', 'geo') . '/db/postgis.inc';
       }
-    }
-  }
-}
-
-// stolen from location.us.inc because the old version insisted on too much accuracy
-function geo_geocode($location = array()) {
-  $service_url = 'http://maps.google.com/maps/geo?output=xml&key='. variable_get('googlemap_api_key', '') .'&q=';
-
-  $address = location_address2singleline($location);
-  
-  $http_reply = drupal_http_request($service_url . urlencode($address));
-  
-  $status_code_match = array();
-  preg_match('/<code>(.*)<\/code>/', $http_reply->data, $status_code_match);
-  $status_code = $status_code_match[1];
-  if ($status_code != 200) {
-    
-    return NULL;
+      break;
+    case 'mysql':
+      break;
   }
   
-  $accuracy_code_match = array();
-  preg_match('/Accuracy="([0-9])"/', $http_reply->data, $accuracy_code_match);
-  $accuracy_code = $accuracy_code_match[1];
-  // someday may implement methods of discarding inaccurate results. for now, we keep
-  // if ($accuracy_code != 8 && $accuracy_code != 7) {
-  //   dprint_r("Acurracy code was: $accuracy_code");
-  //   return NULL;
-  // }
-  
-  $latlon_match = array();
-  preg_match('/<coordinates>(.*)<\/coordinates>/', $http_reply->data, $latlon_match);
-  
-  $latlon_exploded = explode(',', $latlon_match[1]);
-  
-  return array('lat' => $latlon_exploded[1], 'lon' => $latlon_exploded[0]);
+  $ran = true;
 }
 
-// little helper function to hold the keys and names of the location fields
-function _geo_location_fields() {
-  return array (
-    'street' => t('Street'),
-    'city' => t('City'),
-    'province' => t('State/Province'),
-    'postal_code' => t('Postal Code'),
-    'country' => t('Country'),
-  );
+/*** For testing ****/
+
+function geo_test_page() {
+  $output = '<p>geo test page</p>';
+  if (variable_get('geo_postgis', false)) {
+    $output .= "<p>PostGIS installed</p>";
+  }
+  
+  return $output;
 }

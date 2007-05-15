@@ -1,8 +1,14 @@
 <?php
 
 function geo_install() {
-	$location_weight = db_result(db_query('SELECT weight FROM {system} WHERE name = "location" AND type = "module"'));
-	db_query("UPDATE {system} SET weight = %d WHERE name = 'geo' AND type = 'module'", $location_weight - 1);
-	return true;
-	
+  switch($GLOBALS['db_type']) {
+    case 'pgsql':
+       db_query("CREATE TABLE {geo_field} (
+          field_name varchar(32) NOT NULL default '',
+          table_name varchar(127) NOT NULL default '',
+          PRIMARY KEY  (field_name)
+        )");
+      break;
+    // TODO add a mysql 
+  }
 }
