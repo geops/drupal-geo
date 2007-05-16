@@ -28,7 +28,11 @@ function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '
   // TODO is there a way to get the current schema? until i figure this out, everything is public
   $res = db_query("SELECT AddGeometryColumn('public', '{$table}', '%s', %d, '%s', 2);", $field_name, $srid, $type);
   // TODO perhaps send the message returned from the db to watchdog?
-  return db_num_rows($res);
+  if (db_num_rows($res)) {
+    // if successful, add a spatial index on the field
+    db_query("CREATE INDEX {$table}_$field_name\_idx ON {$table} USING GIST ($field_name GIST_GEOMETRY_OPS)");
+    return true;
+  }
 }
 
 /**
@@ -45,6 +49,7 @@ function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '
  **/
 function geo_drop_geometry_column($table, $field_name) {
   $res = db_query("SELECT DropGeometryColumn('public', '{$table}', '%s'", $field_name);
+  // NOTE do I need to drop my spatial index too? should probably check pg docs
   return db_num_rows($res);
 }
 
