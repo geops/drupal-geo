@@ -1,7 +1,8 @@
 <?php
 
-// files we need to include on every page laod
+// TODO find a better way to load these on demand. we don't need them on every page load
 require_once dirname(__FILE__) . '/geo_cck.inc';
+require_once dirname(__FILE__) . '/geo_views.inc';
 
 /**
  * Implementation of hook_init()
@@ -30,6 +31,15 @@ function geo_menu($may_cache) {
     );
     
     $items[] = array(
+      'path'        => 'admin/build/geo',
+      'title'       => t('Geo-Spatial Tables'),
+      'description' => t('Manage geographic information'),
+      'callback'    => 'drupal_get_form',
+      'callback arguments' => array('geo_admin', 'build_tables'),
+      'access'      => t('administer geo-spatial tables'),
+    );
+    
+    $items[] = array(
       'path' => 'test-geo',
       'title' => t('Testing geo'),
       'callback' => 'geo_test_page',
@@ -44,21 +54,31 @@ function geo_menu($may_cache) {
   return $items;
 }
 
+/**
+ * Implementation of hook_perm()
+ */
+function geo_perm() {
+  return array(t('administer geo-spatial tables'));
+}
+
+/**
+ * Settings callback function
+ */
 function geo_admin_settings() {
   $form = array();
-  switch($GLOBALS['db_type']) {
-    case 'pgsql':
-      $form['geo_postgis'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Use PostGIS'),
-        '#default_value' => variable_get('geo_postgis', false),
-        '#description' => t('If you have install the PostGIS package in your database, you have access to more robust storage and querying services. Only check if you have installed this packed.')
-      );
-      break;
-    case 'mysql':
-      break;
-  }
   return system_settings_form($form);
+}
+
+/**
+ * Automatic geo_admin.inc includer. Standard stuff
+ */
+function geo_admin($func) {
+  require_once dirname(__FILE__).'/geo_admin.inc';
+  if (function_exists($func = '_geo_'.$func)) {
+    $args = func_get_args();
+    unset($args[0]);
+    return call_user_func_array($func, $args);
+  }
 }
 
 /**
@@ -71,7 +91,7 @@ function geo_admin_settings() {
  **/
 function geo_bootstrap($reset = FALSE) {
   static $ran;
-  if ($ran) {
+  if ($ran && !$reset) {
     return;
   }
   
@@ -79,18 +99,68 @@ function geo_bootstrap($reset = FALSE) {
   - find the db type and include the backend file
   - IDEA! use CCK for the storage engine for non-postgis, non-mysqlspatial (can support postgres and mysql on one code base!)
   */
-  
+  switch(geo_backend_type()) {
+    case 'postgis':
+      require_once drupal_get_path('module', 'geo') . '/db/postgis.inc';
+      break;
+    case 'cck':
+      // include the common backend
+      break;
+    case 'mysql_spatial':
+      // include the mysql spatial backend
+      break;
+  }
+  $ran = true;
+}
+
+/**
+ * Return the geo backend database type.
+ *
+ * @return string
+ *  The name of the backend: postgis, cck, mysql_spatial
+ **/
+function geo_backend_type() {
   switch($GLOBALS['db_type']) {
     case 'pgsql':
-      if (variable_get('geo_postgis', false)) {
-        require_once drupal_get_path('module', 'geo') . '/db/postgis.inc';
+      // use the postgis backend if installed
+      if(db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc  WHERE proname = 'postgis_version'"))) {
+        return 'postgis';
+      } else {
+        return 'pgsql';
       }
-      break;
-    case 'mysql':
       break;
   }
   
-  $ran = true;
+}
+
+/*** Cross Database API Functions ***/
+
+/**
+ * Returns an entry in the in the geo_field table.
+ *
+ * @return array
+ *  A row from the db as an array. See geo.install for the nature of this data.
+ *
+ **/
+function geo_fields($module = NULL) {
+  static $fields;
+
+  if (!is_array($fields)) {
+    $fields = array();
+    $res = db_query("SELECT * FROM {geo_field} ORDER BY module");
+
+    while ($row = db_fetch_array($res)) {
+      //if (!$fields[$row['table_name']]) $fields[$row['table_name']] = array();
+      $fields[$row['module']][$row['field_name']] = $row;
+    }
+  }
+  
+  // if a specific module is requested
+  if ($module) {
+    return $fields[$module];
+  }
+  
+  return $fields;
 }
 
 /*** For testing ****/
