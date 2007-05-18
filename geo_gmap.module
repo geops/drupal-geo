@@ -1,0 +1,134 @@
+<?php
+
+/**
+ * Provides a widget that uses a google map to select points, lines and polygons
+ *
+ * @author Mark Fredrickson
+ * @version $Id$
+ * @package geo
+ **/
+
+/**
+ * Widget Hooks
+ **/
+
+/**
+ * Implementation of hook_widget_info()
+ */
+function geo_gmap_widget_info() {
+  return array(
+    'geo_gmap' => array(
+      'label' => t('Google Map'),
+      'field types' => array_keys(geo_field_info()), // easy way to get all fields
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_widget_settings()
+ */
+function geo_gmap_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+      // TODO if views_ui is available, use it to build a custom macro for this widget.
+      return $form;
+
+    case 'validate':
+      break;
+
+    case 'save':
+      // Save the macro for later
+      return NULL; // array('rows');
+
+  }
+}
+
+/**
+ * Implementation of hook_widget
+ */
+function geo_gmap_widget($op, &$node, $field, &$items) {
+  //dpr("In geo widget $op");
+  //dpr($items);
+  //dpr($node);
+  switch ($op) {
+    case 'prepare form values':
+      break;
+
+    case 'form':
+      $form = array();
+      $fn = $field['field_name'];
+      
+      $form[$fn] = array('#tree' => TRUE);
+      // for now, we just have one item
+      $form[$fn][0]['gmap'] = array(
+        '#type' => 'gmap',
+        '#title' => t($field['widget']['label']),
+        '#default_value' => $items[0]['wkt'],
+        '#required' => $field['required'],
+        '#description' => $field['widget']['description'],
+        '#map' => 'foo'
+      );
+      $form[$fn][0]['gmap_addr'] = array(
+        '#type' => 'gmap_address',
+        '#title' => t($field['widget']['label']),
+        '#default_value' => $items[0]['wkt'],
+        '#required' => $field['required'],
+        '#description' => $field['widget']['description'],
+        '#map' => 'foo'
+      );
+      
+      return $form;
+
+    case 'process form values':
+
+      break;
+  }
+}
+
+/** 
+ * Gmap Hooks
+ **/
+ 
+/**
+ * Implementation of hook_gmap_views_handle_field()
+ */
+function geo_gmap_views_handle_field($phase, $data) {
+  
+  switch($phase) {
+    case 'discover':
+      $fields = _views_get_fields();
+      $field_def = $fields[$data['id']];
+      
+      /* what can I handle? 
+      - point types in WKT output format
+      - any type in centroid, wkt mode
+      - linestring startpoint and endpoint in WKT
+      */
+      
+      // point types in WKT output mode
+      if($field_def['content_field']['type'] == 'point' && $data['handler'] == 'geo_views_field_handler_wkt') {
+        return 'point';
+      }
+      
+      break;
+      
+    case 'process':
+      // this field is a point, parse as such
+      if ($data['module']['extra'] == 'point') {
+        $entry = $data['entry'];
+        $field = $data['module']['field'];
+        $wkt = $entry->{$field};
+        $matches = array();
+        if(preg_match('/POINT\((.+) (.+)\)/', $wkt, $matches)) {
+          return array(
+            'lon' => $matches[1],
+            'lat' => $matches[2],
+          );
+        }
+      }
+      break;
+  }
+  
+} 
+

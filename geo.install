@@ -3,11 +3,19 @@
 function geo_install() {
   switch($GLOBALS['db_type']) {
     case 'pgsql':
-       db_query("CREATE TABLE {geo_field} (
-          field_name varchar(32) NOT NULL default '',
-          table_name varchar(127) NOT NULL default '',
-          PRIMARY KEY  (field_name)
-        )");
+        db_query("CREATE TABLE {geo_field} (
+           gfid           SERIAL,
+           name           VARCHAR(32),
+           title          VARCHAR(255),
+           module         VARCHAR(200),
+           table_name     VARCHAR(200),
+           field_name     VARCHAR(200),
+           data_type      VARCHAR(100),
+           geometry_type  VARCHAR(100) DEFAULT NULL,
+           dimensions     INT DEFAULT NULL,
+           srid           INT DEFAULT NULL,
+           PRIMARY KEY(gfid)
+         )");
       break;
     // TODO add a mysql 
   }
