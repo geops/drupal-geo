@@ -108,6 +108,7 @@ function geo_bootstrap($reset = FALSE) {
       break;
     case 'mysql_spatial':
       // include the mysql spatial backend
+      require_once drupal_get_path('module', 'geo') . '/db/mysql_spatial.inc';
       break;
   }
   $ran = true;
@@ -129,6 +130,14 @@ function geo_backend_type() {
         return 'pgsql';
       }
       break;
+    case 'mysql':
+    case 'mysqli':
+      // Capabilities check.
+      // If it can convert between native and wkt, assume it's working.
+      if (db_result(@db_query("SELECT AsText(GeomFromText('POINT(1 1)'))")) == 'POINT(1 1)') {
+        // Looks good.
+        return 'mysql_spatial';
+      }
   }
   
 }

@@ -1,9 +1,9 @@
 <?php
-
 /**
- * Postgresql + PostGIS backend for the geo field module
+ * @file
+ * MySQL Spatial Extensions backend for the geo field module
  *
- * @author Mark Fredrickson
+ * @author Mark Fredrickson, Brandon Bergren
  * @version $Id$
  * @package geo
  **/
@@ -27,14 +27,11 @@
  **/
 function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '4326') {
   // NOTE for now, all geometries are 2d. deal with it
-  // TODO is there a way to get the current schema? until i figure this out, everything is public
-  $res = db_query("SELECT AddGeometryColumn('public', '{" . $table . "}', '%s', %d, '%s', 2);", $field_name, $srid, $type);
-  // TODO perhaps send the message returned from the db to watchdog?
-  if (db_num_rows($res)) {
-    // if successful, add a spatial index on the field
-    db_query("CREATE INDEX {" . $table . "}_" . $field_name . "_idx ON {" . $table . "} USING GIST ($field_name GIST_GEOMETRY_OPS)");
-    return true;
-  }
+  db_query("ALTER TABLE {" . $table . "} ADD %s %s NOT NULL", $field_name, $type);
+  db_query("CREATE SPATIAL INDEX {" . $table . "}_${field_name}_idx ON {$table} ($field_name)");
+
+  // @@@ Error handling
+  return true;
 }
 
 /**
@@ -50,9 +47,9 @@ function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '
  *
  **/
 function geo_drop_geometry_column($table, $field_name) {
-  $res = db_query("SELECT DropGeometryColumn('public', '{" . $table . "}', '%s'", $field_name);
-  // NOTE do I need to drop my spatial index too? should probably check pg docs
-  return db_num_rows($res);
+  db_query("ALTER TABLE {" . $table . "} DROP COLUMN $field_name");
+  // @@@ Error handling
+  return true;
 }
 
 /**
@@ -81,7 +78,7 @@ function geo_move_geometry_column($field_name, $old_table, $new_table) {
  * @return void
  **/
 function geo_update_geometry_data($table, $field_name, $where, $geometry) {
-  db_query("UPDATE {" . $table . "} SET $field_name = GeomFromText('%s') WHERE $where", $geometry['wkt']);
+  db_query("UPDATE $table SET $field_name = GeomFromText('%s') WHERE $where", $geometry['wkt']);
   return true; // TODO better return value someday
 }
 
@@ -107,7 +104,7 @@ function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $g
   switch($op) {
     case 'load':
       $extras = array();
-      $res = db_query("SELECT srid($fn) as srid, asText($fn) AS wkt, asText(centroid($fn)) AS centroid, asText(envelope($fn)) as bbox FROM {" . $table . "} WHERE vid = %d AND nid = %d", $node->vid, $node->nid);
+      $res = db_query("SELECT srid($fn) as srid, asText($fn) AS wkt, asText(centroid($fn)) AS centroid, asText(envelope($fn)) as bbox FROM {$table} WHERE vid = %d AND nid = %d", $node->vid, $node->nid);
       while($row = db_fetch_array($res)) {
         $extras[] = $row;
       }
@@ -275,12 +272,13 @@ function _geo_enabled_tables() {
     $tables = array();
 
     // Query for all available geometry columns.
-    $res = db_query("SELECT c.relname AS table, a.attname AS field
-      FROM pg_catalog.pg_attribute a
-      LEFT JOIN pg_catalog.pg_class c ON a.attrelid = c.oid
-      WHERE pg_catalog.format_type(a.atttypid, a.atttypmod) = 'geometry'
-      AND  c.relname != 'geometry_dump'
-      ORDER BY c.relname, a.attnum");
+    // @@@ Mysql5 + only.
+    $res = db_query("SELECT TABLE_NAME AS 'table', COLUMN_NAME AS 'field'
+      FROM information_schema.columns
+      WHERE TABLE_SCHEMA = database()
+      AND DATA_TYPE IN ('GEOMETRY','POINT','LINESTRING','POLYGON','MULTIPOINT',
+      'MULTILINESTRING','MULTIPOLYGON','GEOMETRYCOLLECTION')
+      ORDER BY TABLE_NAME, COLUMN_NAME");
 
     while ($row = db_fetch_object($res)) {
       if (!isset($tables[$row->table])) $tables[$row->table] = array();
@@ -296,18 +294,14 @@ function _geo_enabled_tables() {
  * Parse out the table descriptions from the geometry information stored in the table.
  */
 function _geo_table_desc($table) {
-  $res = db_query("SELECT  a.attname AS name, 
-    col_description(c.oid, a.attnum) AS description,
-    format_type(a.atttypid, a.atttypmod) AS type,
-    a.attnotnull AS not_null,
-    d.adsrc AS default   
-    FROM pg_class c
-    LEFT JOIN pg_attribute a ON (a.attrelid = c.oid)    LEFT OUTER JOIN pg_attrdef d ON (d.adrelid = c.oid AND d.adnum = a.attnum)
-    WHERE c.relname = '%s'
-    AND a.attnum > 0
-    AND NOT a.attisdropped
-    AND a.attrelid = c.oid
-    ORDER BY a.attnum;", $table);
+  $res = db_query("SELECT COLUMN_NAME AS 'name',
+    COLUMN_COMMENT AS 'description',
+    DATA_TYPE AS 'type',
+    IS_NULLABLE AS 'null_ok',
+    COLUMN_DEFAULT AS 'default'
+    FROM information_schema.columns
+    WHERE TABLE_SCHEMA = database()
+    AND TABLE_NAME = '%s' ORDER BY ORDINAL_POSITION",$table);
 
   $columns = array();
   $geo = array();
@@ -315,14 +309,18 @@ function _geo_table_desc($table) {
     if ($row['type'] == 'geometry') $geo[] = $row['name'];
 
     $columns[$row['name']] = $row;
-    $columns[$row['name']]['not_null'] = (bool) str_replace('f', '', $row['not_null']);
+    $columns[$row['name']]['not_null'] = $row['null_ok']=='YES' ? FALSE : TRUE;
+    unset($columns[$row['name']]['null_ok']);
   }
 
-  $res = db_query("SELECT c.relname AS table, 
+  // @@@ I have no clue what this section is for. ~Bdragon
+
+/*  $res = db_query("SELECT c.relname AS table, 
       pg_catalog.pg_get_constraintdef(r.oid, true) AS constraint
     FROM pg_catalog.pg_constraint r
     LEFT JOIN pg_catalog.pg_class c ON r.conrelid = c.oid
     WHERE c.relname = '%s' AND r.contype = 'c'", $table);
+*/
 
   /*
    Find constraints that are similar to the ones here, and set attributes
@@ -331,20 +329,21 @@ function _geo_table_desc($table) {
    CHECK (ndims(the_geom) = 2)
    CHECK (srid(the_geom) = 26915)
   */
-  while ($row = db_fetch_object($res)) {
-    $table = $row->table;
-    foreach($geo as $f) {
-      if (strpos($row->constraint, "ndims($f)" )) {
-        $columns[$f]['dimensions'] = preg_replace('/\D/','', $row->constraint);
-      }
-      elseif (strpos($row->constraint, "srid($f)" )) {
-        $columns[$f]['srid'] = preg_replace('/\D/','', $row->constraint);
-      }
-      elseif (strpos($row->constraint, "geometrytype($f)" )) {
-        $columns[$f]['geometry_type'] = preg_replace('/.*\'(\w+)\'.*/','$1', $row->constraint);
-      }
-    }
-  }
+  //while ($row = db_fetch_object($res)) {
+  //  $table = $row->table;
+  //  foreach($geo as $f) {
+  //    if (strpos($row->constraint, "ndims($f)" )) {
+  //      $columns[$f]['dimensions'] = preg_replace('/\D/','', $row->constraint);
+  //    }
+  //    elseif (strpos($row->constraint, "srid($f)" )) {
+  //      $columns[$f]['srid'] = preg_replace('/\D/','', $row->constraint);
+  //    }
+  //    elseif (strpos($row->constraint, "geometrytype($f)" )) {
+  //      $columns[$f]['geometry_type'] = preg_replace('/.*\'(\w+)\'.*/','$1', $row->constraint);
+  //    }
+  //  }
+  //}
+
   return $columns;
 }
 
@@ -358,5 +357,6 @@ function _geo_fromtext($string, $table, $field) {
 
 // returns the PostGIS version information
 function _geo_version() {
-  return db_result(db_query("SELECT postgis_version()"));
+  // No clue what to do here...
+//  return db_result(db_query("SELECT postgis_version()"));
 }
