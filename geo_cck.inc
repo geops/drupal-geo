@@ -70,7 +70,8 @@ function geo_field_settings($op, $field) {
       $info = geo_field_info();
       $label_prefix = t('@type: @field', array('@type' => $info[$field['type']]['label'], '@field' => $field['widget']['label'] .' ('. $field['field_name'] .')'));
       $view_table = geo_views_create_geometry_table($table_name, $field_name, $label_prefix, 'node', 'vid', 'vid', array('content_field' => $field), $join_extras = NULL);
-      return array('node_data_' . $field_name => $view_table);
+      //return array('node_data_' . $field_name => $view_table);
+      break;
     /*
     case 'arguments':
       $arguments = content_views_field_arguments($field);

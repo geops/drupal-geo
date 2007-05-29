@@ -8,6 +8,7 @@
  **/
 
 function _geo_build_tables() {
+  // TODO fetch all existing link information and stash ids in $form array
   $form = array('#base' =>'_geo_build_tables');
   $form['tables']['#tree'] = true;
   if (module_exists('views')) {
@@ -25,8 +26,14 @@ function _geo_build_tables() {
 
       $views_field_options[$id] = $field['name'];
     }
+    
     foreach (_geo_enabled_tables() as $table => $cols) {      
       $form['tables'][$table] = array( '#tree' => 1 );
+      $form['tables'][$table]['table_label'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Table Label'),
+        '#default_value' => '', // TODO set as table label from link table
+      );
       foreach ( _geo_table_desc($table) as $col => $desc) {
         $form['tables'][$table][$col] = array(
           'view_field' => array('#type' => 'select', '#options' => $views_field_options),
@@ -78,7 +85,10 @@ function _geo_build_tables_submit($form_id, $values) {
 function theme__geo_build_tables($form) {
   $rows = array();
   foreach (element_children($form['tables']) as $k => $table) {
-    $rows[] = array(array('data' => $table, 'colspan' => 5, 'header' => 1));
+    unset($form['tables'][$table]['table_label']['#title']);
+    //TODO perhaps put the table in one column and the title in the other 4
+    $form['tables'][$table]['table_label']['#prefix'] = "$table:";
+    $rows[] = array(array('data' => drupal_render($form['tables'][$table]['table_label']), 'colspan' => 5, 'header' => 1));
     foreach (element_children($form['tables'][$table]) as $k => $i) {
       $rows[] = array(
         drupal_render($form['tables'][$table][$i]['view_field']),
