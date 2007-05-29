@@ -49,13 +49,26 @@ function geo_field_settings($op, $field) {
       } else {
         // the field does not have storage, so we need to create its field
 
-        // XXX this is pg specific
-        db_query("CREATE TABLE {$table_name} (
-            vid int_unsigned NOT NULL default '0',
-            delta int_unsigned NOT NULL default '0',
-            nid int_unsigned NOT NULL default '0',
-            PRIMARY KEY (vid,delta)
-          )");
+        switch ($GLOBALS['db_type']) {
+          case 'pgsql':
+            // XXX this is pg specific
+            db_query("CREATE TABLE {$table_name} (
+                vid int_unsigned NOT NULL default '0',
+                delta int_unsigned NOT NULL default '0',
+                nid int_unsigned NOT NULL default '0',
+                PRIMARY KEY (vid,delta)
+              )");
+            break;
+          case 'mysql':
+          case 'mysqli':
+            db_query("CREATE TABLE {" . $table_name . "} (
+              vid integer unsigned NOT NULL default '0',
+              delta integer unsigned NOT NULL default '0',
+              nid integer unsigned NOT NULL default '0',
+              PRIMARY KEY (vid,delta)
+            )/*!40100 ENGINE = MYISAM DEFAULT CHARACTER SET utf8 */");
+            break;
+        }
         
         $type = strtoupper($field['type']);
         geo_add_geometry_column($table_name, $field_name, $type); // all cck fields are WGS84 for now
@@ -206,7 +219,9 @@ function geo_views_relation_field_validator($fielddata, $view, $form) {
  * Retrieve an entry from the geo_field table, for this particular field
  */
 function _geo_get_cck_field($field_name) {
+var_dump($field_name);
   $fields = geo_fields('content');
+var_dump($fields);
   return $fields[$field_name];
 }
 

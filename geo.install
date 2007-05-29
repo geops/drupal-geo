@@ -30,6 +30,31 @@ function geo_install() {
            PRIMARY KEY(glid)
          )");
       break;
-    // TODO add a mysql 
+
+    case 'mysql':
+      db_query("CREATE TABLE {geo_field} (
+        gfid           INTEGER UNSIGNED NOT NULL,
+        module         VARCHAR(200),
+        table_name     VARCHAR(200),
+        field_name     VARCHAR(200),
+        table_title    VARCHAR(255),
+        field_title    VARCHAR(255),
+        data_type      VARCHAR(100),
+        geometry_type  VARCHAR(100) DEFAULT NULL,
+        dimensions     INT DEFAULT NULL,
+        srid           INT DEFAULT NULL,
+        PRIMARY KEY(gfid)
+      )/*!40100 DEFAULT CHARACTER SET utf8 */");
+
+      db_query("CREATE TABLE {geo_link} (
+        glid           INTEGER UNSIGNED NOT NULL,
+        gfid           INT DEFAULT NULL,
+        left_table     VARCHAR(255),
+        left_field     VARCHAR(255),
+        right_field    VARCHAR(255),
+        additional_fields TEXT,
+        PRIMARY KEY(glid)
+      )/*!40100 DEFAULT CHARACTER SET utf8 */");
+      break;
   }
 }
