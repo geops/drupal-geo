@@ -6,11 +6,11 @@ function geo_install() {
         // create the geo fields table to track each geometry field in the db
         db_query("CREATE TABLE {geo_field} (
            gfid           SERIAL,
-           name           VARCHAR(32),
-           title          VARCHAR(255),
            module         VARCHAR(200),
            table_name     VARCHAR(200),
            field_name     VARCHAR(200),
+           table_title    VARCHAR(255),
+           field_title    VARCHAR(255),
            data_type      VARCHAR(100),
            geometry_type  VARCHAR(100) DEFAULT NULL,
            dimensions     INT DEFAULT NULL,

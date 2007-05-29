@@ -9,6 +9,34 @@
  **/
 
 /**
+ * Views hooks
+ */
+ 
+/**
+ * Implemenation of hook_views_tables
+ */
+function geo_views_tables() {
+  /* pseudo
+  1. load all the data from geo_link left joined to the geo_field
+  2. foreach, create the table
+  */
+  
+  $res = db_query("SELECT * FROM {geo_link} l LEFT JOIN {geo_field} f ON l.gfid = f.gfid");
+  while($row = db_fetch_array($res)) {
+    $tables['geo_link_' . $row['table_name'] . '_' . $row['field_name']] =
+      geo_views_create_geometry_table($row['table_name'], 
+                                      $row['field_name'],
+                                      t('Geo: @field_name'), // XXX add this to geo_field table
+                                      $row['left_table'],
+                                      $row['left_field'],
+                                      $row['right_field']);
+  }
+  
+  return $tables;
+  
+}
+
+/**
  * Functions for creating views tables for geometry objects
  **/
  
