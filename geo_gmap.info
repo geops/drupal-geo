@@ -1,7 +1,6 @@
 ; $Id$
 name = Geo + Google Maps
 description = Provides interaction with the gmap module for geo-spatial data.
-version = "$Name$"
 package = Geo
 dependencies = geo gmap
 
