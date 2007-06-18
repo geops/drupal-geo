@@ -1,7 +1,6 @@
 ; $Id$
 name = Geo
 description = Provides a storage engine and CCK field for geo-spatial data. 
-version = "$Name$"
 package = Geo
 dependencies = content
 
