@@ -33,7 +33,7 @@ function geo_install() {
 
     case 'mysql':
       db_query("CREATE TABLE {geo_field} (
-        gfid           INTEGER UNSIGNED NOT NULL,
+        gfid           INTEGER UNSIGNED NOT NULL auto_increment
         module         VARCHAR(200),
         table_name     VARCHAR(200),
         field_name     VARCHAR(200),
@@ -47,7 +47,7 @@ function geo_install() {
       )/*!40100 DEFAULT CHARACTER SET utf8 */");
 
       db_query("CREATE TABLE {geo_link} (
-        glid           INTEGER UNSIGNED NOT NULL,
+        glid           INTEGER UNSIGNED NOT NULL auto_increment,
         gfid           INT DEFAULT NULL,
         left_table     VARCHAR(255),
         left_field     VARCHAR(255),
