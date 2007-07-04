@@ -219,9 +219,7 @@ function geo_views_relation_field_validator($fielddata, $view, $form) {
  * Retrieve an entry from the geo_field table, for this particular field
  */
 function _geo_get_cck_field($field_name) {
-var_dump($field_name);
   $fields = geo_fields('content');
-var_dump($fields);
   return $fields[$field_name];
 }
 
@@ -231,7 +229,7 @@ var_dump($fields);
 function _geo_insert_cck_field($table_name, $field_name, $type, $srid) {
   // we borrow the content.module namespace to show this is a CCK field, as compared to another geo field
   $sql =<<<EOF
-INSERT INTO {geo_field} (name, title, module, table_name, field_name, data_type, geometry_type, dimensions, srid)
+INSERT INTO {geo_field} (table_title, field_title, module, table_name, field_name, data_type, geometry_type, dimensions, srid)
   VALUES ('%s', '%s', 'content', '%s', '%s', '%s', '%s', 2, %d)
 EOF;
   $title = 'content_' . $table_name . '_' . $field_name;
