@@ -104,7 +104,7 @@ function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $g
   switch($op) {
     case 'load':
       $extras = array();
-      $res = db_query("SELECT srid($fn) as srid, asText($fn) AS wkt, asText(centroid($fn)) AS centroid, asText(envelope($fn)) as bbox FROM {$table} WHERE vid = %d AND nid = %d", $node->vid, $node->nid);
+      $res = db_query("SELECT srid($fn) as srid, asText($fn) AS wkt, asText(centroid($fn)) AS centroid, asText(envelope($fn)) as bbox FROM {$table} WHERE vid = %d", $node->vid);
       while($row = db_fetch_array($res)) {
         $extras[] = $row;
       }
@@ -112,17 +112,10 @@ function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $g
 
     case 'insert':
     case 'update':
-      // does this vid, nid combo have an entry?
-      if(db_num_rows(db_query("SELECT vid FROM {" . $table . "} WHERE vid = %d AND nid = %d", $node->vid, $node->nid))) {
-        // vid, nid combo exists. just add update.
-        $sql = "UPDATE {" . $table . "} SET $fn = GeomFromText('%s', 4326) WHERE vid = %d AND nid = %d";
-      } else {
-        // this is a new node or new revision of an existing node.
-        $sql = "INSERT INTO {" . $table . "} ($fn, vid, nid) VALUES (GeomFromText('%s', 4326), %d, %d)";
-      }
-      db_query($sql, $node_field[0]['wkt'], $node->vid, $node->nid);
-      
-      // XXX does not work for revisions. should see if there is a revision in the table
+      // Remove any stale data for this revision.
+      db_query("DELETE FROM {" . $table . "} WHERE vid = %d", $node->vid);
+      // @@@ Multiple
+      db_query("INSERT INTO {" . $table . "} ($fn, vid, nid) VALUES (GeomFromText('%s', 4326), %d, %d)", $node_field[0]['wkt'], $node->vid, $node->nid);
       break;
     case 'delete':
       db_query("DELETE FROM {" . $table . "} WHERE nid = %d", $node->nid); // should we delete by nid only?
@@ -130,6 +123,18 @@ function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $g
     case 'submit':
       break;
     case 'validate':
+      $delta = 0; // @@@ Multivalue?
+      if (!empty($node_field[0]['wkt'])) {
+        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', 4326))", $node_field[0]['wkt']));
+        if (empty($res)) {
+          form_set_error($field['field_name'].']['.$delta.'][wkt', t('Unable to parse WKT.'));
+        }
+        else {
+          if ($geo_field['geometry_type'] != $res) {
+            form_set_error($field['field_name'].']['.$delta.'][wkt', t('Wrong geometry type. Got %result, was expecting %type.',array('%result' => $res,'%type' => $geo_field['geometry_type'])));
+          }
+        }
+      }
       break;
   }
 }

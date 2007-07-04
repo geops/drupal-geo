@@ -110,8 +110,8 @@ function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
     case 'update':
     case 'delete':
     case 'submit':
+    case 'validate': // Bdragon 04JUL07 - Delegate validation to the backend so we can leverage the GIS system for validation
       return geo_backend_field($op, $node, $field, $node_field, $teaser, $page, $geo_field);
-    case 'validate':
       /* Pseudo
       - get the opengis type and validate
       */
