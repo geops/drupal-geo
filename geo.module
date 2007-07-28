@@ -1,8 +1,13 @@
 <?php
+// $Id$
+
+/**
+ * Geo: Geospatial storage and retrieval.
+ */
 
 // TODO find a better way to load these on demand. we don't need them on every page load
-require_once dirname(__FILE__) . '/geo_cck.inc';
-require_once dirname(__FILE__) . '/geo_views.inc';
+require_once dirname(__FILE__) .'/geo_cck.inc';
+require_once dirname(__FILE__) .'/geo_views.inc';
 
 /**
  * Implementation of hook_init()
@@ -12,6 +17,7 @@ function geo_init() {
     geo_bootstrap(); // bootstrap the db for non-cached page views
   }
 }
+
 /**
  * Implementation of hook_menu().
  */
@@ -19,7 +25,6 @@ function geo_menu($may_cache) {
   $items = array();
 
   if ($may_cache) {
-
     $items[] = array(
       'path' => 'admin/settings/geo',
       'title' => t('Geo'),
@@ -46,11 +51,8 @@ function geo_menu($may_cache) {
       'type' => MENU_NORMAL_ITEM,
       'access' => TRUE,
       'discription' => t('Configure settings for the geo module'),
-      );
-  } else {
-    
+    );
   }
-
   return $items;
 }
 
@@ -73,8 +75,8 @@ function geo_admin_settings() {
  * Automatic geo_admin.inc includer. Standard stuff
  */
 function geo_admin($func) {
-  require_once dirname(__FILE__).'/geo_admin.inc';
-  if (function_exists($func = '_geo_'.$func)) {
+  require_once dirname(__FILE__) .'/geo_admin.inc';
+  if (function_exists($func = '_geo_'. $func)) {
     $args = func_get_args();
     unset($args[0]);
     return call_user_func_array($func, $args);
@@ -99,16 +101,16 @@ function geo_bootstrap($reset = FALSE) {
   - find the db type and include the backend file
   - IDEA! use CCK for the storage engine for non-postgis, non-mysqlspatial (can support postgres and mysql on one code base!)
   */
-  switch(geo_backend_type()) {
+  switch (geo_backend_type()) {
     case 'postgis':
-      require_once drupal_get_path('module', 'geo') . '/db/postgis.inc';
+      require_once drupal_get_path('module', 'geo') .'/db/postgis.inc';
       break;
     case 'cck':
       // include the common backend
       break;
     case 'mysql_spatial':
       // include the mysql spatial backend
-      require_once drupal_get_path('module', 'geo') . '/db/mysql_spatial.inc';
+      require_once drupal_get_path('module', 'geo') .'/db/mysql_spatial.inc';
       break;
   }
   $ran = true;
@@ -121,12 +123,13 @@ function geo_bootstrap($reset = FALSE) {
  *  The name of the backend: postgis, cck, mysql_spatial
  **/
 function geo_backend_type() {
-  switch($GLOBALS['db_type']) {
+  switch ($GLOBALS['db_type']) {
     case 'pgsql':
       // use the postgis backend if installed
-      if(db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc  WHERE proname = 'postgis_version'"))) {
+      if (db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc  WHERE proname = 'postgis_version'"))) {
         return 'postgis';
-      } else {
+      }
+      else {
         return 'pgsql';
       }
       break;
@@ -139,7 +142,6 @@ function geo_backend_type() {
         return 'mysql_spatial';
       }
   }
-  
 }
 
 /*** Cross Database API Functions ***/

@@ -1,3 +1,6 @@
+<?php
+// $Id$
+
 /* the old hook menu and settings pages:
 
 $items[] = array(
@@ -29,19 +32,20 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 
   if ($op == 'submit') {
 
-    if(is_array($node->locations)) {
+    if (is_array($node->locations)) {
 
-      foreach($node->locations as $key => $location) {
+      foreach ($node->locations as $key => $location) {
 
         // create a crippled location using only the fields whitelisted on the settings page
         $crippled_location = array();
         $fields_to_use = variable_get('geo_geocode_fields', array_keys(_geo_location_fields()));
-        foreach($fields_to_use as $subfield) {
+        foreach ($fields_to_use as $subfield) {
           
           // provinces come with the country code prepended, strip 'em
-          if($subfield == 'province') {
+          if ($subfield == 'province') {
             $crippled_location[$subfield] = substr($location[$subfield], 3);
-          } else {
+          }
+          else {
             $crippled_location[$subfield] = $location[$subfield];
           }
         }
@@ -69,7 +73,6 @@ function geo_geocode($location = array()) {
   preg_match('/<code>(.*)<\/code>/', $http_reply->data, $status_code_match);
   $status_code = $status_code_match[1];
   if ($status_code != 200) {
-    
     return NULL;
   }
   
@@ -92,7 +95,7 @@ function geo_geocode($location = array()) {
 
 // little helper function to hold the keys and names of the location fields
 function _geo_location_fields() {
-  return array (
+  return array(
     'street' => t('Street'),
     'city' => t('City'),
     'province' => t('State/Province'),

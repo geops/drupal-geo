@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 /**
  * @file
@@ -28,7 +29,7 @@ function geo_field_info() {
 }
 
 /**
- * Implementation of hook_field_settings()
+ * Implementation of hook_field_settings().
  */
 function geo_field_settings($op, $field) {
   $field_name = $field['field_name'];
@@ -46,13 +47,14 @@ function geo_field_settings($op, $field) {
       $geo_field = _geo_get_cck_field($field_name);
       if ($geo_field) {
         // the field already has storage. good i don't think there's anything else to do
-      } else {
+      }
+      else {
         // the field does not have storage, so we need to create its field
 
         switch ($GLOBALS['db_type']) {
           case 'pgsql':
             // XXX this is pg specific
-            db_query("CREATE TABLE {$table_name} (
+            db_query("CREATE TABLE {". $table_name ."} (
                 vid int_unsigned NOT NULL default '0',
                 delta int_unsigned NOT NULL default '0',
                 nid int_unsigned NOT NULL default '0',
@@ -61,7 +63,7 @@ function geo_field_settings($op, $field) {
             break;
           case 'mysql':
           case 'mysqli':
-            db_query("CREATE TABLE {" . $table_name . "} (
+            db_query("CREATE TABLE {". $table_name ."} (
               vid integer unsigned NOT NULL default '0',
               delta integer unsigned NOT NULL default '0',
               nid integer unsigned NOT NULL default '0',
@@ -93,12 +95,11 @@ function geo_field_settings($op, $field) {
     */
     case 'filters':
       return array();
-
   }
 }
 
 /**
- * Implementation of hook_field()
+ * Implementation of hook_field().
  */
 function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
   // This next line could probably be cached in the CCK field settings....
@@ -120,7 +121,7 @@ function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
 }
 
 /**
- * Implementation of hook_field_formatter_info
+ * Implementation of hook_field_formatter_info().
  */
 function geo_field_formatter_info() {
   // TODO some other formatters: asKML, asGML, asGeoRSS, etc
@@ -134,12 +135,12 @@ function geo_field_formatter_info() {
 }
 
 /**
- * Implementation fo hook_field_formatter
+ * Implementation fo hook_field_formatter().
  */
 function geo_field_formatter($field, $item, $formatter, $node) {
   //dpr("In my field formatter");
   //dpr($item);
-  switch($formatter) {
+  switch ($formatter) {
     
     default:
       return $item['wkt'];
@@ -147,7 +148,7 @@ function geo_field_formatter($field, $item, $formatter, $node) {
 }
 
 /**
- * Implementation of hook_widget_info()
+ * Implementation of hook_widget_info().
  */
 function geo_widget_info() {
   return array(
@@ -159,7 +160,7 @@ function geo_widget_info() {
 }
 
 /**
- * Implementation of hook_widget_settings()
+ * Implementation of hook_widget_settings().
  */
 function geo_widget_settings($op, $widget) {
   switch ($op) {
@@ -177,7 +178,7 @@ function geo_widget_settings($op, $widget) {
 }
 
 /**
- * Implementation of hook_widget
+ * Implementation of hook_widget().
  */
 function geo_widget($op, &$node, $field, &$items) {
   //dpr("In geo widget $op");
@@ -215,16 +216,16 @@ function geo_views_relation_field_validator($fielddata, $view, $form) {
 
 /*** Helper Functions ****/
 
-/* 
- * Retrieve an entry from the geo_field table, for this particular field
+/**
+ * Retrieve an entry from the geo_field table, for this particular field.
  */
 function _geo_get_cck_field($field_name) {
   $fields = geo_fields('content');
   return $fields[$field_name];
 }
 
-/*
- * Register a new CCK field in the geo_field table
+/**
+ * Register a new CCK field in the geo_field table.
  */
 function _geo_insert_cck_field($table_name, $field_name, $type, $srid) {
   // we borrow the content.module namespace to show this is a CCK field, as compared to another geo field
@@ -232,7 +233,6 @@ function _geo_insert_cck_field($table_name, $field_name, $type, $srid) {
 INSERT INTO {geo_field} (table_title, field_title, module, table_name, field_name, data_type, geometry_type, dimensions, srid)
   VALUES ('%s', '%s', 'content', '%s', '%s', '%s', '%s', 2, %d)
 EOF;
-  $title = 'content_' . $table_name . '_' . $field_name;
+  $title = 'content_'. $table_name .'_'. $field_name;
   db_query($sql, $field_name, $title, $table_name, $field_name, $type, $type, $srid);
 }
-

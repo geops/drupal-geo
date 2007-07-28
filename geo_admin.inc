@@ -1,15 +1,20 @@
 <?php
+// $Id$
 
 /**
+ * @file
  * Administration tasks for the geo module, such as finding and adding new tables to views.
  *
  * @version $Id$
  * @package geo
- **/
+ */
 
+/**
+ * Put together a form of all the spatial columns.
+ */
 function _geo_build_tables() {
   // TODO fetch all existing link information and stash ids in $form array
-  $form = array('#base' =>'_geo_build_tables');
+  $form = array('#base' => '_geo_build_tables');
   $form['tables']['#tree'] = true;
   if (module_exists('views')) {
     $known_fields = geo_fields();
@@ -21,8 +26,8 @@ function _geo_build_tables() {
 
     // construct an #options array out of the field names:
     $views_field_options['NONE'] = t('No link');
-    foreach($views_fields as $id => $field) {
-      if($field['notafield']) { continue; } // skip things we can't really link to in the db.
+    foreach ($views_fields as $id => $field) {
+      if ($field['notafield']) { continue; } // skip things we can't really link to in the db.
 
       $views_field_options[$id] = $field['name'];
     }
@@ -34,7 +39,7 @@ function _geo_build_tables() {
         '#title' => t('Table Label'),
         '#default_value' => '', // TODO set as table label from link table
       );
-      foreach ( _geo_table_desc($table) as $col => $desc) {
+      foreach (_geo_table_desc($table) as $col => $desc) {
         $form['tables'][$table][$col] = array(
           'view_field' => array('#type' => 'select', '#options' => $views_field_options),
           'exposed' => array( '#type' => 'checkbox', '#default_value' => isset($fields[$table][$col]) ),
@@ -54,16 +59,16 @@ function _geo_build_tables_submit($form_id, $values) {
   views_load_cache(); // get access to some useful views_cache.inc functions
   $views_fields = _views_get_fields();
   
-  foreach($values['tables'] as $table => $fields) {
-    foreach($fields as $col => $data) {
-      if($link_field = $views_fields[$data['view_field']]) {
+  foreach ($values['tables'] as $table => $fields) {
+    foreach ($fields as $col => $data) {
+      if ($link_field = $views_fields[$data['view_field']]) {
         // get the "column" we will join on and the table where that column exists.
         $link_column = substr($data['view_field'], strpos($data['view_field'], '.') + 1);
         $link_table = $link_field['table'];
         $additional_columns = array();
         // now we iterate through this table again, to find all the "exposed" fields
-        foreach($fields as $ecol => $edata) {
-          if($edata['exposed']) {
+        foreach ($fields as $ecol => $edata) {
+          if ($edata['exposed']) {
             $additional_columns[$ecol] = array(
               'label' => $edata['desc'],
               'type' => $edata['type_hidden'],
@@ -99,12 +104,12 @@ function theme__geo_build_tables($form) {
       );
     }
   }
-  $header = array (
+  $header = array(
     t('Link to Existing Field'),
     t('Expose as field'),
     t('Column Name'),
     t('Data Type'),
-    t('Label')
+    t('Label'),
   );
   $output = theme('table', $header, $rows);
   $output .= drupal_render($form);
