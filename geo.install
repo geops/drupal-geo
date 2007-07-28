@@ -1,7 +1,8 @@
 <?php
+// $Id$
 
 function geo_install() {
-  switch($GLOBALS['db_type']) {
+  switch ($GLOBALS['db_type']) {
     case 'pgsql':
         // create the geo fields table to track each geometry field in the db
         db_query("CREATE TABLE {geo_field} (

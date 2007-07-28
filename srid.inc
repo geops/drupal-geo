@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 /**
  * @file
@@ -14,7 +15,7 @@
  
 function geo_srids() {
   // this array is generated using the geo_devel module
-  return array (
+  return array(
     2000 => 'Anguilla 1957 / British West Indies Grid (SRID: 2000)',
     2001 => 'Antigua 1943 / British West Indies Grid (SRID: 2001)',
     2002 => 'Dominica 1945 / British West Indies Grid (SRID: 2002)',
