@@ -10,10 +10,10 @@
 
 /**
  * Widget Hooks
- **/
+ */
 
 /**
- * Implementation of hook_widget_info()
+ * Implementation of hook_widget_info().
  */
 function geo_gmap_widget_info() {
   return array(
@@ -25,7 +25,7 @@ function geo_gmap_widget_info() {
 }
 
 /**
- * Implementation of hook_widget_settings()
+ * Implementation of hook_widget_settings().
  */
 function geo_gmap_widget_settings($op, $widget) {
   switch ($op) {
@@ -45,7 +45,7 @@ function geo_gmap_widget_settings($op, $widget) {
 }
 
 /**
- * Implementation of hook_widget
+ * Implementation of hook_widget().
  */
 function geo_gmap_widget($op, &$node, $field, &$items) {
   //dpr("In geo widget $op");
@@ -81,10 +81,10 @@ function geo_gmap_widget($op, &$node, $field, &$items) {
 
 /** 
  * Gmap Hooks
- **/
+ */
  
 /**
- * Implementation of hook_gmap_views_handle_field()
+ * Implementation of hook_views_handle_field().
  */
 function geo_gmap_views_handle_field($phase, $data) {
   
@@ -127,11 +127,11 @@ function geo_gmap_views_handle_field($phase, $data) {
 
 /**
  * Form Element Stuff
- **/
+ */
  
 /**
- * Implementation of hook_elements()
- **/
+ * Implementation of hook_elements().
+ */
 function geo_gmap_elements() {
   return array(
     'gmap_wkt' => array (
