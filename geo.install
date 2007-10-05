@@ -33,8 +33,9 @@ function geo_install() {
       break;
 
     case 'mysql':
+    case 'mysqli':
       db_query("CREATE TABLE {geo_field} (
-        gfid           INTEGER UNSIGNED NOT NULL auto_increment
+        gfid           INTEGER UNSIGNED NOT NULL auto_increment,
         module         VARCHAR(200),
         table_name     VARCHAR(200),
         field_name     VARCHAR(200),
