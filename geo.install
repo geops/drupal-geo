@@ -60,3 +60,11 @@ function geo_install() {
       break;
   }
 }
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function geo_uninstall() {
+  db_query('DROP TABLE {geo_field}');
+  db_query('DROP TABLE {geo_link}');
+}
