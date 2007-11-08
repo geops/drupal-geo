@@ -38,6 +38,7 @@ function geo_field_settings($op, $field) {
   switch ($op) {
     case 'form':
       // TODO pick the SRID for this column
+      $form = array();
       return $form;
 
     case 'save':
@@ -53,7 +54,6 @@ function geo_field_settings($op, $field) {
 
         switch ($GLOBALS['db_type']) {
           case 'pgsql':
-            // XXX this is pg specific
             db_query("CREATE TABLE {". $table_name ."} (
                 vid int_unsigned NOT NULL default '0',
                 delta int_unsigned NOT NULL default '0',
@@ -156,6 +156,10 @@ function geo_widget_info() {
       'label' => t('Direct Text Entry'),
       'field types' => array_keys(geo_field_info()), // easy way to get all fields
     ),
+    'latlon' => array(
+      'label' => t('Latitude / Longitude'),
+      'field types' => array('point'),
+    ),
   );
 }
 
@@ -192,20 +196,52 @@ function geo_widget($op, &$node, $field, &$items) {
       $form = array();
       $fn = $field['field_name'];
       
-      $form[$fn] = array('#tree' => TRUE);
-      // for now, we just have one item
-      $form[$fn][0]['wkt'] = array(
-        '#type' => 'textfield',
+      $form[$fn] = array(
+        '#tree' => TRUE,
+        '#type' => 'fieldset',
         '#title' => t($field['widget']['label']),
-        '#default_value' => $items[0]['wkt'],
-        '#required' => $field['required'],
-        '#description' => $field['widget']['description'],
       );
-      
+      switch ($field['widget']['type']) {
+        case 'latlon':
+          $data = _geo_latlonfrompoint($items[0]['wkt']);
+          $form[$fn][0]['latlon']['lat'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Latitude'),
+            '#default_value' => $data['lat'],
+            '#required' => $field['required'],
+            '#size' => 15,
+            '#maxlength' => 15,
+          );
+          $form[$fn][0]['latlon']['lon'] = array(
+            '#type' => 'textfield',
+            '#title' => t('Longitude'),
+            '#default_value' => $data['lon'],
+            '#required' => $field['required'],
+            '#size' => 15,
+            '#maxlength' => 15,
+          );
+          break;
+        case 'wkt':
+        default:
+          // for now, we just have one item
+          $form[$fn][0]['wkt'] = array(
+            '#type' => 'textfield',
+            '#title' => t($field['widget']['label']),
+            '#default_value' => $items[0]['wkt'],
+            '#required' => $field['required'],
+            '#description' => $field['widget']['description'],
+          );
+          break;
+      }
       return $form;
 
     case 'process form values':
-
+      foreach($items as $delta => $values) {
+        if (isset($values['latlon']) && !empty($values['latlon']['lat'])) {
+          $items[$delta]['wkt'] = 'POINT('. $items[0]['latlon']['lat'] .' '. $items[0]['latlon']['lon'] .')';
+          unset($items[$delta]['latlon']);
+        }
+      }
       break;
   }
 }

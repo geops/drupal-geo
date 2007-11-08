@@ -358,6 +358,15 @@ function _geo_fromtext($string, $table, $field) {
   return "GeomFromText('$string', $srid)";
 }
 
+// Point to latlon
+function _geo_latlonfrompoint($wkt, $srid = 4326) {
+  // Yep. Not efficient.
+  return array(
+    'lat' => db_result(db_query("SELECT X(GeomFromText('%s', %d))", $wkt, $srid)),
+    'lon' => db_result(db_query("SELECT Y(GeomFromText('%s', %d))", $wkt, $srid)),
+  );
+}
+
 // returns the PostGIS version information
 function _geo_version() {
   return db_result(db_query("SELECT postgis_version()"));
