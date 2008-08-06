@@ -2,5 +2,5 @@
 name = Geo
 description = Provides a storage engine and CCK field for geo-spatial data. 
 package = Geo
-dependencies = content
-
+dependencies[] = content
+core = 6.x

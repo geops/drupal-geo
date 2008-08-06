@@ -1,0 +1,6 @@
+; $Id$
+name = Geo + Google Maps
+description = Provides interaction with the gmap module for geo-spatial data.
+package = Geo
+dependencies = geo gmap
+

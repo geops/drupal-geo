@@ -1,13 +1,8 @@
-<?php
-// $Id$
+<?php // $Id$
 
 /**
  * Geo: Geospatial storage and retrieval.
  */
-
-// TODO find a better way to load these on demand. we don't need them on every page load
-require_once dirname(__FILE__) .'/geo_cck.inc';
-require_once dirname(__FILE__) .'/geo_views.inc';
 
 /**
  * Implementation of hook_init()
@@ -15,71 +10,6 @@ require_once dirname(__FILE__) .'/geo_views.inc';
 function geo_init() {
   if (function_exists('drupal_set_content')) {
     geo_bootstrap(); // bootstrap the db for non-cached page views
-  }
-}
-
-/**
- * Implementation of hook_menu().
- */
-function geo_menu($may_cache) {
-  $items = array();
-
-  if ($may_cache) {
-    $items[] = array(
-      'path' => 'admin/settings/geo',
-      'title' => t('Geo'),
-      'callback' => 'drupal_get_form',
-      'callback arguments' => array('geo_admin_settings'),
-      'access' => user_access('administer site configuration'),
-      'type' => MENU_NORMAL_ITEM,
-      'discription' => t('Configure settings for the geo module'),
-    );
-    
-    $items[] = array(
-      'path'        => 'admin/build/geo',
-      'title'       => t('Geo-Spatial Tables'),
-      'description' => t('Manage geographic information'),
-      'callback'    => 'drupal_get_form',
-      'callback arguments' => array('geo_admin', 'build_tables'),
-      'access'      => t('administer geo-spatial tables'),
-    );
-    
-    $items[] = array(
-      'path' => 'test-geo',
-      'title' => t('Testing geo'),
-      'callback' => 'geo_test_page',
-      'type' => MENU_NORMAL_ITEM,
-      'access' => TRUE,
-      'discription' => t('Configure settings for the geo module'),
-    );
-  }
-  return $items;
-}
-
-/**
- * Implementation of hook_perm()
- */
-function geo_perm() {
-  return array(t('administer geo-spatial tables'));
-}
-
-/**
- * Settings callback function
- */
-function geo_admin_settings() {
-  $form = array();
-  return system_settings_form($form);
-}
-
-/**
- * Automatic geo_admin.inc includer. Standard stuff
- */
-function geo_admin($func) {
-  require_once dirname(__FILE__) .'/geo_admin.inc';
-  if (function_exists($func = '_geo_'. $func)) {
-    $args = func_get_args();
-    unset($args[0]);
-    return call_user_func_array($func, $args);
   }
 }
 
@@ -172,15 +102,4 @@ function geo_fields($module = NULL) {
   }
   
   return $fields;
-}
-
-/*** For testing ****/
-
-function geo_test_page() {
-  $output = '<p>geo test page</p>';
-  if (variable_get('geo_postgis', false)) {
-    $output .= "<p>PostGIS installed</p>";
-  }
-  
-  return $output;
 }

@@ -1,0 +1,202 @@
+<?php
+
+/**
+ * Provides a widget that uses a google map to select points, lines and polygons
+ *
+ * @author Mark Fredrickson
+ * @version $Id$
+ * @package geo
+ **/
+
+/**
+ * Widget Hooks
+ */
+
+/**
+ * Implementation of hook_widget_info().
+ */
+function geo_gmap_widget_info() {
+  return array(
+    'geo_gmap' => array(
+      'label' => t('Google Map'),
+      'field types' => array_keys(geo_field_info()), // easy way to get all fields
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_widget_settings().
+ */
+function geo_gmap_widget_settings($op, $widget) {
+  switch ($op) {
+    case 'form':
+      $form = array();
+      // TODO if views_ui is available, use it to build a custom macro for this widget.
+      return $form;
+
+    case 'validate':
+      break;
+
+    case 'save':
+      // Save the macro for later
+      return NULL; // array('rows');
+
+  }
+}
+
+/**
+ * Implementation of hook_widget().
+ */
+function geo_gmap_widget($op, &$node, $field, &$items) {
+  //dpr("In geo widget $op");
+  //dpr($items);
+  //dpr($node);
+  switch ($op) {
+    case 'prepare form values':
+      break;
+
+    case 'form':
+      $form = array();
+      $fn = $field['field_name'];
+      
+      $form[$fn] = array('#tree' => TRUE);
+      // for now, we just have one item
+      $form[$fn][0]['wkt'] = array(
+        '#type' => 'gmap_wkt',
+        '#title' => t($field['widget']['label']),
+        '#default_value' => $items[0]['wkt'],
+        '#required' => $field['required'],
+        '#description' => $field['widget']['description'],
+        '#geo_type' => strtoupper($field['type']),
+        
+      );
+      
+      return $form;
+
+    case 'process form values':
+
+      break;
+  }
+}
+
+/** 
+ * Gmap Hooks
+ */
+ 
+/**
+ * Implementation of hook_views_handle_field().
+ */
+function geo_gmap_views_handle_field($phase, $data) {
+  
+  switch($phase) {
+    case 'discover':
+      $fields = _views_get_fields();
+      $field_def = $fields[$data['id']];
+      
+      /* what can I handle? 
+      - point types in WKT output format
+      - any type in centroid, wkt mode
+      - linestring startpoint and endpoint in WKT
+      */
+      
+      // point types in WKT output mode
+      if($field_def['content_field']['type'] == 'point' && $data['handler'] == 'geo_views_field_handler_wkt') {
+        return 'point';
+      }
+      
+      break;
+      
+    case 'process':
+      // this field is a point, parse as such
+      if ($data['module']['extra'] == 'point') {
+        $entry = $data['entry'];
+        $field = $data['module']['field'];
+        $wkt = $entry->{$field};
+        $matches = array();
+        if(preg_match('/POINT\((.+) (.+)\)/', $wkt, $matches)) {
+          return array(
+            'lon' => $matches[1],
+            'lat' => $matches[2],
+          );
+        }
+      }
+      break;
+  }
+  
+} 
+
+/**
+ * Form Element Stuff
+ */
+ 
+/**
+ * Implementation of hook_elements().
+ */
+function geo_gmap_elements() {
+  return array(
+    'gmap_wkt' => array (
+        '#input' => true,
+        '#process' => array('geo_gmap_element_expand' => array()),
+        '#map' => gmap_defaults(),
+        '#geo_type' => 'POINT', // alternatives: LINESTRING, POLYGON
+        '#geocode_field' => true, // provides a form element to geocode an address for the next marker
+      ),
+  );
+}
+
+/**
+ * Implementation of the process call back for the gmap_wkt form element
+ */
+function geo_gmap_element_expand($element) {
+  dpr("IN the expand function");
+  //dpr($element);
+  $element['#tree'] = true; // always a good idea!
+  
+  /* pseudo
+  1. create the map with the id of this element . '-map'
+  2. load a js file that will do the heavy work. :-( Good luck me!
+  3. perhaps make a call to drupal_add_js to stick the type of this field in a JS var in the head for later
+  3a. should probably also generate some jQuery code to find the field we want by id. metaprogramming. yah!
+  4. create a 'wkt' textfield to hold the actual value? 
+  */
+  $map_id = $element['#id'] . '-map-element';
+  $element['gmap'] = array (
+    '#type' => 'gmap',
+    '#settings' => $element['#map'],
+    '#map' => $map_id,
+    '#id' => $element['#id'] . '-map',
+    '#parents' => array_merge($element['#parents'], array('gmap')),
+   // '#name' => $element['']
+  );
+  
+  /* not working quite yet... 
+  if ($element['#geocode_field']) {
+    $element['gmap_geocode'] = array (
+      '#type' => 'gmap_address',
+      '#parents' => array_merge($element['#parents'], array('gmap')),
+    );
+  }  
+  */
+  
+  //$geo_gmap_path = drupal_get_path('module', 'geo_gmap');
+  drupal_add_js($geo_gmap_path . '/js/gmap_wkt.js');
+  // create some dynamic JavaScript to run this element.
+  $dynamic_js =<<<EOF
+  if (Drupal.jsEnabled) {
+    $(document).ready(function() {
+      $("div.$map_id-gmap").css('border', '3px solid red');
+    });
+  }
+EOF;
+  drupal_add_js($dynamic_js, 'inline');
+  return $element;
+}
+
+/**
+ * Implementation of the theme function for gmap_wkt element
+ */
+function theme_gmap_wkt($element) {
+  //dpr("In the element theme func");
+  //dpr($element);
+  return $element['#children'];
+}
