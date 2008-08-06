@@ -1,5 +1,4 @@
-<?php
-// $Id$
+<?php // $Id$
 
 function geo_install() {
   switch ($GLOBALS['db_type']) {
