@@ -1,5 +1,4 @@
-<?php
-// $Id$
+<?php // $Id$
 
 /**
  * @file
@@ -23,14 +22,17 @@
  *   The OpenGIS type of the column.
  *   Valid types are: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRYCOLLECTION
  * @param $srid
- *   The Spatial Reference ID of this column's projection. The most commonly used SRID is 4326, which corresponds to unprojected lat-long in WGS84.
+ *   The Spatial Reference ID of this column's projection. The most commonly used SRID is GEO_SRID_DEFAULT, which corresponds to unprojected lat-long in WGS84.
  * @return boolean
  * Success or failure
  */
-function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '4326') {
+function geo_db_add_field(&$ret, $table, $field, $spec) {
+  $type = '';
+  $srid = '';
+
   // NOTE for now, all geometries are 2d. deal with it
-  db_query("ALTER TABLE {". $table ."} ADD %s %s NOT NULL", $field_name, $type);
-  db_query("CREATE SPATIAL INDEX {". $table ."}_${field_name}_idx ON {$table} ($field_name)");
+  $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $type);
+  db_query("CREATE SPATIAL INDEX {". $table ."}_${column}_idx ON {$table} ($column)");
 
   // @@@ Error handling
   return true;
@@ -48,26 +50,9 @@ function geo_add_geometry_column($table, $field_name, $type = 'POINT', $srid = '
  *  Success or failure
  *
  */
-function geo_drop_geometry_column($table, $field_name) {
-  db_query("ALTER TABLE {". $table ."} DROP COLUMN $field_name");
-  // @@@ Error handling
+function geo_db_drop_field($table, $column) {
+  db_query("ALTER TABLE {%s} DROP COLUMN %s", $table, $column);
   return true;
-}
-
-/**
- * Move a geometry field from one table to another. Implicitly calls add_geometry_column() on the new table, and drop geometry columnh on the old table.
- *
- * @param $field_name
- *  The name of the field to move.
- * @param $old_table
- *  The name of the table that currently holds the geometry information.
- * @param $new_table
- *  The name of the new table that should contain the information.
- * @return boolean
- *  Success or failure
- */
-function geo_move_geometry_column($field_name, $old_table, $new_table) {
-  // TODO do I need a $key to know how to link the two tables? probably.
 }
 
 /**
@@ -79,55 +64,15 @@ function geo_move_geometry_column($field_name, $old_table, $new_table) {
  *  The name of the field in which to insert the data.
  * @return void
  */
-function geo_update_geometry_data($table, $field_name, $where, $geometry) {
-  db_query("UPDATE $table SET $field_name = GeomFromText('%s') WHERE $where", $geometry['wkt']);
-  return true; // TODO better return value someday
+function geo_db_field_from_wkt($wkt, $srid) {
+  return " GeomFromText('". $wkt ."') ";
 }
 
+function geo_db_field_validate($wkt, $srid) {
 /*
- * CCK Functions
- *
- * Backends must implement these CCK related functions in order to load and store geo
- * data in their particular representations.
- *
- * They are identical to the usual cck hooks, with the addition of a $geo_field parameter
- * that will be passed in from the real hook. This is the entry in the geo_field table.
- */
- 
-/**
- * A backend implementation of hook_field. Called from geo_field the backend must do the real work.
- *
- * @return various
- */
-function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $geo_field) {
-  $fn = $field['field_name'];
-  $table = $geo_field['table_name'];
-  
-  switch ($op) {
-    case 'load':
-      $extras = array();
-      $res = db_query("SELECT srid($fn) as srid, asText($fn) AS wkt, asText(centroid($fn)) AS centroid, asText(envelope($fn)) as bbox FROM {$table} WHERE vid = %d", $node->vid);
-      while ($row = db_fetch_array($res)) {
-        $extras[] = $row;
-      }
-      return array($field['field_name'] => $extras);
-
-    case 'insert':
-    case 'update':
-      // Remove any stale data for this revision.
-      db_query("DELETE FROM {". $table ."} WHERE vid = %d", $node->vid);
-      // @@@ Multiple
-      db_query("INSERT INTO {". $table ."} ($fn, vid, nid) VALUES (GeomFromText('%s', 4326), %d, %d)", $node_field[0]['wkt'], $node->vid, $node->nid);
-      break;
-    case 'delete':
-      db_query("DELETE FROM {". $table ."} WHERE nid = %d", $node->nid); // should we delete by nid only?
-      break;
-    case 'submit':
-      break;
-    case 'validate':
-      $delta = 0; // @@@ Multivalue?
+     $delta = 0; // @@@ Multivalue?
       if (!empty($node_field[0]['wkt'])) {
-        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', 4326))", $node_field[0]['wkt']));
+        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', GEO_SRID_DEFAULT))", $node_field[0]['wkt']));
         if (empty($res)) {
           form_set_error($field['field_name'] .']['. $delta .'][wkt', t('Unable to parse WKT.'));
         }
@@ -137,10 +82,10 @@ function geo_backend_field($op, &$node, $field, &$node_field, $teaser, $page, $g
           }
         }
       }
-      break;
-  }
+
+*/
 }
-  
+
 /*
  * Views Functions
  * 
@@ -220,13 +165,13 @@ function geo_views_relation_filter_handler($op, $filterdata, $filterinfo, &$quer
       
       // these relations should have overlapping boundingboxes
       if (in_array(array('Equals', 'Within', 'Intersects'), $func)) {
-        $use_index = "GeomFromText('$clean', 4326) && $field AND ";
+        $use_index = "GeomFromText('$clean', GEO_SRID_DEFAULT) && $field AND ";
       }
       else { // if the boundingboxes don't touch, we know we are good OR use the function
-        $use_index = "NOT(GeomFromText('$clean', 4326) && $field) OR ";
+        $use_index = "NOT(GeomFromText('$clean', GEO_SRID_DEFAULT) && $field) OR ";
       }
       
-      $query->add_where($use_index ."$func($field, GeomFromText('$clean', 4326))");
+      $query->add_where($use_index ."$func($field, GeomFromText('$clean', GEO_SRID_DEFAULT))");
       break;
   }
 }
@@ -235,9 +180,6 @@ function geo_views_relation_filter_handler($op, $filterdata, $filterinfo, &$quer
  * A views query handler callback to compute length, area, perimeter, etc from db
  */
 function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
-  //dpr("In the scalar handler");
-  //dpr($field);
-  //dpr($fieldinfo);
   
   $query->ensure_table($field['tablename']);
   
@@ -362,7 +304,7 @@ function _geo_fromtext($string, $table, $field) {
 }
 
 // Point to latlon
-function _geo_latlonfrompoint($wkt, $srid = 4326) {
+function _geo_latlonfrompoint($wkt, $srid = GEO_SRID_DEFAULT) {
   // Yep. Not efficient.
   return array(
     'lat' => db_result(db_query("SELECT X(GeomFromText('%s', %d))", $wkt, $srid)),

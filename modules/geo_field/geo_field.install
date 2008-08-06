@@ -1,0 +1,16 @@
+<?php // $Id$
+
+/**
+ * Implementation of hook_install().
+ */
+function geo_field_install() {
+  content_notify('install', 'geo');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function geo_field_uninstall() {
+  content_notify('uninstall', 'geo');
+}
+
