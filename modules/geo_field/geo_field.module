@@ -15,15 +15,31 @@
  */
 
 /**
- * Implementation of hook_field_info()
+ * Implementation of hook_field_info().
  */
 function geo_field_info() {
-  // XXX are multipoints, etc different types? or just the single types + the multiple option?
   return array(
-    'point' => array('label' => 'Point'),
-    'linestring' => array('label' => 'Linestring'),
-    'polygon' => array('label' => 'Polygon'),
-    //'geometrycollection' => array('label' => 'Spatial: Mixed Collection'),
+    'geo_point' => array(
+      'label' => t('Point'),
+      'callbacks' => array( // TODO almost certainly not using default tables!
+        'tables' => CONTENT_CALLBACK_DEFAULT,
+        'arguments' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+    'geo_linestring' => array(
+      'label' => t('Linestring'),
+      'callbacks' => array(
+        'tables' => CONTENT_CALLBACK_DEFAULT,
+        'arguments' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
+    'geo_polygon' => array(
+      'label' => t('Polygon'),
+      'callbacks' => array(
+        'tables' => CONTENT_CALLBACK_DEFAULT,
+        'arguments' => CONTENT_CALLBACK_DEFAULT,
+      ),
+    ),
   );
 }
 
@@ -36,49 +52,17 @@ function geo_field_settings($op, $field) {
   
   switch ($op) {
     case 'form':
-      // TODO pick the SRID for this column
       $form = array();
+      // TODO pick the SRID for this column
+      $form['srid'] = array();
       return $form;
 
     case 'save':
-      return NULL; //array('text_processing', 'max_length', 'allowed_values');
+      return array('srid');
     
     case 'database columns':
-      $geo_field = _geo_get_cck_field($field_name);
-      if ($geo_field) {
-        // the field already has storage. good i don't think there's anything else to do
-      }
-      else {
-        // the field does not have storage, so we need to create its field
-
-        switch ($GLOBALS['db_type']) {
-          case 'pgsql':
-            db_query("CREATE TABLE {". $table_name ."} (
-                vid int_unsigned NOT NULL default '0',
-                delta int_unsigned NOT NULL default '0',
-                nid int_unsigned NOT NULL default '0',
-                PRIMARY KEY (vid,delta)
-              )");
-            break;
-          case 'mysql':
-          case 'mysqli':
-            db_query("CREATE TABLE {". $table_name ."} (
-              vid integer unsigned NOT NULL default '0',
-              delta integer unsigned NOT NULL default '0',
-              nid integer unsigned NOT NULL default '0',
-              PRIMARY KEY (vid,delta)
-            )/*!40100 ENGINE = MYISAM DEFAULT CHARACTER SET utf8 */");
-            break;
-        }
-        
-        $type = strtoupper($field['type']);
-        geo_add_geometry_column($table_name, $field_name, $type); // all cck fields are WGS84 for now
-        // XXX should this next line be handled by geo_add_geometry_column instead? would make sense.... as they are basically the same
-        _geo_insert_cck_field($table_name, $field_name, $type, 4326); // TODO allow choosing SRID!
-        
-      }
-      break; //return NULL;
-    
+      _geo_field_create_table($field);
+      return; 
     
     case 'tables':
       $info = geo_field_info();
@@ -86,12 +70,6 @@ function geo_field_settings($op, $field) {
       $view_table = geo_views_create_geometry_table($table_name, $field_name, $label_prefix, 'node', 'vid', 'vid', array('content_field' => $field), $join_extras = NULL);
       //return array('node_data_' . $field_name => $view_table);
       break;
-    /*
-    case 'arguments':
-      $arguments = content_views_field_arguments($field);
-      // whatever additions / modifications needed on the default definitions
-      return $arguments;
-    */
     case 'filters':
       return array();
   }
@@ -101,20 +79,30 @@ function geo_field_settings($op, $field) {
  * Implementation of hook_field().
  */
 function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
-  // This next line could probably be cached in the CCK field settings....
-  $geo_field = _geo_get_cck_field($field['field_name']);
-  
   switch ($op) {
+
     case 'load':
+      $ret = array();
+      $res = db_query("SELECT ". geo_db_field_select($field_name) ." FROM %s WHERE vid = %d", $table, $node->vid);
+      while ($row = db_fetch_array($res)) $ret[] = $row;
+      return array($field['field_name'] => $ret);
+
     case 'insert':
+      $value = geo_db_field_from_wkt($node_field['wkt'], $field['srid']);
+      db_query("INSERT INTO {%s} (%s, vid, nid, delta) VALUES (%s, %d, %d)", $value, $table, $field_name, 0, $node->vid, $node->nid);
+      break;
+
     case 'update':
+      $value = geo_db_field_from_wkt($node_field['wkt'], $field['srid']);
+      db_query("UPDATE {%s} SET %s = %s WHERE nid = %d", $table, $field_name, $value, $node->nid);
+      break;
+
     case 'delete':
-    case 'submit':
-    case 'validate': // Bdragon 04JUL07 - Delegate validation to the backend so we can leverage the GIS system for validation
-      return geo_backend_field($op, $node, $field, $node_field, $teaser, $page, $geo_field);
-      /* Pseudo
-      - get the opengis type and validate
-      */
+      db_query("DELETE FROM {%s} WHERE nid = %d", $table, $node->nid);
+      break;
+
+    case 'validate':
+      geo_db_field_validate($node_field['wkt'], $field['srid']);
       break;
   }
 }
@@ -124,11 +112,11 @@ function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
  */
 function geo_field_formatter_info() {
   // TODO some other formatters: asKML, asGML, asGeoRSS, etc
-  // TODO Can we do math on the field? area, length, etc? perhaps fetches should always return that data....
+  // TODO Can we do math on the field? area, length, etc?
   return array(
     'default' => array(
       'label' => t('Well Known Text'),
-      'field types' => array_keys(geo_field_info()), // easy way to get all fields
+      'field types' => array_keys(geo_field_info()),
     ),
   );
 }
@@ -137,10 +125,7 @@ function geo_field_formatter_info() {
  * Implementation fo hook_field_formatter().
  */
 function geo_field_formatter($field, $item, $formatter, $node) {
-  //dpr("In my field formatter");
-  //dpr($item);
   switch ($formatter) {
-    
     default:
       return $item['wkt'];
   };
@@ -151,13 +136,13 @@ function geo_field_formatter($field, $item, $formatter, $node) {
  */
 function geo_widget_info() {
   return array(
-    'wkt' => array(
+    'geo_wkt' => array(
       'label' => t('Direct Text Entry'),
-      'field types' => array_keys(geo_field_info()), // easy way to get all fields
+      'field types' => array_keys(geo_field_info()),
     ),
-    'latlon' => array(
+    'geo_latlon' => array(
       'label' => t('Latitude / Longitude'),
-      'field types' => array('point'),
+      'field types' => array('geo_point'),
     ),
   );
 }
@@ -184,9 +169,6 @@ function geo_widget_settings($op, $widget) {
  * Implementation of hook_widget().
  */
 function geo_widget($op, &$node, $field, &$items) {
-  //dpr("In geo widget $op");
-  //dpr($items);
-  //dpr($node);
   switch ($op) {
     case 'prepare form values':
       break;
@@ -220,6 +202,7 @@ function geo_widget($op, &$node, $field, &$items) {
             '#maxlength' => 15,
           );
           break;
+
         case 'wkt':
         default:
           // for now, we just have one item
@@ -245,29 +228,15 @@ function geo_widget($op, &$node, $field, &$items) {
   }
 }
 
-function geo_views_relation_field_validator($fielddata, $view, $form) {
-  // until I have a WKT processor, this is not too useful. :-)
+function _geo_field_create_table($field) {
+  $ret = array();
+  db_create_table($ret, $table, content_table_schema($field));
+  geo_db_add_field($ret, $table, $field_name, $spec);
+  return $table_name;
 }
 
-/*** Helper Functions ****/
-
-/**
- * Retrieve an entry from the geo_field table, for this particular field.
- */
-function _geo_get_cck_field($field_name) {
-  $fields = geo_fields('content');
-  return $fields[$field_name];
-}
-
-/**
- * Register a new CCK field in the geo_field table.
- */
-function _geo_insert_cck_field($table_name, $field_name, $type, $srid) {
-  // we borrow the content.module namespace to show this is a CCK field, as compared to another geo field
-  $sql =<<<EOF
-INSERT INTO {geo_field} (table_title, field_title, module, table_name, field_name, data_type, geometry_type, dimensions, srid)
-  VALUES ('%s', '%s', 'content', '%s', '%s', '%s', '%s', 2, %d)
-EOF;
-  $title = 'content_'. $table_name .'_'. $field_name;
-  db_query($sql, $field_name, $title, $table_name, $field_name, $type, $type, $srid);
+function _geo_field_drop_table($field) {
+  $ret = array();
+  db_drop_table($ret, $field['table']);
+  return $ret;
 }

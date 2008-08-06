@@ -1,6 +1,6 @@
 ; $Id$
 name = Geo
-description = Provides a storage engine and CCK field for geo-spatial data. 
+description = Provides a storage engine and API for Geospatial data. 
 package = Geo
 dependencies[] = content
 core = 6.x

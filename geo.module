@@ -4,6 +4,8 @@
  * Geo: Geospatial storage and retrieval.
  */
 
+define(GEO_SRID_DEFAULT, 4326);
+
 /**
  * Implementation of hook_init()
  */
