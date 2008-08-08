@@ -28,7 +28,7 @@
 function geo_db_add_field(&$ret, $table, $field, $spec) {
   // NOTE for now, all geometries are 2d. deal with it
   // TODO is there a way to get the current schema? until i figure this out, everything is public
-  $res = db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $column, $srid, $type);
+  $res = db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $column, $spec['srid'], $spec['type']);
   // TODO perhaps send the message returned from the db to watchdog?
   if (db_num_rows($res)) {
     // if successful, add a spatial index on the field
@@ -68,7 +68,7 @@ function geo_db_field_select($field) {
  *  The name of the field in which to insert the data.
  * @return void
  */
-function geo_db_field_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
+function geo_db_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
   return " GeomFromText('". $wkt ,"') ";
 }
 

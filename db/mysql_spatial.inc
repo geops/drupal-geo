@@ -27,12 +27,9 @@
  * Success or failure
  */
 function geo_db_add_field(&$ret, $table, $field, $spec) {
-  $type = '';
-  $srid = '';
-
   // NOTE for now, all geometries are 2d. deal with it
-  $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $type);
-  db_query("CREATE SPATIAL INDEX {". $table ."}_${column}_idx ON {$table} ($column)");
+  $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $spec['type']);
+  db_query("CREATE SPATIAL INDEX {". $table ."}_${field}_idx ON {$table} ($field)");
 
   // @@@ Error handling
   return true;
@@ -55,6 +52,15 @@ function geo_db_drop_field($table, $column) {
   return true;
 }
 
+function geo_db_field_select($field) {
+  return " SRID($field) as srid, 
+    asText($field) AS wkt,
+    asText(centroid($field)) AS centroid,
+    asText(envelope($field)) as bbox,
+    Dimension($field) as dimension,
+    GeometryType($field) AS type";
+}
+
 /**
  * Insert a geometry object into the database on the specified row
  *
@@ -64,7 +70,7 @@ function geo_db_drop_field($table, $column) {
  *  The name of the field in which to insert the data.
  * @return void
  */
-function geo_db_field_from_wkt($wkt, $srid) {
+function geo_db_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
   return " GeomFromText('". $wkt ."') ";
 }
 
@@ -72,7 +78,7 @@ function geo_db_field_validate($wkt, $srid) {
 /*
      $delta = 0; // @@@ Multivalue?
       if (!empty($node_field[0]['wkt'])) {
-        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', GEO_SRID_DEFAULT))", $node_field[0]['wkt']));
+        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', $srid))", $node_field[0]['wkt']));
         if (empty($res)) {
           form_set_error($field['field_name'] .']['. $delta .'][wkt', t('Unable to parse WKT.'));
         }

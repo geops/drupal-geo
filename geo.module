@@ -15,6 +15,10 @@ function geo_init() {
   }
 }
 
+function geo_wkt_from_point($lat, $lon) {
+  return 'POINT('. $lon .' '. $lat .')';
+}
+
 /**
  * Bootstraps the geo modules db storage, etc.
  *
