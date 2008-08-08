@@ -7,12 +7,44 @@
  
  /*
  TODO API for getting fields out of the table with attached info
- TODO generalize most, if not all, SQL in this file
- TODO standardize wkt vs. geometry
  TODO move geo_views_field_query_handler over to the per db installations (and possibly implment php based handlers there too)
  TODO form element for getting WKT, with validators?
  BUG selecting the same field twice with different options, results in the second choice twice
  */
+
+/**
+ * Implementation of FAPI hook_elements().
+ */
+function geo_field_elements() {
+  return array(
+    'geo_field_wkt' => array(
+      '#input' => TRUE,
+      '#columns' => array('wkt'),
+      '#delta' => 0,
+      '#process' => array('geo_field_wkt_process'),
+    ),
+    'geo_field_latlon' => array(
+      '#input' => TRUE,
+      '#columns' => array('lat', 'lon', 'wkt'),
+      '#delta' => 0,
+      '#process' => array('geo_field_latlon_process'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function geo_field_theme() {
+  return array(
+    'geo_field_latlon' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'geo_field_wkt' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
 
 /**
  * Implementation of hook_field_info().
@@ -21,23 +53,23 @@ function geo_field_info() {
   return array(
     'geo_point' => array(
       'label' => t('Point'),
-      'callbacks' => array( // TODO almost certainly not using default tables!
-        'tables' => CONTENT_CALLBACK_DEFAULT,
-        'arguments' => CONTENT_CALLBACK_DEFAULT,
+      'callbacks' => array(
+        'insert' => CONTENT_CALLBACK_CUSTOM,
+        'update' => CONTENT_CALLBACK_CUSTOM,
       ),
     ),
     'geo_linestring' => array(
       'label' => t('Linestring'),
       'callbacks' => array(
-        'tables' => CONTENT_CALLBACK_DEFAULT,
-        'arguments' => CONTENT_CALLBACK_DEFAULT,
+        'insert' => CONTENT_CALLBACK_CUSTOM,
+        'update' => CONTENT_CALLBACK_CUSTOM,
       ),
     ),
     'geo_polygon' => array(
       'label' => t('Polygon'),
       'callbacks' => array(
-        'tables' => CONTENT_CALLBACK_DEFAULT,
-        'arguments' => CONTENT_CALLBACK_DEFAULT,
+        'insert' => CONTENT_CALLBACK_CUSTOM,
+        'update' => CONTENT_CALLBACK_CUSTOM,
       ),
     ),
   );
@@ -48,21 +80,57 @@ function geo_field_info() {
  */
 function geo_field_settings($op, $field) {
   $field_name = $field['field_name'];
-  $table_name = _content_tablename($field_name, CONTENT_DB_STORAGE_PER_FIELD);
   
   switch ($op) {
     case 'form':
       $form = array();
+
+      // Force 'multiple' in order to guarantee a separate storage table.
+      $form['multiple'] = array('#type' => 'value', '#value' => 1);
+
+      if (!isset($field['geo_enabled'])) $field['geo_enabled'] = false;
+      $form['geo_enabled'] = array('#type' => 'value', '#value' => $field['geo_enabled']);
+
       // TODO pick the SRID for this column
-      $form['srid'] = array();
+      if (!isset($field['srid'])) $field['srid'] = GEO_SRID_DEFAULT;
+      $form['srid'] = array('#type' => 'value', '#value' => $field['srid']);
+
       return $form;
 
     case 'save':
-      return array('srid');
+      return array('srid', 'geo_enabled');
     
     case 'database columns':
-      _geo_field_create_table($field);
-      return; 
+      // Use a well-known-text column for each field.
+      // We'll add a geospatial field separately, which will mirror this value.
+      $spec = array(
+        'wkt' => array(
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => FALSE,
+          'description' => t('Well-known-text format'),
+        ),
+        'geo' => array(
+          'type' => 'blob', // This column will be dropped and replaced.
+          'geo_type' => str_replace('geo_', '', $field['type']),
+          'not null' => TRUE,
+          'description' => t('Geometry field'),
+        ),
+      );
+
+      // Add lat/lon values for point fields.
+      if ($field['type'] == 'geo_point') {
+        $spec['lat'] = array(
+          'type' => 'float',
+          'description' => t('Latitude'),
+        );
+        $spec['lon'] = array(
+          'type' => 'float',
+          'description' => t('Longitude'),
+        );
+      }
+
+      return $spec;
     
     case 'tables':
       $info = geo_field_info();
@@ -78,32 +146,83 @@ function geo_field_settings($op, $field) {
 /**
  * Implementation of hook_field().
  */
-function geo_field($op, &$node, $field, &$node_field, $teaser, $page) {
+function geo_field($op, &$node, $field, &$items, $teaser, $page) {
+  // Make sure the CCK table has our geo field.
+  _geo_field_init($field);
+
   switch ($op) {
 
     case 'load':
-      $ret = array();
-      $res = db_query("SELECT ". geo_db_field_select($field_name) ." FROM %s WHERE vid = %d", $table, $node->vid);
-      while ($row = db_fetch_array($res)) $ret[] = $row;
-      return array($field['field_name'] => $ret);
+      $ret = $node->$field['field_name'];
+      unset($ret['geo']);
+      $column = $field['field_name'] .'_geo';
+      $res = db_query("SELECT ". geo_db_field_select($column) .", delta
+        FROM {". _geo_tablename($field) ."} WHERE vid = %d", $node->vid);
+      while ($row = db_fetch_array($res)) { 
+        foreach ($row as $k => $v) {
+          if ($k != 'delta') $ret[$row['delta']][$k] = $v;
+        }
+      }
+      return array( $field['field_name'] => $ret );
 
     case 'insert':
-      $value = geo_db_field_from_wkt($node_field['wkt'], $field['srid']);
-      db_query("INSERT INTO {%s} (%s, vid, nid, delta) VALUES (%s, %d, %d)", $value, $table, $field_name, 0, $node->vid, $node->nid);
-      break;
-
     case 'update':
-      $value = geo_db_field_from_wkt($node_field['wkt'], $field['srid']);
-      db_query("UPDATE {%s} SET %s = %s WHERE nid = %d", $table, $field_name, $value, $node->nid);
-      break;
+      // We can't get Geom functions past query substitutions, so use our own.
+      _geo_field_save($op, $node, $field, $items);
 
-    case 'delete':
-      db_query("DELETE FROM {%s} WHERE nid = %d", $table, $node->nid);
-      break;
+      // Unset the field data to prevent further action.
+      unset($node->$field['field_name']);
+      $items = array();
+      return;
 
     case 'validate':
-      geo_db_field_validate($node_field['wkt'], $field['srid']);
-      break;
+      foreach ($items as $k => $item) {
+        if ($item['lat'] && $item['lon']) {
+          $items[$k]['wkt'] = geo_wkt_from_point($item['lat'], $item['lon']);
+        }
+
+        geo_db_field_validate($item['wkt'], $field['srid']);
+      }
+
+    case 'presave':
+      foreach ($items as $k => $item) {
+        if ($item['lat'] && $item['lon']) {
+          $items[$k]['wkt'] = geo_wkt_from_point($item['lat'], $item['lon']);
+        }
+      }
+      return;
+  }
+}
+
+function _geo_field_save($op, $node, $field, $items) {
+  $table = $table  = _geo_tablename($field);
+  $schema = drupal_get_schema($table);
+
+  db_query("DELETE FROM {". $table ."} WHERE vid = %d", $node->vid);
+  foreach ($items as $delta => $item) {
+    $columns = $values = $holders = array();
+    $record = array(
+      'nid' => $node->nid,
+      'vid' => $node->vid,
+      'delta' => $delta,
+    );
+    foreach ($schema['fields'] as $column => $info) {
+      $key = str_replace($field['field_name'] .'_', '', $column);
+      $columns[] = $column;
+
+      if (substr($column, -4) == '_geo') {
+        // No substitution for our geo column and omit the corresponding value.
+        $srid = (int) $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT;
+        $holders[] = "GeomFromText('". db_escape_string($item['wkt']) ."', $srid)";
+      }
+      else {
+        $holders[] = db_type_placeholder($info['type']);
+        $values[] = isset($record[$column]) ? $record[$column] : $item[$key];
+      }
+    }
+
+    db_query("INSERT INTO {". $table ."} (". implode(', ', $columns) .') 
+      VALUES ('. implode(', ', $holders) .')', $values);
   }
 }
 
@@ -136,11 +255,11 @@ function geo_field_formatter($field, $item, $formatter, $node) {
  */
 function geo_widget_info() {
   return array(
-    'geo_wkt' => array(
+    'geo_field_wkt' => array(
       'label' => t('Direct Text Entry'),
       'field types' => array_keys(geo_field_info()),
     ),
-    'geo_latlon' => array(
+    'geo_field_latlon' => array(
       'label' => t('Latitude / Longitude'),
       'field types' => array('geo_point'),
     ),
@@ -161,82 +280,100 @@ function geo_widget_settings($op, $widget) {
 
     case 'save':
       return NULL; // array('rows');
-
   }
 }
 
 /**
  * Implementation of hook_widget().
  */
-function geo_widget($op, &$node, $field, &$items) {
-  switch ($op) {
-    case 'prepare form values':
-      break;
+function geo_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+  return array(
+    '#type' => $field['widget']['type'],
+    '#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+  );
+}
 
-    case 'form':
-      $form = array();
-      $fn = $field['field_name'];
-      
-      $form[$fn] = array(
-        '#tree' => TRUE,
-        '#type' => 'fieldset',
-        '#title' => t($field['widget']['label']),
-      );
-      switch ($field['widget']['type']) {
-        case 'latlon':
-          $data = _geo_latlonfrompoint($items[0]['wkt']);
-          $form[$fn][0]['latlon']['lat'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Latitude'),
-            '#default_value' => $data['lat'],
-            '#required' => $field['required'],
-            '#size' => 15,
-            '#maxlength' => 15,
-          );
-          $form[$fn][0]['latlon']['lon'] = array(
-            '#type' => 'textfield',
-            '#title' => t('Longitude'),
-            '#default_value' => $data['lon'],
-            '#required' => $field['required'],
-            '#size' => 15,
-            '#maxlength' => 15,
-          );
-          break;
+function geo_field_latlon_process($element, $edit, $form_state, $form) {
+  $field = $form['#field_info'][$element['#field_name']];
 
-        case 'wkt':
-        default:
-          // for now, we just have one item
-          $form[$fn][0]['wkt'] = array(
-            '#type' => 'textfield',
-            '#title' => t($field['widget']['label']),
-            '#default_value' => $items[0]['wkt'],
-            '#required' => $field['required'],
-            '#description' => $field['widget']['description'],
-          );
-          break;
-      }
-      return $form;
+  $element['#prefix'] = '<div class="container-inline">';
+  $element['#suffix'] = '</div>';
+  $element['lat'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Latitude'),
+    '#default_value' => isset($element['#value']['lat']) ? $element['#value']['lat'] : NULL,
+    '#required' => $field['required'],
+    '#size' => 15,
+    '#maxlength' => 15,
+  );
+  $element['lon'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude'),
+    '#default_value' => isset($element['#value']['lon']) ? $element['#value']['lon'] : NULL,
+    '#required' => $field['required'],
+    '#size' => 15,
+    '#maxlength' => 15,
+  );
+  $element['wkt'] = array(
+    '#type' => 'value',
+    '#value' => isset($element['#value']['wkt']) ? $element['#value']['wkt'] : NULL,
+  );
+  return $element;
+}
 
-    case 'process form values':
-      foreach($items as $delta => $values) {
-        if (isset($values['latlon']) && !empty($values['latlon']['lat'])) {
-          $items[$delta]['wkt'] = 'POINT('. $items[0]['latlon']['lat'] .' '. $items[0]['latlon']['lon'] .')';
-          unset($items[$delta]['latlon']);
-        }
-      }
-      break;
+function geo_field_wkt_process($element, $edit, $form_state, $form) {
+  $field = $form['#field_info'][$element['#field_name']];
+  $element['wkt'] = array(
+    '#type' => 'textfield',
+    '#title' => t($field['widget']['label']),
+    '#default_value' => isset($element['#value']['wkt']) ? $element['#value']['wkt'] : NULL,
+    '#required' => $field['required'],
+    '#description' => $field['widget']['description'],
+  );
+  return $element;
+}
+
+function theme_geo_field_latlon($element) {
+  return $element['#children'];
+}
+
+function theme_geo_field_wkt($element) {
+  return $element['#children'];
+}
+
+function geo_content_is_empty($item, $field) {
+  return empty($item['wkt']);
+}
+
+function _geo_tablename($field) {
+  return _content_tablename($field['field_name'], CONTENT_DB_STORAGE_PER_FIELD);
+}
+
+function _geo_field_init(&$field) {
+  // We've already molested CCK's table, nothing to see here.
+  if ($field['geo_enabled']) return;
+
+  // Ignore fields that are still in infancy.
+  if (!isset($field['field_name'])) return;
+
+  $table  = _geo_tablename($field);
+
+  // CCK hasn't created our table yet. Try again next time.
+  if (!db_table_exists($table)) return;
+
+  $column = $field['field_name'] .'_geo';
+
+  // Reuse the original column definition, but set a different datatype.
+  $spec = $field['columns']['geo'];
+  $spec['type'] = $spec['geo_type'];
+  unset($field['columns']['geo']);
+
+  $ret = array();
+  db_drop_field($ret, $table, $column);
+  if ($field['geo_enabled'] = geo_db_add_field($ret, $table, $column, $spec)) {
+    // Re-save the field to ensure that geo_enabled gets set.
+    require_once drupal_get_path('module', 'content') .'/includes/content.crud.inc';
+    _content_field_write($field, 'update');
+   content_clear_type_cache();
   }
-}
-
-function _geo_field_create_table($field) {
-  $ret = array();
-  db_create_table($ret, $table, content_table_schema($field));
-  geo_db_add_field($ret, $table, $field_name, $spec);
-  return $table_name;
-}
-
-function _geo_field_drop_table($field) {
-  $ret = array();
-  db_drop_table($ret, $field['table']);
-  return $ret;
 }
