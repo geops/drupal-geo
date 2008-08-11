@@ -4,8 +4,6 @@
  * @file
  * MySQL Spatial Extensions backend for the geo field module
  *
- * @author Mark Fredrickson, Brandon Bergren
- * @version $Id$
  * @package geo
  */
 
@@ -26,7 +24,7 @@
  * @return boolean
  * Success or failure
  */
-function geo_db_add_field(&$ret, $table, $field, $spec) {
+function geo_mysql_spatial_add_field(&$ret, $table, $field, $spec) {
   // NOTE for now, all geometries are 2d. deal with it
   $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $spec['type']);
   db_query("CREATE SPATIAL INDEX {". $table ."}_${field}_idx ON {$table} ($field)");
@@ -39,42 +37,19 @@ function geo_db_add_field(&$ret, $table, $field, $spec) {
  * Remove a geometry column from the specified table.
  *
  * @param $table
- *   The name of the table from which to drop the column. Do not include braces ({}).
+ *   The name of the table from which to drop the column.
  * @param $field_name
  *   The name of the field to drop.
  *
  * @return boolean
  *  Success or failure
- *
  */
-function geo_db_drop_field($table, $column) {
+function geo_mysql_spatial_drop_field($table, $column) {
   db_query("ALTER TABLE {%s} DROP COLUMN %s", $table, $column);
   return true;
 }
 
-function geo_db_field_select($field) {
-  return " SRID($field) as srid, 
-    asText($field) AS wkt,
-    asText(centroid($field)) AS centroid,
-    asText(envelope($field)) as bbox,
-    Dimension($field) as dimension,
-    GeometryType($field) AS type";
-}
-
-/**
- * Insert a geometry object into the database on the specified row
- *
- * @param $table
- *  The name of the table that currently holds the geometry information.
- * @param $field_name
- *  The name of the field in which to insert the data.
- * @return void
- */
-function geo_db_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
-  return " GeomFromText('". $wkt ."') ";
-}
-
-function geo_db_field_validate($wkt, $srid) {
+function geo_field_validate($wkt, $srid) {
 /*
      $delta = 0; // @@@ Multivalue?
       if (!empty($node_field[0]['wkt'])) {
@@ -217,7 +192,7 @@ function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
  * @return array
  *  an array of fields, keyed by table
  */
-function _geo_enabled_tables() {
+function geo_db_tables($exclude = NULL) {
   static $tables;
 
   if (!is_array($tables)) {
@@ -233,6 +208,9 @@ function _geo_enabled_tables() {
       ORDER BY TABLE_NAME, COLUMN_NAME");
 
     while ($row = db_fetch_object($res)) {
+      // Ignore exclusions.
+      if ($exclude && preg_match($exclude, $row->table)) continue;
+
       if (!isset($tables[$row->table])) {
         $tables[$row->table] = array();
       }
@@ -245,7 +223,7 @@ function _geo_enabled_tables() {
 /**
  * Parse out the table descriptions from the geometry information stored in the table.
  */
-function _geo_table_desc($table) {
+function geo_db_table_desc($table) {
   $res = db_query("SELECT COLUMN_NAME AS 'name',
     COLUMN_COMMENT AS 'description',
     DATA_TYPE AS 'type',

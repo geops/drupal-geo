@@ -4,14 +4,16 @@
 /**
  * Views related functionality for the geo module
  *
- * @author Mark Fredrickson
- * @version $Id$
  * @package geo
  **/
 
-/*
- * Views hooks
+/**
+ * Implementation of hook_views_data_alter().
+ * Add relationship handlers to tables tagged with geospatial attributes.
  */
+function geo_views_data_alter(&$data) {
+  dpr($data); die;
+}
  
 /**
  * Implemenation of hook_views_tables().
@@ -61,7 +63,6 @@ function geo_views_tables() {
  * @return array
  *  The views table array. Caller should wrap it in a $tables array, and give it an alias as its key.
  *  Eg. return array('my_table_alias' => geo_views_create_geometry_table(...));
- * @author Mark Fredrickson
  */
 function geo_views_create_geometry_table($table_name, $field_name, $label_prefix, $left_table, $left_field, $right_field, $extra_data = array(), $join_extras = NULL) {
   // first, fetch the geometry table information to find out about this field
@@ -182,7 +183,6 @@ function geo_views_create_geometry_table($table_name, $field_name, $label_prefix
  * Returns an array of operators for spatial relations.
  *
  * @return array
- * @author Mark Fredrickson
  */
 function geo_views_spatial_relation_operators() {
   return array(
@@ -199,7 +199,6 @@ function geo_views_spatial_relation_operators() {
  * Returns an array of the standard spatial handlers for geometry fields
  *
  * @return array
- * @author Mark Fredrickson
  */
 function geo_views_spatial_field_handlers() {
   // perhaps define a hook for additiona spatial field handlers, eg. a wkt -> gmap handler

@@ -25,7 +25,7 @@
  * @return boolean
  * Success or failure
  */
-function geo_db_add_field(&$ret, $table, $field, $spec) {
+function geo_postgis_add_field(&$ret, $table, $field, $spec) {
   // NOTE for now, all geometries are 2d. deal with it
   // TODO is there a way to get the current schema? until i figure this out, everything is public
   $res = db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $column, $spec['srid'], $spec['type']);
@@ -49,30 +49,14 @@ function geo_db_add_field(&$ret, $table, $field, $spec) {
  *  Success or failure
  *
  */
-function geo_db_drop_field($table, $column) {
+function geo_postgis_drop_field($table, $column) {
   $res = db_query("SELECT DropGeometryColumn('public', '{%s}', '%s'", $table, $column);
   // NOTE do I need to drop my spatial index too? should probably check pg docs
   return db_num_rows($res);
 }
 
-function geo_db_field_select($field) {
+function geo_postgis_field_select($field) {
   return " srid($field) as srid, asText($field) AS wkt, asText(centroid($field)) AS centroid, asText(envelope($field)) as bbox ";
-}
-
-/**
- * Insert a geometry object into the database on the specified row
- *
- * @param $table
- *  The name of the table that currently holds the geometry information.
- * @param $field_name
- *  The name of the field in which to insert the data.
- * @return void
- */
-function geo_db_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
-  return " GeomFromText('". $wkt ,"') ";
-}
-
-function geo_db_field_validate($wkt) {
 }
 
 /*
@@ -204,7 +188,7 @@ function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
  * @return array
  *  an array of fields, keyed by table
  */
-function _geo_enabled_tables() {
+function geo_db_tables($exclude = NULL) {
   static $tables;
 
   if (!is_array($tables)) {
@@ -219,6 +203,9 @@ function _geo_enabled_tables() {
       ORDER BY c.relname, a.attnum");
 
     while ($row = db_fetch_object($res)) {
+      // Ignore exclusions.
+      if ($exclude && preg_match($exclude, $row->table)) continue;
+
       if (!isset($tables[$row->table])) {
         $tables[$row->table] = array();
       }
@@ -231,7 +218,7 @@ function _geo_enabled_tables() {
 /**
  * Parse out the table descriptions from the geometry information stored in the table.
  */
-function _geo_table_desc($table) {
+function geo_db_table_desc($table) {
   $res = db_query("SELECT  a.attname AS name, 
     col_description(c.oid, a.attnum) AS description,
     format_type(a.atttypid, a.atttypmod) AS type,

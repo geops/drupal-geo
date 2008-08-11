@@ -7,105 +7,37 @@
 define(GEO_SRID_DEFAULT, 4326);
 
 /**
- * Implementation of hook_init()
+ * Call an API function from the geo backend databases.
+ * This function will find and load the database backend files, and call
+ * the requested op from the backend or the default library, as needed.
+ *
+ * @return mixed
+ *  The result of the database operation execution.
  */
-function geo_init() {
-  if (function_exists('drupal_set_content')) {
-    geo_bootstrap(); // bootstrap the db for non-cached page views
+function geo($op = NULL) {
+  static $backend;
+
+  // Load common functions.
+  module_load_include('inc', 'geo');
+
+  // Load database-specific functions.
+  if (!isset($backend)) {
+    $backend = geo_backend_type();
+    module_load_include('inc', 'geo', 'db/'. $backend);
   }
-}
 
-function geo_wkt_from_point($lat, $lon) {
-  return 'POINT('. $lon .' '. $lat .')';
-}
-
-/**
- * Bootstraps the geo modules db storage, etc.
- *
- * @param $reset
- *  Normally, bootstrap should only run once. If you want to run bootstrap a second time, set to true.
- * @return void
- * @author Mark Fredrickson
- **/
-function geo_bootstrap($reset = FALSE) {
-  static $ran;
-  if ($ran && !$reset) {
-    return;
-  }
-  
-  /* pseudo
-  - find the db type and include the backend file
-  - IDEA! use CCK for the storage engine for non-postgis, non-mysqlspatial (can support postgres and mysql on one code base!)
-  */
-  switch (geo_backend_type()) {
-    case 'postgis':
-      require_once drupal_get_path('module', 'geo') .'/db/postgis.inc';
-      break;
-    case 'cck':
-      // include the common backend
-      break;
-    case 'mysql_spatial':
-      // include the mysql spatial backend
-      require_once drupal_get_path('module', 'geo') .'/db/mysql_spatial.inc';
-      break;
-  }
-  $ran = true;
-}
-
-/**
- * Return the geo backend database type.
- *
- * @return string
- *  The name of the backend: postgis, cck, mysql_spatial
- **/
-function geo_backend_type() {
-  switch ($GLOBALS['db_type']) {
-    case 'pgsql':
-      // use the postgis backend if installed
-      if (db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc  WHERE proname = 'postgis_version'"))) {
-        return 'postgis';
-      }
-      else {
-        return 'pgsql';
-      }
-      break;
-    case 'mysql':
-    case 'mysqli':
-      // Capabilities check.
-      // If it can convert between native and wkt, assume it's working.
-      if (db_result(@db_query("SELECT AsText(GeomFromText('POINT(1 1)'))")) == 'POINT(1 1)') {
-        // Looks good.
-        return 'mysql_spatial';
-      }
-  }
-}
-
-/*** Cross Database API Functions ***/
-
-/**
- * Returns an entry in the in the geo_field table.
- *
- * @return array
- *  A row from the db as an array. See geo.install for the nature of this data.
- *
- **/
-function geo_fields($module = NULL) {
-  static $fields;
-
-  if (!is_array($fields)) {
-    $fields = array();
-    $res = db_query("SELECT * FROM {geo_field} ORDER BY module");
-
-    while ($row = db_fetch_array($res)) {
-      //if (!$fields[$row['table_name']]) $fields[$row['table_name']] = array();
-      $fields[$row['module']][$row['field_name']] = $row;
+  // Call the appropriate API function: If geo_$backend_$op exists, call that.
+  // Otherwise, resort to geo_$op.  This creates a sort of inheritence system.
+  $args = func_get_args();
+  if($args) {
+    $op = array_shift($args);
+    if (!function_exists($func = 'geo_'. $backend .'_'. $op)) {
+      $func = 'geo_'. $op;
     }
+    if (!function_exists($func)) {
+      drupal_set_message(t('Call to undefined geo operation %op', array('%op' => $op)), 'error');
+      return FALSE;
+    }
+    return call_user_func_array($func, $args);
   }
-  
-  // if a specific module is requested
-  if ($module) {
-    return $fields[$module];
-  }
-  
-  return $fields;
 }

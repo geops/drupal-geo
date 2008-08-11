@@ -5,13 +5,6 @@
  * CCK Field integration for geospatial data.
  */
  
- /*
- TODO API for getting fields out of the table with attached info
- TODO move geo_views_field_query_handler over to the per db installations (and possibly implment php based handlers there too)
- TODO form element for getting WKT, with validators?
- BUG selecting the same field twice with different options, results in the second choice twice
- */
-
 /**
  * Implementation of FAPI hook_elements().
  */
@@ -156,8 +149,8 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       $ret = $node->$field['field_name'];
       unset($ret['geo']);
       $column = $field['field_name'] .'_geo';
-      $res = db_query("SELECT ". geo_db_field_select($column) .", delta
-        FROM {". _geo_tablename($field) ."} WHERE vid = %d", $node->vid);
+      $res = db_query("SELECT ". geo('field_select', $column) .", delta
+        FROM {". _geo_field_tablename($field) ."} WHERE vid = %d", $node->vid);
       while ($row = db_fetch_array($res)) { 
         foreach ($row as $k => $v) {
           if ($k != 'delta') $ret[$row['delta']][$k] = $v;
@@ -181,7 +174,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
           $items[$k]['wkt'] = geo_wkt_from_point($item['lat'], $item['lon']);
         }
 
-        geo_db_field_validate($item['wkt'], $field['srid']);
+        geo('wkt_validate', $item['wkt'], $field['srid']);
       }
 
     case 'presave':
@@ -195,7 +188,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
 }
 
 function _geo_field_save($op, $node, $field, $items) {
-  $table = $table  = _geo_tablename($field);
+  $table = $table  = _geo_field_tablename($field);
   $schema = drupal_get_schema($table);
 
   db_query("DELETE FROM {". $table ."} WHERE vid = %d", $node->vid);
@@ -267,23 +260,6 @@ function geo_widget_info() {
 }
 
 /**
- * Implementation of hook_widget_settings().
- */
-function geo_widget_settings($op, $widget) {
-  switch ($op) {
-    case 'form':
-      $form = array();
-      return $form;
-
-    case 'validate':
-      break;
-
-    case 'save':
-      return NULL; // array('rows');
-  }
-}
-
-/**
  * Implementation of hook_widget().
  */
 function geo_widget(&$form, &$form_state, $field, $items, $delta = 0) {
@@ -345,7 +321,7 @@ function geo_content_is_empty($item, $field) {
   return empty($item['wkt']);
 }
 
-function _geo_tablename($field) {
+function _geo_field_tablename($field) {
   return _content_tablename($field['field_name'], CONTENT_DB_STORAGE_PER_FIELD);
 }
 
@@ -356,7 +332,7 @@ function _geo_field_init(&$field) {
   // Ignore fields that are still in infancy.
   if (!isset($field['field_name'])) return;
 
-  $table  = _geo_tablename($field);
+  $table  = _geo_field_tablename($field);
 
   // CCK hasn't created our table yet. Try again next time.
   if (!db_table_exists($table)) return;
@@ -370,9 +346,9 @@ function _geo_field_init(&$field) {
 
   $ret = array();
   db_drop_field($ret, $table, $column);
-  if ($field['geo_enabled'] = geo_db_add_field($ret, $table, $column, $spec)) {
+  if ($field['geo_enabled'] = geo('add_field', $ret, $table, $column, $spec)) {
     // Re-save the field to ensure that geo_enabled gets set.
-    require_once drupal_get_path('module', 'content') .'/includes/content.crud.inc';
+    module_load_include('inc', 'content', 'includes/content.crud');
     _content_field_write($field, 'update');
    content_clear_type_cache();
   }
