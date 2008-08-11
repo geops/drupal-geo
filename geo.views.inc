@@ -9,10 +9,15 @@
 
 /**
  * Implementation of hook_views_data_alter().
- * Add relationship handlers to tables tagged with geospatial attributes.
+ * Add relationship handlers to data elements that are tagged with 'geo'.
  */
 function geo_views_data_alter(&$data) {
-  dpr($data); die;
+  foreach ($data as $table => $fields) {
+    foreach ($fields as $field => $info) {
+      if ($info['geo'] && $info['geo']) {
+      }
+    }
+  }
 }
  
 /**

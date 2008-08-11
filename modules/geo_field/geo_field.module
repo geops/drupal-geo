@@ -46,24 +46,15 @@ function geo_field_info() {
   return array(
     'geo_point' => array(
       'label' => t('Point'),
-      'callbacks' => array(
-        'insert' => CONTENT_CALLBACK_CUSTOM,
-        'update' => CONTENT_CALLBACK_CUSTOM,
-      ),
+      'callbacks' => array(),
     ),
     'geo_linestring' => array(
       'label' => t('Linestring'),
-      'callbacks' => array(
-        'insert' => CONTENT_CALLBACK_CUSTOM,
-        'update' => CONTENT_CALLBACK_CUSTOM,
-      ),
+      'callbacks' => array(),
     ),
     'geo_polygon' => array(
       'label' => t('Polygon'),
-      'callbacks' => array(
-        'insert' => CONTENT_CALLBACK_CUSTOM,
-        'update' => CONTENT_CALLBACK_CUSTOM,
-      ),
+      'callbacks' => array(),
     ),
   );
 }
@@ -104,7 +95,7 @@ function geo_field_settings($op, $field) {
           'description' => t('Well-known-text format'),
         ),
         'geo' => array(
-          'type' => 'blob', // This column will be dropped and replaced.
+          'type' => 'blob', // This column will be replaced in _geo_field_init.
           'geo_type' => str_replace('geo_', '', $field['type']),
           'not null' => TRUE,
           'description' => t('Geometry field'),
@@ -125,14 +116,16 @@ function geo_field_settings($op, $field) {
 
       return $spec;
     
-    case 'tables':
-      $info = geo_field_info();
-      $label_prefix = t('@type: @field', array('@type' => $info[$field['type']]['label'], '@field' => $field['widget']['label'] .' ('. $field['field_name'] .')'));
-      $view_table = geo_views_create_geometry_table($table_name, $field_name, $label_prefix, 'node', 'vid', 'vid', array('content_field' => $field), $join_extras = NULL);
-      //return array('node_data_' . $field_name => $view_table);
-      break;
-    case 'filters':
-      return array();
+    case 'views data':
+      // Start with default views data, as constructed by CCK.
+      $data = content_views_field_views_data($field);
+
+      // Tag data as geospatial.  This will cause geo_views_data_alter() to
+      // correctly augment the relationship and other field definitions.
+      $key = current(array_keys($data));
+      $data[$key][$field['field_name'] .'_geo'] = array('geo' => TRUE);
+
+      return $data;
   }
 }
 
@@ -171,16 +164,23 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
     case 'validate':
       foreach ($items as $k => $item) {
         if ($item['lat'] && $item['lon']) {
-          $items[$k]['wkt'] = geo_wkt_from_point($item['lat'], $item['lon']);
+          $items[$k]['wkt'] = geo('wkt_from_point', $item['lat'], $item['lon']);
         }
 
-        geo('wkt_validate', $item['wkt'], $field['srid']);
+        if(!$item['wkt']) continue;
+
+        $geo_type = str_replace('geo_', '', $field['type']);
+        if (($error = geo('wkt_validate', $item['wkt'], $geo_type)) !== TRUE) {
+          $error_field = $field['field_name'];
+          form_set_error($error_field, $error);
+        }
       }
+      return;
 
     case 'presave':
       foreach ($items as $k => $item) {
         if ($item['lat'] && $item['lon']) {
-          $items[$k]['wkt'] = geo_wkt_from_point($item['lat'], $item['lon']);
+          $items[$k]['wkt'] = geo('wkt_from_point', $item['lat'], $item['lon']);
         }
       }
       return;
