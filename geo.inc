@@ -59,5 +59,19 @@ function geo_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
   return " GeomFromText('". $wkt ."') ";
 }
 
-function geo_wkt_validate($wkt) {
+function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_DEFAULT_SRID) {
+
+  // TODO this should probabaly be moved into db-specific backend files.
+  $type = db_result(@db_query("SELECT GeometryType(GeomFromText('%s'))", $wkt));
+
+  if (empty($type)) {
+    return t('Unable to parse WKT.');
+  }
+
+  if ($geo_type && strtolower($geo_type) != strtolower($type)) {
+    return t('Wrong geometry type. Got %result, was expecting %type.', array('%result' => $type, '%type' => $geo_type));
+  }
+
+  // All's well that ends well!
+  return TRUE;
 }

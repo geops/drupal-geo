@@ -49,24 +49,6 @@ function geo_mysql_spatial_drop_field($table, $column) {
   return true;
 }
 
-function geo_field_validate($wkt, $srid) {
-/*
-     $delta = 0; // @@@ Multivalue?
-      if (!empty($node_field[0]['wkt'])) {
-        $res = db_result(@db_query("SELECT GeometryType(GeomFromText('%s', $srid))", $node_field[0]['wkt']));
-        if (empty($res)) {
-          form_set_error($field['field_name'] .']['. $delta .'][wkt', t('Unable to parse WKT.'));
-        }
-        else {
-          if ($geo_field['geometry_type'] != $res) {
-            form_set_error($field['field_name'] .']['. $delta .'][wkt', t('Wrong geometry type. Got %result, was expecting %type.', array('%result' => $res, '%type' => $geo_field['geometry_type'])));
-          }
-        }
-      }
-
-*/
-}
-
 /*
  * Views Functions
  * 
