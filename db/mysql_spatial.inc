@@ -49,120 +49,6 @@ function geo_mysql_spatial_drop_field($table, $column) {
   return true;
 }
 
-/*
- * Views Functions
- * 
- * These functions modify the queries sent to the database to take advantage
- * of db level transformations to output the geometries as various formats,
- * compute centroids, start and end points, area, length, etc.
- *
- * For other database backends that don't provide these functions, they
- * can be emulated at the views formatting phase using a different set
- * of handlers.
- */
-
-/**
- * A views query handler callback to manage getting WKT, etc from the db
- * The function signature is determined by views.module
- *
- * This query handler modifies a views query to retrieve data as WKT, KML, etc.
- */
-function geo_views_field_query_handler($field, &$fieldinfo, &$query) {
-  
-  switch ($field['handler']) {
-    case 'geo_views_field_handler_kml':
-      $func = 'asKML';
-      break; 
-    case 'geo_views_field_handler_gml':
-      $func = 'asGML';
-      break;
-    case 'geo_views_field_handler_svg':
-      $func = 'asSVG';
-      break;
-    
-    case 'geo_views_field_handler_wkt':
-    default:
-      $func = 'asText';
-      break;
-  }
-    
-  $query->ensure_table($field['tablename']);
-  switch ($field['options']) {
-    case 'wkt':
-      $query->add_field($func .'('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .')', NULL, $field['queryname']);
-      break;
-    case 'centroid':
-      $query->add_field($func .'(Centroid('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
-      break;
-    case 'bbox':
-      $query->add_field($func .'(Envelope('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
-      break;
-    // start point is only for linestrings, but we already tested that earlier
-    case 'start':
-      $query->add_field($func .'(StartPoint('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
-      break;
-    // end point is only for linestrings, but we already tested that earlier
-    case 'end':
-      $query->add_field($func .'(EndPoint('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
-      break;
-  }
-  // make sure views default query builder does not add anything
-  $fieldinfo['notafield'] = true;
-  unset($fieldinfo['addlfields']);
-}
-
-/**
- * Views filter callback to handler for spatial relation filters (e.g. within, intersect, etc)
- * The function signature is determined by views.module
- *
- * This filter is used to for the spatial relation filtering. It adds a bounding box clause to
- * the query to speed up indexed queries, and refines by the supplied function.
- */
-function geo_views_relation_filter_handler($op, $filterdata, $filterinfo, &$query) {
-  switch ($op) {
-    case 'handler':
-      $func = $filterdata['operator'];
-      $field = $filterinfo['table'] .'.'. $filterinfo['field'];
-      $clean = db_escape_string($filterdata['value']);
-      $query->ensure_table($fieldinfo['table']);
-      
-      // these relations should have overlapping boundingboxes
-      if (in_array(array('Equals', 'Within', 'Intersects'), $func)) {
-        $use_index = "GeomFromText('$clean', GEO_SRID_DEFAULT) && $field AND ";
-      }
-      else { // if the boundingboxes don't touch, we know we are good OR use the function
-        $use_index = "NOT(GeomFromText('$clean', GEO_SRID_DEFAULT) && $field) OR ";
-      }
-      
-      $query->add_where($use_index ."$func($field, GeomFromText('$clean', GEO_SRID_DEFAULT))");
-      break;
-  }
-}
-
-/**
- * A views query handler callback to compute length, area, perimeter, etc from db
- */
-function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
-  
-  $query->ensure_table($field['tablename']);
-  
-  // here we test on the field, as we have unique fields for length, area, perimeter
-  switch ($field['field']) {
-    case 'length':
-      $query->add_field('Length('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .')', NULL, $field['queryname']);
-      break;
-      
-    case 'area':
-      $query->add_field('Area('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .')', NULL, $field['queryname']);
-      break;
-      
-    case 'perimeter':
-      // TODO test this! we're on polygons, for some reason, this doesn't seem right!
-      $query->add_field('Length(ConvexHull('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
-      break;
-  }
-}
-
 /*** Helper functions ***/
 
 /**
@@ -174,7 +60,7 @@ function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
  * @return array
  *  an array of fields, keyed by table
  */
-function geo_db_tables($exclude = NULL) {
+function geo_mysql_spatial_tables($exclude = NULL) {
   static $tables;
 
   if (!is_array($tables)) {
@@ -205,7 +91,7 @@ function geo_db_tables($exclude = NULL) {
 /**
  * Parse out the table descriptions from the geometry information stored in the table.
  */
-function geo_db_table_desc($table) {
+function geo_mysql_spatial_table_desc($table) {
   $res = db_query("SELECT COLUMN_NAME AS 'name',
     COLUMN_COMMENT AS 'description',
     DATA_TYPE AS 'type',
@@ -279,7 +165,7 @@ function _geo_latlonfrompoint($wkt, $srid = GEO_SRID_DEFAULT) {
 }
 
 // returns the PostGIS version information
-function _geo_version() {
+function geo_mysql_spatial_version() {
   // No clue what to do here...
 //  return db_result(db_query("SELECT postgis_version()"));
 }

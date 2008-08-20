@@ -4,10 +4,11 @@
  * Put together a form of all the spatial columns.
  */
 function geo_data_admin() {
+  
   $form = array('#theme' => 'geo_data_admin_tables');
 
   // Get a list of all geometry-enabled tables, excluding field tables.
-  $tables  = geo_db_tables('/^content_field/');
+  $tables  = geo('tables', '/^content_field/');
 
   foreach ($tables as $table => $column) {
     $form['tables'][$table] = array( '#tree' => 1 );
@@ -17,7 +18,8 @@ function geo_data_admin() {
       '#default_value' => '', // TODO set as table label from link table
     );
 
-    foreach (geo_db_table_desc($table) as $col => $desc) {
+/*
+    foreach (geo('table_desc', $table) as $col => $desc) {
       $form['tables'][$table][$col] = array(
         //'view_field' => array('#type' => 'select', '#options' => $views_field_options),
         'exposed' => array( '#type' => 'checkbox', '#default_value' => isset($fields[$table][$col]) ),
@@ -27,6 +29,7 @@ function geo_data_admin() {
         'desc'    => array( '#type' => 'textfield', '#default_value' => $fields[$table][$col]['title'], '#size' => 30 ),
       );
     }
+*/
   }
 
 /*
@@ -45,12 +48,43 @@ function geo_data_admin() {
     }
   }
 */
+
+  $form['#attributes']['enctype'] = 'multipart/form-data';
+  $form['import'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Import shape data'),
+    '#tree' => TRUE,
+    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+  );
+  $form['import']['file'] = array(
+    '#type' => 'file',
+    '#title' => t('Shape file'),
+  );
+  $form['import']['table_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Table name'),
+    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+  );
+  $form['import']['create'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Create a new table.'),
+    '#default_value' => 1,
+    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+  );
+  
   $form['submit'] = array('#type' => 'submit', '#value' => t('Save values'));
   return $form;
 }
 
-function geo_data_admin_submit($form_id, $values) {
-  views_load_cache(); // get access to some useful views_cache.inc functions
+function geo_data_admin_submit($form, &$form_state) {
+  if (isset($_FILES['files']['name']['import'])) {
+    module_load_include('inc', 'geo', 'includes/shp2sql');
+    $file = $_FILES['files']['tmp_name']['import']; 
+    $table_name = 'geo_data_'. $form_state['values']['import']['table_name'];
+    $create = 'geo_data_'. $form_state['values']['import']['table_name'];
+    geo_shp2sql($file, $table_name, $create);
+  }
+/*
   $views_fields = _views_get_fields();
   
   foreach ($values['tables'] as $table => $fields) {
@@ -69,15 +103,10 @@ function geo_data_admin_submit($form_id, $values) {
             );
           }
         }
-        /* pseudo 
-        find or insert the field in the geo_data_field table -- perhaps everything should have an entry by now!
-        get the id for that row so we can put a corresponding row in the geo_data_link table
-        insert the data into the geo_data_link table
-        implement hook_views_tables that reads the link table and generates tables based on those entries
-        */
       }
     } 
   }
+*/
 }
 
 function theme_geo_data_admin_tables($form) {
