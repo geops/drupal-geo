@@ -1,5 +1,4 @@
-<?php
-// $Id$
+<?php // $Id$
 
 /**
  * Views related functionality for the geo module
@@ -7,39 +6,68 @@
  * @package geo
  **/
 
-/**
- * Implementation of hook_views_data_alter().
- * Add relationship handlers to data elements that are tagged with 'geo'.
- */
-function geo_views_data_alter(&$data) {
-  foreach ($data as $table => $fields) {
-    foreach ($fields as $field => $info) {
-      if ($info['geo'] && $info['geo']) {
-      }
-    }
+class views_handler_field_geo extends views_handler_field {
+  function options_form(&$form, &$form_state) {
+    // TODO Implement settings for AsKML, AsSVG, AsText, etc.
+    // By the way, those would only apply to postgis for now.
+    $form['geo_format'] = array(
+      '#type' => 'select',
+      '#options' => geo('query_functions', ($this->definition['geo_type'])),
+      '#default_value' => $this->options['format'],
+    );
+  }
+
+  function query() {
+    $this->ensure_my_table();
+    $format = $this->options['geo_format'];
+
+    // Add the geo formula as a field.
+    $func = 'AsText('. geo('query_'. $format, $this->real_field). ')';
+    $this->table_alias .= '_'. $format;
+    $this->query->add_field(NULL, $func, $this->table_alias);
   }
 }
- 
-/**
- * Implemenation of hook_views_tables().
- */
-function geo_views_tables() {
-  /* pseudo
-  1. load all the data from geo_link left joined to the geo_field
-  2. foreach, create the table
-  */
-  
-  $res = db_query("SELECT * FROM {geo_link} l LEFT JOIN {geo_field} f ON l.gfid = f.gfid");
-  while ($row = db_fetch_array($res)) {
-    $tables['geo_link_'. $row['table_name'] .'_'. $row['field_name']] =
-      geo_views_create_geometry_table($row['table_name'], 
-                                      $row['field_name'],
-                                      t('Geo: @field_name'), // XXX add this to geo_field table
-                                      $row['left_table'],
-                                      $row['left_field'],
-                                      $row['right_field']);
+
+class views_handler_filter_geo extends views_handler_filter {
+  function operator_options() {
+    return geo('query_operators', $this->definition['geo_type']);
   }
-  return $tables;
+
+  function exposed_form(&$form, &$form_state) {
+    $key = $this->options['expose']['identifier'];
+    $form[$key] = array('#type' => 'textfield', '#default_value' => $this->value,);
+  }
+
+  function query() {
+    $table = $this->ensure_my_table();
+    $field = $this->field;
+    $func = $this->operator;
+    $srid = GEO_SRID_DEFAULT;
+    $value = db_escape_string($this->value);
+
+    if (true) { // TODO decide if it's incoming wkt or a geo field.
+      $value = "GeomFromText('$value', $srid)";
+    }
+
+    if ($geo_table = $this->definition['geo_table']) {
+      $this->query->ensure_table($geo_table);
+      $field = $this->query->add_field($geo_table, 'geo');
+      $field = $geo_table . '.geo';
+    }
+      
+    // These relations should have overlapping bounding boxes.
+    if (in_array($func, array('Equals', 'Within', 'Intersects'))) {
+      //$index = "$value && $field AND "; // TODO NOT WORKING?
+    }
+    else { // Bounding boxes don't touch, we know can use OR use the function
+      $index = "NOT($value && $field) OR ";
+    }
+      
+    $this->query->add_where(0, $index ."$func($value, $field)");
+  }
+}
+
+class views_handler_argument_geo extends views_handler_argument {
 }
 
 /*
@@ -104,14 +132,14 @@ function geo_views_create_geometry_table($table_name, $field_name, $label_prefix
   $field_help = t('The handler drop-down will choose how the data is formatted.');
   $field_addl_keys = array(
     'query_handler' => 'geo_views_field_query_handler',
-    'handler' => geo_views_spatial_field_handlers(),
+    'handler' => geo('query_handlers'),
   );
   $field_addl_keys = array_merge($field_addl_keys, $extra_data);
   
   // set up some the corresponding filter data
   $filter_help = t('Filter nodes by a spatial relation to this field. In the "value" box, include the Well-Known-Text representation of the geometry you wish to filter against. For the "Within" operator, your geometry must be a POLYGON.');
   $filter_addl_keys = array(
-    'operator' => geo_views_spatial_relation_operators(),
+    'operator' => geo('query_operators'),
     'handler' => 'geo_views_relation_filter_handler',
     'validate' => 'geo_views_relation_filter_validate',
   );
@@ -185,33 +213,57 @@ function geo_views_create_geometry_table($table_name, $field_name, $label_prefix
  */
  
 /**
- * Returns an array of operators for spatial relations.
- *
- * @return array
- */
-function geo_views_spatial_relation_operators() {
-  return array(
-    'Equals' => t('Equals'),
-    'NOT Equals' => t('Does not equal'),
-    'Intersects' => t('Intersects'),
-    'NOT Intersects' => t('Does not intersect'),
-    'Within' => t('Within'),
-    'NOT Within' => t('Not within'),
-  );
-}
-
-/**
  * Returns an array of the standard spatial handlers for geometry fields
  *
  * @return array
  */
-function geo_views_spatial_field_handlers() {
-  // perhaps define a hook for additiona spatial field handlers, eg. a wkt -> gmap handler
-  return array(
-    'geo_views_field_handler_wkt' => t('Well Known Text'),
-    'geo_views_field_handler_svg' => t('SVG'),
-    'geo_views_field_handler_kml' => t('KML'),
-    'geo_views_field_handler_gml' => t('GML'),
-  );  
+
+/*
+ * Views Functions
+ * 
+ * These functions modify the queries sent to the database to take advantage
+ * of db level transformations to output the geometries as various formats,
+ * compute centroids, start and end points, area, length, etc.
+ *
+ * For other database backends that don't provide these functions, they
+ * can be emulated at the views formatting phase using a different set
+ * of handlers.
+ */
+
+/**
+ * Views filter callback to handler for spatial relation filters (e.g. within, intersect, etc)
+ * The function signature is determined by views.module
+ *
+ * This filter is used to for the spatial relation filtering. It adds a bounding box clause to
+ * the query to speed up indexed queries, and refines by the supplied function.
+ */
+function geo_views_relation_filter_handler($op, $filterdata, $filterinfo, &$query) {
+  switch ($op) {
+    case 'handler':
+      break;
+  }
 }
 
+/**
+ * A views query handler callback to compute length, area, perimeter, etc from db
+ */
+function geo_views_scalar_field_query_handler($field, &$fieldinfo, &$query) {
+  $query->ensure_table($field['tablename']);
+  
+  // here we test on the field, as we have unique fields for length, area, perimeter
+  switch ($field['field']) {
+    case 'length':
+      $query->add_field('Length('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .')', NULL, $field['queryname']);
+      break;
+      
+    case 'area':
+      $query->add_field('Area('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .')', NULL, $field['queryname']);
+      break;
+      
+    case 'perimeter':
+      // TODO test this! we're on polygons, for some reason, this doesn't seem right!
+      $query->add_field('Length(ConvexHull('. $field['tablename'] .'.'. $fieldinfo['content_field']['field_name'] .'))', NULL, $field['queryname']);
+      
+      break;
+  }
+}

@@ -14,7 +14,7 @@
  */
 function geo_data_menu() {
   return array(
-    'admin/content/geo' => array(
+    'admin/build/geo' => array(
       'path'        => 'admin/build/geo',
       'title'       => t('Geospatial data'),
       'description' => t('Manage geographic information'),
@@ -31,4 +31,263 @@ function geo_data_menu() {
  */
 function geo_data_perm() {
   return array(t('administer geospatial data'));
+}
+
+/**
+ * CCK Field integration for geospatial data.
+ * In contrast with the geo_field module, this field module provides references
+ * to imported geospatial data.
+ */
+ 
+/**
+ * Implementation of FAPI hook_elements().
+ */
+function geo_data_elements() {
+  return array(
+    'geo_data_select' => array(
+      '#input' => TRUE,
+      '#columns' => array('value'),
+      '#delta' => 0,
+      '#process' => array('geo_data_select_process'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function geo_data_theme() {
+  return array(
+    'geo_data_select' => array(
+      'arguments' => array('element' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_info().
+ */
+function geo_data_field_info() {
+  return array(
+    'geo_data' => array(
+      'label' => t('Geospatial data reference'),
+      'callbacks' => array(),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_settings().
+ */
+function geo_data_field_settings($op, $field) {
+  $field_name = $field['field_name'];
+  
+  switch ($op) {
+    case 'form':
+      $form = array();
+
+      $geo_tables = geo('tables', '/^content_field/');
+      $options = array();
+      foreach ($geo_tables as $table => $geo_field) $options[$table] = $table;
+      $form['geo_data_table'] = array(
+        '#type' => 'select',
+        '#title' => t('Table name'),
+        '#multiple' => FALSE,
+        '#options' => $options,
+        '#default_value' => $field['geo_data_table'],
+        '#required' => TRUE,
+      );
+
+      if ($table = $field['geo_data_table']) {
+        $columns = array();
+        foreach (geo('table_desc', $table) as $col => $desc) {
+          if (in_array($desc['type'], geo('supported_types'))) {
+            $geo_type = $desc['type'];
+          }
+          $columns[$col] = $desc['description'] ? $desc['description'] : $col;
+        }
+
+        $form['geo_data_key'] = array(
+          '#type' => 'select',
+          '#multiple' => FALSE,
+          '#title' => t('Key column'),
+          '#options' => $columns,
+          '#default_value' => $field['geo_data_key'],
+          '#required' => TRUE,
+        );
+
+        $form['geo_data_value'] = array(
+          '#type' => 'select',
+          '#multiple' => TRUE,
+          '#title' => t('Value column'),
+          '#options' => $columns,
+          '#default_value' => $field['geo_data_value'],
+          '#required' => TRUE,
+        );
+
+        $form['geo_data_fields'] = array(
+          '#type' => 'select',
+          '#multiple' => TRUE,
+          '#title' => t('Additional fields'),
+          '#options' => $columns,
+          '#default_value' => $field['geo_data_fields'],
+          '#required' => FALSE,
+        );
+
+        // TODO Store the geometry type for this field, based on table type.
+        $form['geo_type'] = array('#type' => 'value', '#value' => $geo_type);
+      }
+
+      return $form;
+
+    case 'save':
+      return array('geo_data_table', 'geo_data_key', 'geo_data_value', 'geo_data_fields', 'geo_type');
+    
+    case 'database columns':
+      return array(
+        'value' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'description' => t('Key to geospatial table values'),
+        ),
+      );
+    
+    case 'views data':
+      $data = content_views_field_views_data($field);
+      $table_alias = content_views_tablename($field);
+      $db_info = content_database_info($field);
+      $geo_alias = $table_alias .'_geo';
+      $key = $field['field_name'] .'_value';
+
+      // Add the referenced table to the joins.
+      $data[$geo_alias]['table'] = array(
+        'group' => t('Geospatial Data'),
+        'base' => array(
+          'field' => $field['geo_data_key'],
+        ),
+        'join' => array(
+          'node' => array(
+            'table' => $field['geo_data_table'],
+            'field' => $field['geo_data_key'],
+            'left_table' => $table_alias, 
+            'left_field' => $key, 
+          ),
+        ),
+      );
+
+      // Switch the field handler to geo.
+      $data[$table_alias][$key]['field']['field'] = 'geo';
+      $data[$table_alias][$key]['field']['table'] = $geo_alias;
+      $data[$table_alias][$key]['field']['handler'] = 'views_handler_field_geo';
+
+      // Switch the filter handler to geo_data
+      $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo_data_field';
+      $data[$table_alias][$key]['filter']['geo_type'] = $field['geo_type'];
+      $data[$table_alias][$key]['filter']['geo_table'] = $geo_alias;
+
+      return $data;
+  }
+}
+
+/**
+ * Implementation of hook_field().
+ */
+function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
+
+  switch ($op) {
+
+    case 'load':
+      return;
+
+    case 'validate':
+      return;
+
+  }
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function geo_data_field_formatter_info() {
+  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
+  // TODO Can we do math on the field? area, length, etc?
+  return array(
+    'default' => array(
+      'label' => t('Default'),
+      'field types' => array_keys(geo_data_field_info()),
+    ),
+  );
+}
+
+/**
+ * Implementation fo hook_field_formatter().
+ */
+function geo_data_field_formatter($field, $item, $formatter, $node) {
+  switch ($formatter) {
+    default:
+      return $item['value'];
+  };
+}
+
+/**
+ * Implementation of hook_widget_info().
+ */
+function geo_data_widget_info() {
+  return array(
+    'geo_data_select' => array(
+      'label' => t('Select list'),
+      'field types' => array_keys(geo_data_field_info()),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_widget().
+ */
+function geo_data_widget(&$form, &$form_state, $field, $items, $delta = 0) {
+  return array(
+    '#type' => $field['widget']['type'],
+    '#default_value' => isset($items[$delta]) ? $items[$delta] : '',
+    '#title' => $element['#title'],
+  );
+}
+
+function geo_data_select_process($element, $edit, $form_state, $form) {
+  $field = $form['#field_info'][$element['#field_name']];
+  $table = $field['geo_data_table'];
+  $select = array();
+  $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
+  foreach ($field['geo_data_value'] as $val) {
+    $select[] = db_escape_string(check_plain($val));
+  }
+
+  $options = array();
+  $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
+  $res = db_query(db_distinct_field($table, $key, $sql));
+  while ($row = db_fetch_array($res)) {
+    $key = array_shift($row);
+    $options[$key] = join(', ', $row);
+  }
+
+  $element['value'] = array(
+    '#type' => 'select',
+    '#options' => $options,
+    '#title' => $element['#title'],
+    '#description' => $element['#description'],
+    '#required' => $element['#required'],
+    '#field_name' => $element['#field_name'],
+    '#type_name' => $element['#type_name'],
+    '#delta' => $element['#delta'],
+    '#columns' => $element['#columns'],
+    '#default_value' => isset($element['#value']['value']) ? $element['#value']['value'] : NULL,
+  );
+  return $element;
+}
+
+function theme_geo_data_select($element) {
+  return $element['#children'];
+}
+
+function geo_data_content_is_empty($item, $field) {
+  return empty($item['value']);
 }

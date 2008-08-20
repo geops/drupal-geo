@@ -72,6 +72,10 @@ function geo_field_settings($op, $field) {
       // Force 'multiple' in order to guarantee a separate storage table.
       $form['multiple'] = array('#type' => 'value', '#value' => 1);
 
+      // Store the geometry type for this field.
+      $geo_type = str_replace('geo_', '', $field['type']);
+      $form['geo_type'] = array('#type' => 'value', '#value' => $geo_type);
+
       if (!isset($field['geo_enabled'])) $field['geo_enabled'] = false;
       $form['geo_enabled'] = array('#type' => 'value', '#value' => $field['geo_enabled']);
 
@@ -82,7 +86,7 @@ function geo_field_settings($op, $field) {
       return $form;
 
     case 'save':
-      return array('srid', 'geo_enabled');
+      return array('srid', 'geo_enabled', 'geo_type');
     
     case 'database columns':
       // Use a well-known-text column for each field.
@@ -122,9 +126,19 @@ function geo_field_settings($op, $field) {
 
       // Tag data as geospatial.  This will cause geo_views_data_alter() to
       // correctly augment the relationship and other field definitions.
-      $key = current(array_keys($data));
-      $data[$key][$field['field_name'] .'_geo'] = array('geo' => TRUE);
+      $table = content_views_tablename($field);
+      $key = $field['field_name'] .'_geo';
 
+      // Copy from wkt entry ( TODO don't do this )
+      $data[$table][$key] = $data[$table][$field['field_name'] .'_wkt'];
+      $data[$table][$key]['title'] .= 'Geospatial definition';
+
+      foreach (array('field', 'argument', 'filter') as $type) {
+        $handler = 'views_handler_'. $type .'_geo';
+
+        $data[$table][$key][$type]['handler'] = $handler;
+        $data[$table][$key][$type]['geo_type'] = $field['geo_type'];
+      }
       return $data;
   }
 }
@@ -342,7 +356,6 @@ function _geo_field_init(&$field) {
   // Reuse the original column definition, but set a different datatype.
   $spec = $field['columns']['geo'];
   $spec['type'] = $spec['geo_type'];
-  unset($field['columns']['geo']);
 
   $ret = array();
   db_drop_field($ret, $table, $column);

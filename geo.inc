@@ -32,6 +32,10 @@ function geo_backend_type() {
   return $backend;
 }
 
+function geo_supported_types() {
+  return array('point', 'linestring', 'polygon');
+}
+
 function geo_wkt_from_point($lat, $lon) {
   return 'POINT('. $lon .' '. $lat .')';
 }
@@ -44,6 +48,96 @@ function geo_field_select($field) {
     asText(envelope($field)) as bbox,
     Dimension($field) as dimension,
     GeometryType($field) AS type ";
+}
+
+function geo_query_operators($geo_type) {
+  return array(
+    'Equals' => t('Equals'),
+    'NOT Equals' => t('Does not equal'),
+    'Intersects' => t('Intersects'),
+    'NOT Intersects' => t('Does not intersect'),
+    'Within' => t('Within'),
+    'NOT Within' => t('Not within'),
+  );
+}
+
+function geo_query_functions($geo_type) {
+  $geo_type = strtolower($geo_type);
+  $functions = array( 'wkt' => 'wkt' );
+
+  if ($geo_type == 'point') {
+    $functions['lat'] = 'lat';
+    $functions['lon'] = 'lon';
+  }
+
+  if ($geo_type == 'polygon' || $geo_type == 'linestring') {
+    $functions['area'] = 'area';
+    $functions['bbox'] = 'bbox';
+    $functions['perimeter'] = 'perimeter';
+  }
+
+  if ($geo_type == 'linestring') {
+    $functions['start'] = 'start';
+    $functions['end'] = 'end';
+  }
+
+  // TODO distance? given that we have a starting point?
+
+  return $fields;
+}
+
+function geo_query_handlers($geo_type) {
+  // TODO are these all supported by default?  (and through which functions?)
+  return array(
+    'wkt' => t('Well Known Text'),
+    'svg' => t('SVG'),
+    'kml' => t('KML'),
+    'gml' => t('GML'),
+  );
+}
+
+function geo_query_area($field, $srid = null) {
+  return 'Area('. $field .')';
+}
+
+function geo_query_bbox($field, $srid = null) {
+  return 'Envelope('. $field .')';
+}
+
+function geo_query_centroid($field, $srid = null) {
+  return 'Centroid('. $field .')';
+}
+
+function geo_query_geo_type($field, $srid = null) {
+  return 'GeometryType('. $field .')';
+}
+
+function geo_query_end($field, $srid = null) {
+  return 'EndPoint('. $field .')';
+}
+
+function geo_query_lat($field, $srid = null) {
+  //TODO return 'EndPoint('. $field .')';
+}
+
+function geo_query_lon($field, $srid = null) {
+  //TODO return 'EndPoint('. $field .')';
+}
+
+function geo_query_length($field, $srid = null) {
+  return 'Length('. $field .')';
+}
+
+function geo_query_perimeter($field, $srid = null) {
+  return 'Length(ConvexHull('. $field .')';
+}
+
+function geo_query_start($field, $srid = null) {
+  return 'StartPoint('. $field .')';
+}
+
+function geo_query_wkt($field, $srid = null) {
+  return 'asText('. $field .')';
 }
 
 /**

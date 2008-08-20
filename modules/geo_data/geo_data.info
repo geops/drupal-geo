@@ -1,0 +1,6 @@
+; $Id$
+name = Geo Data
+description = Interface with external GIS data, providing views and field integration
+package = Geo
+dependencies[] = geo
+core = 6.x
