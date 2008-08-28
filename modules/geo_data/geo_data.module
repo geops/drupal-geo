@@ -254,24 +254,10 @@ function geo_data_widget(&$form, &$form_state, $field, $items, $delta = 0) {
 
 function geo_data_select_process($element, $edit, $form_state, $form) {
   $field = $form['#field_info'][$element['#field_name']];
-  $table = $field['geo_data_table'];
-  $select = array();
-  $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
-  foreach ($field['geo_data_value'] as $val) {
-    $select[] = db_escape_string(check_plain($val));
-  }
-
-  $options = array();
-  $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
-  $res = db_query(db_distinct_field($table, $key, $sql));
-  while ($row = db_fetch_array($res)) {
-    $key = array_shift($row);
-    $options[$key] = join(', ', $row);
-  }
 
   $element['value'] = array(
     '#type' => 'select',
-    '#options' => $options,
+    '#options' => geo_data_allowed_values($field),
     '#title' => $element['#title'],
     '#description' => $element['#description'],
     '#required' => $element['#required'],
@@ -291,3 +277,29 @@ function theme_geo_data_select($element) {
 function geo_data_content_is_empty($item, $field) {
   return empty($item['value']);
 }
+
+function geo_data_allowed_values($field) {
+  $options = array('' => t('Please select'));
+  $table = $field['geo_data_table'];
+  $select = array();
+  $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
+
+  if (!$table || !$key) return $options;
+
+  if (is_array($field['geo_data_value'])) {
+    foreach ($field['geo_data_value'] as $val) {
+      $select[] = db_escape_string(check_plain($val));
+    }
+  }
+  $orderby = count($select) > 1 ? $select[1] : $select[0];
+
+  $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
+  $sql .= " ORDER BY $orderby";
+  $res = db_query(db_distinct_field($table, $key, $sql));
+  while ($row = db_fetch_array($res)) {
+    $key = array_shift($row);
+    $options[$key] = !empty($row) ? join(', ', $row) : $key;
+  }
+  return $options;
+}
+

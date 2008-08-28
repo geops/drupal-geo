@@ -137,6 +137,7 @@ function theme_geo_data_admin_tables($form) {
   return $output;
 }
 
+/*
 function geo_data_theme($existing, $type, $theme, $path) {
   return array(
     'geo_data_admin_tables' => array(
@@ -144,3 +145,4 @@ function geo_data_theme($existing, $type, $theme, $path) {
     ),
   );
 }
+*/
