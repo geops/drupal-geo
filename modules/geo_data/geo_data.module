@@ -101,7 +101,7 @@ function geo_data_field_settings($op, $field) {
       if ($table = $field['geo_data_table']) {
         $columns = array();
         foreach (geo('table_desc', $table) as $col => $desc) {
-          if (in_array($desc['type'], geo('supported_types'))) {
+          if (in_array($desc['type'], array_keys(geo('supported_types')))) {
             $geo_type = $desc['type'];
           }
           $columns[$col] = $desc['description'] ? $desc['description'] : $col;
