@@ -33,7 +33,11 @@ function geo_backend_type() {
 }
 
 function geo_supported_types() {
-  return array('point', 'linestring', 'polygon');
+  return array(
+    'point' => t('Point'),
+    'linestring' => t('Linestring'),
+    'polygon' => t('Polygon'),
+  );
 }
 
 function geo_wkt_from_point($lat, $lon) {

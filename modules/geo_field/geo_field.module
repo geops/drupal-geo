@@ -44,16 +44,8 @@ function geo_field_theme() {
  */
 function geo_field_info() {
   return array(
-    'geo_point' => array(
-      'label' => t('Point'),
-      'callbacks' => array(),
-    ),
-    'geo_linestring' => array(
-      'label' => t('Linestring'),
-      'callbacks' => array(),
-    ),
-    'geo_polygon' => array(
-      'label' => t('Polygon'),
+    'geo' => array(
+      'label' => t('Geospatial data'),
       'callbacks' => array(),
     ),
   );
@@ -73,8 +65,14 @@ function geo_field_settings($op, $field) {
       $form['multiple'] = array('#type' => 'value', '#value' => 1);
 
       // Store the geometry type for this field.
-      $geo_type = str_replace('geo_', '', $field['type']);
-      $form['geo_type'] = array('#type' => 'value', '#value' => $geo_type);
+      $form['geo_type'] = array(
+        '#type' => 'select',
+        '#title' => t('Data type'),
+        '#options' => geo('supported_types'),
+        '#default_value' => $field['geo_type'],
+        '#description' => t('Choose the datatype that best describes the information you are storing.  "Point" is suitable for addresses and other fixed points, but you may also choose "Linestring" for lines or tracks, and "Polygon" for shapes and areas.'),
+        '#disabled' => !empty($field['geo_type']),
+      );
 
       if (!isset($field['geo_enabled'])) $field['geo_enabled'] = false;
       $form['geo_enabled'] = array('#type' => 'value', '#value' => $field['geo_enabled']);
@@ -100,23 +98,21 @@ function geo_field_settings($op, $field) {
         ),
         'geo' => array(
           'type' => 'blob', // This column will be replaced in _geo_field_init.
-          'geo_type' => str_replace('geo_', '', $field['type']),
+          'geo_type' => $field['geo_type'],
           'not null' => TRUE,
           'description' => t('Geometry field'),
         ),
       );
 
-      // Add lat/lon values for point fields.
-      if ($field['type'] == 'geo_point') {
-        $spec['lat'] = array(
-          'type' => 'float',
-          'description' => t('Latitude'),
-        );
-        $spec['lon'] = array(
-          'type' => 'float',
-          'description' => t('Longitude'),
-        );
-      }
+      // Add lat/lon values for point fields ( or centroid for others ).
+      $spec['lat'] = array(
+        'type' => 'float',
+        'description' => t('Latitude'),
+      );
+      $spec['lon'] = array(
+        'type' => 'float',
+        'description' => t('Longitude'),
+      );
 
       return $spec;
     
@@ -183,8 +179,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
 
         if(!$item['wkt']) continue;
 
-        $geo_type = str_replace('geo_', '', $field['type']);
-        if (($error = geo('wkt_validate', $item['wkt'], $geo_type)) !== TRUE) {
+        if (($error = geo('wkt_validate', $item['wkt'], $field['geo_type'])) !== TRUE) {
           $error_field = $field['field_name'];
           form_set_error($error_field, $error);
         }
@@ -268,7 +263,7 @@ function geo_widget_info() {
     ),
     'geo_field_latlon' => array(
       'label' => t('Latitude / Longitude'),
-      'field types' => array('geo_point'),
+      'field types' => array('geo'),
     ),
   );
 }
@@ -355,7 +350,7 @@ function _geo_field_init(&$field) {
 
   // Reuse the original column definition, but set a different datatype.
   $spec = $field['columns']['geo'];
-  $spec['type'] = $spec['geo_type'];
+  $spec['type'] = $field['geo_type'];
 
   $ret = array();
   db_drop_field($ret, $table, $column);
