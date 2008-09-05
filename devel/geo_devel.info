@@ -1,6 +1,0 @@
-; $Id$
-name = Geo Development Tools
-description = Provides tools useful to developers working on the geo project. Probably not needed for most users. 
-package = Geo
-dependencies = geo devel
-
