@@ -5,6 +5,7 @@
  */ 
 function geo_data_views_data() {
   $data = array();
+  return $data; // TODO we're not doing anything with this yet.
   $data['geo_data']['table']['group']  = t('Geospatial Data');
 
   foreach (geo('tables', '/^content_field/') as $table => $col) {
@@ -17,7 +18,4 @@ function geo_data_views_data() {
     );
   }
   //return $data;
-}
-
-class views_handler_filter_geo_data_field extends views_handler_filter_geo {
 }
