@@ -41,3 +41,14 @@ function geo($op = NULL) {
     return call_user_func_array($func, $args);
   }
 }
+
+/**
+ * Implementation of hook_geo_views_api().
+ */
+function geo_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'geo') .'/includes/views',
+  );
+}
+
