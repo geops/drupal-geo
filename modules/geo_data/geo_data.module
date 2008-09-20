@@ -54,17 +54,6 @@ function geo_data_elements() {
 }
 
 /**
- * Implementation of hook_theme().
- */
-function geo_data_theme() {
-  return array(
-    'geo_data_select' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
-}
-
-/**
  * Implementation of hook_field_info().
  */
 function geo_data_field_info() {
@@ -181,7 +170,7 @@ function geo_data_field_settings($op, $field) {
       $data[$table_alias][$key]['field']['handler'] = 'views_handler_field_geo';
 
       // Switch the filter handler to geo_data
-      $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo_data_field';
+      $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo';
       $data[$table_alias][$key]['filter']['geo_type'] = $field['geo_type'];
       $data[$table_alias][$key]['filter']['geo_table'] = $geo_alias;
 
@@ -197,36 +186,36 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
   switch ($op) {
 
     case 'load':
-      return;
+      $table = $field['geo_data_table'];
+      $select = array();
+      $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
+
+      if (is_array($field['geo_data_value'])) {
+        foreach ($field['geo_data_value'] as $val) {
+          $select[] = db_escape_string(check_plain($val));
+       }
+      }  
+
+      foreach ($items as $delta => $item) {
+        $ret[$delta] = $item;
+        $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
+        $sql .= " WHERE $key = '%s'";
+        $res = db_query(db_distinct_field($table, $key, $sql), $item['value']);
+        while ($row = db_fetch_array($res)) {
+          foreach ($row as $k => $v) {
+            $ret[$delta]['geo_data_'. $k] = $v;
+            if (!isset($ret[$delta]['label']) && in_array($k, $field['geo_data_value'])) {
+              $ret[$delta]['label'] = $v;
+            }
+          }
+        }
+      }
+      return array( $field['field_name'] => $ret );
 
     case 'validate':
       return;
 
   }
-}
-
-/**
- * Implementation of hook_field_formatter_info().
- */
-function geo_data_field_formatter_info() {
-  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
-  // TODO Can we do math on the field? area, length, etc?
-  return array(
-    'default' => array(
-      'label' => t('Default'),
-      'field types' => array_keys(geo_data_field_info()),
-    ),
-  );
-}
-
-/**
- * Implementation fo hook_field_formatter().
- */
-function geo_data_field_formatter($field, $item, $formatter, $node) {
-  switch ($formatter) {
-    default:
-      return $item['value'];
-  };
 }
 
 /**
@@ -303,3 +292,43 @@ function geo_data_allowed_values($field) {
   return $options;
 }
 
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function geo_data_field_formatter_info() {
+  return array(
+    'default' => array(
+      'label' => 'Default',
+      'field types' => array('geo_data'),
+    ),
+    'geo_data_key' => array(
+      'label' => 'Field key',
+      'field types' => array('geo_data'),
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_theme().
+ */
+function geo_data_theme() {
+  return array(
+    'geo_data_formatter_default' => array('element' => NULL),
+    'geo_data_formatter_key' => array('element' => NULL),
+    'geo_data_select' => array( 'arguments' => array('element' => NULL) ),
+  );
+}
+
+/**
+ * Default field theme function: return value field.
+ */
+function theme_geo_data_formatter_default($element) {
+  return check_plain($element['#item']['label']);
+}
+
+/**
+ * Default field theme function: return value field.
+ */
+function theme_geo_data_formatter_key($element) {
+  return check_plain($element['#item']['value']);
+}
