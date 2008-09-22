@@ -164,12 +164,12 @@ function geo_data_field_settings($op, $field) {
         ),
       );
 
-      // Switch the field handler to geo.
+      // Switch the field handler to geo_data.
       $data[$table_alias][$key]['field']['field'] = 'geo';
-      $data[$table_alias][$key]['field']['table'] = $geo_alias;
-      $data[$table_alias][$key]['field']['handler'] = 'views_handler_field_geo';
+      $data[$table_alias][$key]['field']['geo_table'] = $geo_alias;
+      $data[$table_alias][$key]['field']['handler'] = 'views_handler_field_geo_data';
 
-      // Switch the filter handler to geo_data
+      // Switch the filter handler to geo
       $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo';
       $data[$table_alias][$key]['filter']['geo_type'] = $field['geo_type'];
       $data[$table_alias][$key]['filter']['geo_table'] = $geo_alias;
@@ -327,8 +327,19 @@ function theme_geo_data_formatter_default($element) {
 }
 
 /**
- * Default field theme function: return value field.
+ * Default field theme function: return key field.
  */
 function theme_geo_data_formatter_key($element) {
   return check_plain($element['#item']['value']);
 }
+
+/**
+ * Implementation of hook_geo_views_api().
+ */
+function geo_data_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'geo_data') .'/includes/views',
+  );
+}
+

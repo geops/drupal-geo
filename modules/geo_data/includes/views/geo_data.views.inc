@@ -6,6 +6,7 @@
 function geo_data_views_data() {
   $data = array();
   return $data; // TODO we're not doing anything with this yet.
+
   $data['geo_data']['table']['group']  = t('Geospatial Data');
 
   foreach (geo('tables', '/^content_field/') as $table => $col) {
@@ -18,4 +19,17 @@ function geo_data_views_data() {
     );
   }
   //return $data;
+}
+
+function geo_data_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'geo_data') .'/includes/views',
+    ),
+    'handlers' => array(
+      'views_handler_field_geo_data' => array(
+        'parent' => 'content_handler_field_multiple',
+      ),
+    ),
+  );
 }
