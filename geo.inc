@@ -87,7 +87,7 @@ function geo_query_functions($geo_type) {
 
   // TODO distance? given that we have a starting point?
 
-  return $fields;
+  return $functions;
 }
 
 function geo_query_handlers($geo_type) {
