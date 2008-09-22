@@ -2,6 +2,8 @@
 
 class views_handler_filter_geo extends views_handler_filter {
 
+  var $no_single = TRUE;
+
   function construct() {
     parent::construct();
     // If this was a CCK field, set the content_field definition.
@@ -24,10 +26,8 @@ class views_handler_filter_geo extends views_handler_filter {
     $table = $this->ensure_my_table();
     $func = $this->operator;
     $srid = GEO_SRID_DEFAULT;
-    $value = db_escape_string($this->value);
 
-    // Todo is this how to handle this?
-    if (empty($value)) return;
+    $value = db_escape_string($this->value);
 
     if (true) { // TODO decide if it's incoming wkt or a geo field.
       $value = "GeomFromText('$value', $srid)";

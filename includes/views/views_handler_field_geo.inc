@@ -1,4 +1,5 @@
-<?php $Id$
+<?php //$Id$
+
 class views_handler_field_geo extends views_handler_field {
   function options_form(&$form, &$form_state) {
     // TODO Implement settings for AsKML, AsSVG, AsText, etc.
@@ -6,7 +7,7 @@ class views_handler_field_geo extends views_handler_field {
     $form['geo_format'] = array(
       '#type' => 'select',
       '#options' => geo('query_functions', ($this->definition['geo_type'])),
-      '#default_value' => $this->options['format'],
+      '#default_value' => $this->options['geo_format'],
     );
   }
 
