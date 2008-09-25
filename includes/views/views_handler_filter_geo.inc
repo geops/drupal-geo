@@ -29,22 +29,13 @@ class views_handler_filter_geo extends views_handler_filter {
 
     $value = db_escape_string($this->value);
 
-    if (true) { // TODO decide if it's incoming wkt or a geo field.
-      $value = "GeomFromText('$value', $srid)";
-    }
     if ($geo_table = $this->definition['geo_table']) {
       $geo_table = $this->query->ensure_table($geo_table, $this->relationship);
       $field = $geo_table . '.geo';
     }
-      
-    // These relations should have overlapping bounding boxes.
-    if (in_array($func, array('Equals', 'Within', 'Intersects'))) {
-      //$index = "$value && $field AND "; // TODO NOT WORKING?
+
+    foreach (geo('query_function', $func, $field, $value, $srid) as $sql) {
+      $this->query->add_where(0, $sql);
     }
-    else { // Bounding boxes don't touch, we know can use OR use the function
-      //$index = "NOT($value && $field) OR ";
-    }
-      
-    $this->query->add_where(0, $index ."$func($value, $field)");
   }
 }

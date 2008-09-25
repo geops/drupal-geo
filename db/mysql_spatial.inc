@@ -49,6 +49,10 @@ function geo_mysql_spatial_drop_field($table, $column) {
   return true;
 }
 
+function geo_mysql_spatial_query_function($func, $field, $value, $srid) {
+  return array("$func(GeomFromText('$value', $srid), $field)");
+}
+
 /*** Helper functions ***/
 
 /**

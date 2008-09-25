@@ -65,6 +65,11 @@ function geo_data_admin() {
     '#title' => t('Table name'),
     '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
   );
+  $form['import']['srid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('SRID'),
+    '#default_value' => GEO_SRID_DEFAULT,
+  );
   $form['import']['create'] = array(
     '#type' => 'checkbox',
     '#title' => t('Create a new table.'),
@@ -82,7 +87,8 @@ function geo_data_admin_submit($form, &$form_state) {
     $file = $_FILES['files']['tmp_name']['import']; 
     $table_name = 'geo_data_'. $form_state['values']['import']['table_name'];
     $create = 'geo_data_'. $form_state['values']['import']['table_name'];
-    geo_shp2sql($file, $table_name, $create);
+    $srid = $form_state['values']['import']['srid'];
+    geo_shp2sql($file, $table_name, $create, $srid);
   }
 /*
   $views_fields = _views_get_fields();
