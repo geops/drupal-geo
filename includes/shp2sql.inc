@@ -11,7 +11,7 @@
  * I also borrowed heavily from existing code by Juan Carlos Gonzalez Ulloa:
  *   http://sourceforge.net/projects/shp2mysql-php
  */ 
-function geo_shp2sql($filename, $table_name = '', $create_table = TRUE) {
+function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = GEO_SRID_DEFAULT) {
   if (!$table_name) {
     $parts = pathinfo($filename);
     $table_name = $parts['filename'];
@@ -66,6 +66,7 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE) {
     'type' => strtolower($headers['geo_type']),
     'not null' => TRUE,
     'description' => t('Geometry field'),
+    'srid' => $srid,
   );
   geo('add_field', $ret, $table_name, 'geo', $spec);
   $fields = join(', ', array_keys($headers['field_lengths'])) .', geo';
@@ -85,7 +86,7 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE) {
     }
 
     // Add the geometry text.
-    $values[] = "GeomFromText('". $shp['data']['wkt'] ."', 26915)";
+    $values[] = "GeomFromText('". $shp['data']['wkt'] ."', $srid)";
 
     // We've already handled sanitization of table_name, column names and 
     // values, so we're going to skip the substitutions.
@@ -184,7 +185,12 @@ function _dbf_headers(&$fp, &$schema) {
     $schema['fields'][$name] = array('type' => $type, 'length' => $d['length']);
     if ($d['precision']) {
       $schema['fields'][$name]['not null'] = TRUE;
-      $schema['fields'][$name]['default'] = 0;
+      $schema['fields'][$name]['default'] = 0.0;
+    }
+
+    // Remove precision from simple types.
+    if (in_array($type, array('int', 'float', 'real', 'timestamp'))) {
+      unset($schema['fields'][$name]['length']);
     }
 
     // Store field length for processing.

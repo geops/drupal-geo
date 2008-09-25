@@ -28,13 +28,11 @@
 function geo_postgis_add_field(&$ret, $table, $field, $spec) {
   // NOTE for now, all geometries are 2d. deal with it
   // TODO is there a way to get the current schema? until i figure this out, everything is public
-  $res = db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $column, $spec['srid'], $spec['type']);
+  $ret[] =  db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $field, $spec['srid'], strtoupper($spec['type']));
   // TODO perhaps send the message returned from the db to watchdog?
-  if (db_num_rows($res)) {
-    // if successful, add a spatial index on the field
-    db_query("CREATE INDEX {". $table ."}_". $column ."_idx ON {". $table ."} USING GIST ($column GIST_GEOMETRY_OPS)");
-    return true;
-  }
+  // if successful, add a spatial index on the field
+  $ret[] = db_query("CREATE INDEX {". $table ."}_". $field ."_idx ON {". $table ."} USING GIST ($field GIST_GEOMETRY_OPS)");
+  return true;
 }
 
 /**
@@ -52,11 +50,23 @@ function geo_postgis_add_field(&$ret, $table, $field, $spec) {
 function geo_postgis_drop_field($table, $column) {
   $res = db_query("SELECT DropGeometryColumn('public', '{%s}', '%s'", $table, $column);
   // NOTE do I need to drop my spatial index too? should probably check pg docs
-  return db_num_rows($res);
 }
 
 function geo_postgis_field_select($field) {
   return " srid($field) as srid, asText($field) AS wkt, asText(centroid($field)) AS centroid, asText(envelope($field)) as bbox ";
+}
+
+function geo_postgis_query_function($func, $field, $value, $srid) {
+  $ret = array();
+  $value = "ST_Transform(GeomFromText('$value', $srid), SRID($field))";
+
+  // These relations should have overlapping bounding boxes, so use an index here.
+  if (in_array($func, array('Equals', 'Within', 'Intersects'))) {
+    $ret[] = "$value && $field";
+  }
+
+  $ret[] = "$func($value, $field)";
+  return $ret;
 }
 
 /*** Helper functions ***/

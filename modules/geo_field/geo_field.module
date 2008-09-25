@@ -351,6 +351,7 @@ function _geo_field_init(&$field) {
   // Reuse the original column definition, but set a different datatype.
   $spec = $field['columns']['geo'];
   $spec['type'] = $field['geo_type'];
+  $spec['srid'] = $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT;;
 
   $ret = array();
   db_drop_field($ret, $table, $column);
