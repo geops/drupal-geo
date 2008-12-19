@@ -107,10 +107,12 @@ function geo_field_settings($op, $field) {
       // Add lat/lon values for point fields ( or centroid for others ).
       $spec['lat'] = array(
         'type' => 'float',
+        'size' => 'big',
         'description' => t('Latitude'),
       );
       $spec['lon'] = array(
         'type' => 'float',
+        'size' => 'big',
         'description' => t('Longitude'),
       );
 
