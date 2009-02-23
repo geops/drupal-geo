@@ -27,7 +27,7 @@
 function geo_mysql_spatial_add_field(&$ret, $table, $field, $spec) {
   // NOTE for now, all geometries are 2d. deal with it
   $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $spec['type']);
-  db_query("CREATE SPATIAL INDEX {". $table ."}_${field}_idx ON {$table} ($field)");
+  db_query("CREATE SPATIAL INDEX {$table}_${field}_idx ON  {". $table ."} ($field)");
 
   // @@@ Error handling
   return true;
