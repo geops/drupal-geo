@@ -36,8 +36,43 @@ function geo_field_theme() {
     'geo_field_wkt' => array(
       'arguments' => array('element' => NULL),
     ),
+    'geo_formatter_default' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo_field.formatters.inc',
+    ),
+    'geo_formatter_lat' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo_field.formatters.inc',
+    ),
+    'geo_formatter_lon' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo_field.formatters.inc',
+    ),
   );
 }
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function geo_field_formatter_info() {
+  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
+  // TODO Can we do math on the field? area, length, etc?
+  return array(
+    'default' => array(
+      'label' => t('Well Known Text'),
+      'field types' => array_keys(geo_field_info()),
+    ),
+    'lat' => array(
+      'label' => t('Latitude'),
+      'field types' => array_keys(geo_field_info()),
+    ),
+    'lon' => array(
+      'label' => t('Longitude'),
+      'field types' => array_keys(geo_field_info()),
+    ),
+  );
+}
+
 
 /**
  * Implementation of hook_field_info().
@@ -198,12 +233,26 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
   }
 }
 
+/**
+ * Implementation of hook_content_is_empty().
+ * It's named after the field type (geo), not the module (geo_data).
+ */
+function geo_content_is_empty($item, $field) {
+  return empty($item['wkt']);
+}
+
+/**
+ * Save function for Geo fields.  Because the storage function includes some
+ * calls to database functions, they include quotes that are escaped by the
+ * default query substitutions.  Save the value manually instead.
+ */
 function _geo_field_save($op, $node, $field, $items) {
   $table = $table  = _geo_field_tablename($field);
   $schema = drupal_get_schema($table);
 
   db_query("DELETE FROM {". $table ."} WHERE vid = %d", $node->vid);
   foreach ($items as $delta => $item) {
+    if (geo_content_is_empty($item, $field)) continue;
     $columns = $values = $holders = array();
     $record = array(
       'nid' => $node->nid,
@@ -228,30 +277,6 @@ function _geo_field_save($op, $node, $field, $items) {
     db_query("INSERT INTO {". $table ."} (". implode(', ', $columns) .') 
       VALUES ('. implode(', ', $holders) .')', $values);
   }
-}
-
-/**
- * Implementation of hook_field_formatter_info().
- */
-function geo_field_formatter_info() {
-  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
-  // TODO Can we do math on the field? area, length, etc?
-  return array(
-    'default' => array(
-      'label' => t('Well Known Text'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-  );
-}
-
-/**
- * Implementation fo hook_field_formatter().
- */
-function geo_field_formatter($field, $item, $formatter, $node) {
-  switch ($formatter) {
-    default:
-      return $item['wkt'];
-  };
 }
 
 /**
@@ -326,10 +351,6 @@ function theme_geo_field_latlon($element) {
 
 function theme_geo_field_wkt($element) {
   return $element['#children'];
-}
-
-function geo_content_is_empty($item, $field) {
-  return empty($item['wkt']);
 }
 
 function _geo_field_tablename($field) {
