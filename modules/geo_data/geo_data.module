@@ -301,7 +301,7 @@ function geo_data_field_formatter_info() {
       'label' => 'Default',
       'field types' => array('geo_data'),
     ),
-    'geo_data_key' => array(
+    'key' => array(
       'label' => 'Field key',
       'field types' => array('geo_data'),
     ),
@@ -315,6 +315,7 @@ function geo_data_theme() {
   return array(
     'geo_data_formatter_default' => array('element' => NULL),
     'geo_data_formatter_key' => array('element' => NULL),
+    'geo_data_formatter_svg' => array('element' => NULL),
     'geo_data_select' => array( 'arguments' => array('element' => NULL) ),
   );
 }

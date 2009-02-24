@@ -48,6 +48,14 @@ function geo_field_theme() {
       'arguments' => array('element' => NULL),
       'file' => 'geo_field.formatters.inc',
     ),
+    'geo_formatter_georss' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo_field.formatters.inc',
+    ),
+    'geo_formatter_svg' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo_field.formatters.inc',
+    ),
   );
 }
 
@@ -68,6 +76,14 @@ function geo_field_formatter_info() {
     ),
     'lon' => array(
       'label' => t('Longitude'),
+      'field types' => array_keys(geo_field_info()),
+    ),
+    'georss' => array(
+      'label' => t('GeoRSS'),
+      'field types' => array_keys(geo_field_info()),
+    ),
+    'svg' => array(
+      'label' => t('SVG'),
       'field types' => array_keys(geo_field_info()),
     ),
   );
