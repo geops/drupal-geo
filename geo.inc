@@ -41,12 +41,15 @@ function geo_supported_types() {
 }
 
 function geo_wkt_from_point($lat, $lon) {
-  return 'POINT('. $lon .' '. $lat .')';
+  if (strlen($lat) || strlen($lon)) {
+    return 'POINT('. $lon .' '. $lat .')';
+  }
 }
 
 
 function geo_field_select($field) {
   return " SRID($field) as srid, 
+    AsBinary($field) AS wkb,
     asText($field) AS wkt,
     asText(centroid($field)) AS centroid,
     asText(envelope($field)) as bbox,
