@@ -19,19 +19,19 @@ function theme_geo_formatter_lon($element) {
 
 function theme_geo_formatter_georss($element) {
   module_load_include('inc', 'geo', 'includes/geo.wkb');
-  $points = geo_wkb_get_data($element['#item']['wkb'], NULL, $type);
-
   $item = $element['#item'];
+  $data = geo_wkb_get_data($item['wkb'], 'text');
+
   if (in_array($item['type'], array('POINT', 'LINE', 'POLYGON'))) {
     $tag = 'georss:'. strtolower($item['type']);
-    $data = join(' ', $points);
+    $value = $data['value'];
   }
   elseif($item['bbox']) {
     $tag = 'georss:bbox';
-    $data = $item['bbox'];
+    $value = $item['bbox'];
   }
   if (isset($tag)) {
-    return '<'. $tag .'>' . $data .'</'. $tag .'>';
+    return '<'. $tag .'>' . $value .'</'. $tag .'>';
   }
 }
 
