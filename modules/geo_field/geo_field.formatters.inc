@@ -4,7 +4,6 @@
  * Field formatters for geo_field fields.
  */
 function theme_geo_formatter_default($element) {
-  return join (',', wkb_get_data($element['#item']['wkb']));
   if (isset($element['#item']['wkt'])) return $element['#item']['wkt'];
 }
 

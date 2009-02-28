@@ -13,10 +13,16 @@ class views_handler_field_geo extends views_handler_field {
 
   function query() {
     $format = $this->options['geo_format'];
+    if (!$format) $format = 'wkt';
 
     // Add the geo formula as a field.
-    $func = 'AsText('. geo('query_'. $format, $this->real_field). ')';
-    $this->table_alias .= '_'. $format;
-    $this->query->add_field(NULL, $func, $this->table_alias);
+    if ($format) {
+      $func = geo('query_'. $format, $this->real_field);
+    }
+    else {
+      $func = geo('query_'. $format, $this->real_field);
+    }
+    $table = $this->ensure_my_table();
+    $this->query->add_field(NULL, $func, $table);
   }
 }

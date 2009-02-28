@@ -97,6 +97,7 @@ function geo_query_handlers($geo_type) {
   // TODO are these all supported by default?  (and through which functions?)
   return array(
     'wkt' => t('Well Known Text'),
+    'wkb' => t('Well Known Binary'),
     'svg' => t('SVG'),
     'kml' => t('KML'),
     'gml' => t('GML'),
@@ -124,11 +125,11 @@ function geo_query_end($field, $srid = null) {
 }
 
 function geo_query_lat($field, $srid = null) {
-  //TODO return 'EndPoint('. $field .')';
+  return 'Y('. $field .')';
 }
 
 function geo_query_lon($field, $srid = null) {
-  //TODO return 'EndPoint('. $field .')';
+  return 'X('. $field .')';
 }
 
 function geo_query_length($field, $srid = null) {
@@ -145,6 +146,10 @@ function geo_query_start($field, $srid = null) {
 
 function geo_query_wkt($field, $srid = null) {
   return 'asText('. $field .')';
+}
+
+function geo_query_wkb($field, $srid = null) {
+  return 'asWKB('. $field .')';
 }
 
 /**
