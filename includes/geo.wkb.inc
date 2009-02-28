@@ -4,7 +4,7 @@ function geo_wkb_types($key = null) {
   $geo_types = array(
     0 => 'none',
     1 => 'point',
-    3 => 'linestring',  //TODO this is specified as 'polyline' in the standard.
+    3 => 'linestring',  // This is specified as 'polyline' in the standard.
     5 => 'polygon',
     8 => 'multipoint',
     11 => 'pointz',
@@ -23,9 +23,11 @@ function geo_wkb_types($key = null) {
 }
 
 function geo_wkb_get_data($wkb, $format = NULL, &$type = NULL) {
-  $data = unpack('corder/Ltype/d*', $wkb);
-  $order = array_shift($data);
-  $type = geo_wkb_types(array_shift($data));
+  $data = array();
+
+  $unpack = 'corder/Ltype';
+  $info = unpack($unpack, $wkb);
+  $type = geo_wkb_types($info['type']);
 
   if ($format == 'points') {
     $points = array();

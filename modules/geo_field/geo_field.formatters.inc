@@ -18,20 +18,27 @@ function theme_geo_formatter_lon($element) {
 }
 
 function theme_geo_formatter_georss($element) {
-  $item = $element['item'];
+  module_load_include('inc', 'geo', 'includes/geo.wkb');
+  $points = geo_wkb_get_data($element['#item']['wkb'], NULL, $type);
+
+  $item = $element['#item'];
   if (in_array($item['type'], array('POINT', 'LINE', 'POLYGON'))) {
     $tag = 'georss:'. strtolower($item['type']);
-    $data = '';
-    return '<'. $tag .'>' . $data .'</'. $tag .'>';
+    $data = join(' ', $points);
   }
   elseif($item['bbox']) {
+    $tag = 'georss:bbox';
+    $data = $item['bbox'];
+  }
+  if (isset($tag)) {
+    return '<'. $tag .'>' . $data .'</'. $tag .'>';
   }
 }
 
 function theme_geo_formatter_svg($element) {
   // TODO this should be moved to a geo() call so that the backend can handle
   // this on its own.
-  module_load_include('inc', 'geo', 'includes/geo_wkb');
+  module_load_include('inc', 'geo', 'includes/geo.wkb');
 
   $points = geo_wkb_get_data($element['#item']['wkb'], NULL, $type);
   if ($type == 'point') {
