@@ -40,12 +40,29 @@ function theme_geo_formatter_svg($element) {
   // this on its own.
   module_load_include('inc', 'geo', 'includes/geo.wkb');
 
-  $points = geo_wkb_get_data($element['#item']['wkb'], NULL, $type);
-  if ($type == 'point') {
-    $data = ' cx="'. $points[0][0] .'" cy="'. $points[0][1] .'" ';
+  $data = geo_wkb_get_data($element['#item']['wkb'], 'text');
+  if ($data['type'] == 'point') {
+    $data = ' cx="'. $data['x'] .'" cy="'. $data['y'] .'" ';
   }
-  elseif($type == 'polygon' || $type == 'linestring') {
-    $data = 'M'. join(' ', $points) .'z';
+  elseif($data['type'] == 'polygon' || $data['type'] == 'linestring') {
+/*
+    $set = FALSE;
+    $path = '';
+    foreach($points as $point) {
+      $move = '';
+      if ($set == TRUE) {
+        $move = ' ';
+        $set = FALSE;
+        $space = ' ';
+      }
+      else {
+        $set = TRUE;
+        $space = '';
+      }
+      $path .=  $point .' '. $move;
+    }
+*/
+    $data = ''. $data['value'] .'';
   /*
     foreach ($points as $point) {
       $data .= join(',', $point).' ';
@@ -53,17 +70,44 @@ function theme_geo_formatter_svg($element) {
 */
   }
 
+  $bbox = $element['#item']['bbox'];
+  preg_match('|[.*\(]+(.*[^\)]+)|', $bbox, $matches);
+  $bbox = explode(' ', str_replace(',' ,' ', $matches[1]));
+  $set = FALSE;
+  $lat = $lon = array();
+  foreach($bbox as $box) {
+    if ($set) {
+      $lat[] = $box;
+      $set = FALSE;
+    }
+    else {
+      $lon[] = $box;
+      $set = TRUE;
+    }
+  }
+  $x = min($lat);
+  $y = min($lon);
+  $width = ((max($lat) - $x) * 1.05);
+  $height = ((max($lon) - $y) * 1.05);
   $out = '<?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
-//  $out .= '<svg width="100%" height="100%" viewBox="244000 -4231000 64000 81000" >';
-  $out .= '<svg id="mainMap" x="0" y="15" viewBox="244000 -4231000 64000 81000" width="553" height="700">';
- $out .= "\t".'<path d="'.$data.'" fill="red" stroke="blue" stroke-width="300" />'."\n";
+  // $out .= '<svg width="100%" height="100%" viewBox="244000 -4231000 64000 81000" >';
+  // $out .= '<svg id="mainMap" x="0" y="15" viewBox="244000 -4231000 64000 81000" width="553" height="700">';
+  // viewBox="-93.26314092087 45.004209025261 .03 .03"
+  $out .='<svg id="mainmap" width="50px" height="50px"
+  viewBox=" '. $y .' '. $x .' '. $width .' ' . $height .'"
+  overflow="visible"
+  xmlns="http://www.w3.org/2000/svg"
+  preserveAspectRatio="xMinYMin meet">';
+  $out .= '<g id="geo_shape">'."\n";
+  $out .= "\t".'<path d="M '.$data.' z" fill="red" stroke="blue" stroke-width="1%"/>'."\n";
+  $out .= '</g>'."\n";
   $out .= '</svg>';
-  
+
   $dest = file_create_path() . '/svg.svg';
   $filename = file_save_data($out, $dest, FILE_EXISTS_REPLACE);
 
-  return  '<embed src="'. $filename .'" width="200" height="200"
+  return  '<embed src="'. $filename .'"
         pluginspage="http://www.adobe.com/svg/viewer/install/" />';
 }
