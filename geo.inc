@@ -70,7 +70,7 @@ function geo_query_operators($geo_type) {
 
 function geo_query_functions($geo_type) {
   $geo_type = strtolower($geo_type);
-  $functions = array( 'wkt' => 'wkt' );
+  $functions = array( 'wkt' => 'wkt', 'wkb' => 'wkb' );
 
   if ($geo_type == 'point') {
     $functions['lat'] = 'lat';
@@ -149,7 +149,7 @@ function geo_query_wkt($field, $srid = null) {
 }
 
 function geo_query_wkb($field, $srid = null) {
-  return 'asWKB('. $field .')';
+  return 'asBinary('. $field .')';
 }
 
 /**
@@ -163,6 +163,16 @@ function geo_query_wkb($field, $srid = null) {
  */
 function geo_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
   return " GeomFromText('". $wkt ."') ";
+}
+
+function geo_rss_item($wkb) {
+  module_load_include('inc', 'geo', 'includes/geo.wkb');
+  $data = geo_wkb_get_data($wkb, 'text');
+  return array(
+    'key' => 'georss:'. strtolower($data['type']),
+    'value' => $data['value'],
+    'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
+  );
 }
 
 function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_DEFAULT_SRID) {
