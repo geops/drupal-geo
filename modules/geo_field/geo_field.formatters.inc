@@ -45,29 +45,7 @@ function theme_geo_formatter_svg($element) {
     $data = ' cx="'. $data['x'] .'" cy="'. $data['y'] .'" ';
   }
   elseif($data['type'] == 'polygon' || $data['type'] == 'linestring') {
-/*
-    $set = FALSE;
-    $path = '';
-    foreach($points as $point) {
-      $move = '';
-      if ($set == TRUE) {
-        $move = ' ';
-        $set = FALSE;
-        $space = ' ';
-      }
-      else {
-        $set = TRUE;
-        $space = '';
-      }
-      $path .=  $point .' '. $move;
-    }
-*/
     $data = ''. $data['value'] .'';
-  /*
-    foreach ($points as $point) {
-      $data .= join(',', $point).' ';
-    }
-*/
   }
 
   $bbox = $element['#item']['bbox'];
@@ -92,9 +70,6 @@ function theme_geo_formatter_svg($element) {
   $out = '<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">';
-  // $out .= '<svg width="100%" height="100%" viewBox="244000 -4231000 64000 81000" >';
-  // $out .= '<svg id="mainMap" x="0" y="15" viewBox="244000 -4231000 64000 81000" width="553" height="700">';
-  // viewBox="-93.26314092087 45.004209025261 .03 .03"
   $out .='<svg id="mainmap" width="50px" height="50px"
   viewBox=" '. $y .' '. $x .' '. $width .' ' . $height .'"
   overflow="visible"
