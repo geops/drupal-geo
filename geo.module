@@ -43,6 +43,71 @@ function geo($op = NULL) {
 }
 
 /**
+ * Implementation of hook_theme().
+ */
+function geo_theme() {
+  $file_path = drupal_get_path('module', 'geo') .'/includes';
+  return array(
+    'geo_formatter_default' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo.formatters.inc',
+      'path' => $file_path,
+    ),
+    'geo_formatter_lat' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo.formatters.inc',
+      'path' => $file_path,
+    ),
+    'geo_formatter_lon' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo.formatters.inc',
+      'path' => $file_path,
+    ),
+    'geo_formatter_georss' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo.formatters.inc',
+      'path' => $file_path,
+    ),
+    'geo_formatter_svg' => array(
+      'arguments' => array('element' => NULL),
+      'file' => 'geo.formatters.inc',
+      'path' => $file_path,
+    ),
+  );
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function geo_field_formatter_info() {
+  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
+  // TODO Can we do math on the field? area, length, etc?
+  $field_types = array('geo', 'geo_data');
+  return array(
+    'default' => array(
+      'label' => t('Well Known Text'),
+      'field types' => $field_types,
+    ),
+    'lat' => array(
+      'label' => t('Latitude'),
+      'field types' => $field_types,
+    ),
+    'lon' => array(
+      'label' => t('Longitude'),
+      'field types' => $field_types,
+    ),
+    'georss' => array(
+      'label' => t('GeoRSS'),
+      'field types' => $field_types,
+    ),
+    'svg' => array(
+      'label' => t('SVG'),
+      'field types' => $field_types,
+    ),
+  );
+}
+
+/**
  * Implementation of hook_geo_views_api().
  */
 function geo_views_api() {

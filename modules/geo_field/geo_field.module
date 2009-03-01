@@ -36,59 +36,8 @@ function geo_field_theme() {
     'geo_field_wkt' => array(
       'arguments' => array('element' => NULL),
     ),
-    'geo_formatter_default' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo_field.formatters.inc',
-    ),
-    'geo_formatter_lat' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo_field.formatters.inc',
-    ),
-    'geo_formatter_lon' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo_field.formatters.inc',
-    ),
-    'geo_formatter_georss' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo_field.formatters.inc',
-    ),
-    'geo_formatter_svg' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo_field.formatters.inc',
-    ),
   );
 }
-
-/**
- * Implementation of hook_field_formatter_info().
- */
-function geo_field_formatter_info() {
-  // TODO some other formatters: asKML, asGML, asGeoRSS, etc
-  // TODO Can we do math on the field? area, length, etc?
-  return array(
-    'default' => array(
-      'label' => t('Well Known Text'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-    'lat' => array(
-      'label' => t('Latitude'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-    'lon' => array(
-      'label' => t('Longitude'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-    'georss' => array(
-      'label' => t('GeoRSS'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-    'svg' => array(
-      'label' => t('SVG'),
-      'field types' => array_keys(geo_field_info()),
-    ),
-  );
-}
-
 
 /**
  * Implementation of hook_field_info().
