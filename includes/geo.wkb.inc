@@ -18,6 +18,7 @@ function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NUL
   $data = array();
 
   if (!$fp) {
+    if (empty($wkb)) return;
     // Put our WKB data into memory so we can cruise around with fread.
     $fp = fopen("php://memory", 'r+');
     fputs($fp, $wkb);
@@ -113,4 +114,12 @@ function geo_wkb_get_text($data, $items = NULL) {
  */
 function geo_wkb_get_array($data) {
   return $data;
+}
+
+/**
+ * KML format.
+ * It's actually the same thing as WKT with no post-process.
+ */
+function geo_wkb_get_kml($data, $items = NULL) {
+  return geo_wkb_get_wkt($data, $items);
 }
