@@ -159,7 +159,11 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
           if ($k != 'delta') $ret[$row['delta']][$k] = $v;
         }
       }
-      return array( $field['field_name'] => $ret );
+
+      // Identify ourselves on the node level for RSS and other postprocessing.
+      $geo_fields = isset($node->geo_fields) ?  $node->geo_fields : array();
+      $geo_fields[] = $field['field_name'];
+      return array($field['field_name'] => $ret, 'geo_fields' => $geo_fields);
 
     case 'insert':
     case 'update':
@@ -346,5 +350,21 @@ function _geo_field_init(&$field) {
     module_load_include('inc', 'content', 'includes/content.crud');
     _content_field_write($field, 'update');
    content_clear_type_cache();
+  }
+}
+
+/**
+ * Implementation of hook_nodeapi().
+ * Append microformats onto geo node feeds.
+ */
+function geo_field_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  if ($op == 'rss item' && isset($node->geo_fields)) {
+    $rss = array();
+    foreach ($node->geo_fields as $field_name) {
+      foreach ($node->$field_name as $item) {
+        $rss[] = geo('rss_item', $item['wkb']);
+      }
+    }
+    return $rss;
   }
 }

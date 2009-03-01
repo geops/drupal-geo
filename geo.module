@@ -108,20 +108,6 @@ function geo_field_formatter_info() {
 }
 
 /**
- * Implementation of hook_nodeapi().
- * Ensure that any georss microformats are accounted for by appending to the RSS
- * namespace.
- */
-function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == 'rss item' && !isset($done)) {
-    $done = TRUE;
-    return array(array(
-      'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss',
-    )));
-  }
-}
-
-/**
  * Implementation of hook_geo_views_api().
  */
 function geo_views_api() {
