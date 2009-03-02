@@ -22,7 +22,7 @@ function theme_geo_formatter_georss($element) {
   $item = $element['#item'];
   $data = geo_wkb_get_data($item['wkb'], 'text');
 
-  if (in_array($item['type'], array('POINT', 'LINE', 'POLYGON'))) {
+  if (in_array($data['type'], array('point', 'line', 'polygon'))) {
     $tag = 'georss:'. strtolower($item['type']);
     $value = $data['value'];
   }
