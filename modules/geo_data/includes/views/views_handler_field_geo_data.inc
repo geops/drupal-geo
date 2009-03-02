@@ -7,6 +7,12 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
     if ($geo_table = $this->definition['geo_table']) {
       $geo_table = $this->query->ensure_table($geo_table);
     }
+    //$func = geo('field_select', 'geo');
+    $func = 'AsBinary(geo) AS '. $geo_table .'_wkb';
+    $this->query->add_field(NULL, $func);
+
+    $func = 'AsBinary(Envelope(geo)) AS '. $geo_table .'_bbox';
+    $this->query->add_field(NULL, $func);
 
     foreach ($this->content_field['geo_data_value'] as $field) {
       $this->query->add_field($geo_table, $field);
@@ -29,6 +35,9 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
     $item = array();
 
     $item['value'] = $values->{$geo_table.'_'. $field['geo_data_key']};
+
+    $item['wkb'] = $values->{$geo_table.'_wkb'};
+    $item['bbox'] = $values->{$geo_table.'_bbox'};
 
     foreach ($this->content_field['geo_data_value'] as $column) {
       $value = $values->{$geo_table.'_'. $column};

@@ -121,5 +121,17 @@ function geo_wkb_get_array($data) {
  * It's actually the same thing as WKT with no post-process.
  */
 function geo_wkb_get_kml($data, $items = NULL) {
-  return geo_wkb_get_wkt($data, $items);
+  $out = '';
+  if (isset($data['x']) && isset($data['y'])) {
+    $out = $data['x'] .','. $data['y'];
+    if (isset($data['z'])) $out .= ','. $data['z'];
+  }
+  elseif (isset($data['value'])) {
+    $out = $data['value'];
+  }
+
+  if (isset($items)) {
+    return $items .= "\n". $out;
+  }
+  return $out;
 }

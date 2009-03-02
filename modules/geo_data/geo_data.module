@@ -5,7 +5,6 @@
  * @file
  * Administration tasks for the geo module, such as finding and adding new tables to views.
  *
- * @version $Id$
  * @package geo
  */
 
@@ -30,7 +29,7 @@ function geo_data_menu() {
  * Implementation of hook_perm()
  */
 function geo_data_perm() {
-  return array(t('administer geospatial data'));
+  return array('administer geospatial data');
 }
 
 /**
@@ -315,7 +314,6 @@ function geo_data_theme() {
   return array(
     'geo_data_formatter_default' => array('element' => NULL),
     'geo_data_formatter_key' => array('element' => NULL),
-    'geo_data_formatter_svg' => array('element' => NULL),
     'geo_data_select' => array( 'arguments' => array('element' => NULL) ),
   );
 }
