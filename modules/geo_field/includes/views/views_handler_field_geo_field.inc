@@ -1,27 +1,23 @@
 <?php //$Id$
 
-class views_handler_field_geo_data extends content_handler_field_multiple {
+class views_handler_field_geo_field extends content_handler_field_multiple {
   function query() {
-    $table = $this->ensure_my_table();
+    parent::query();
 
-    if ($geo_table = $this->definition['geo_table']) {
-      $geo_table = $this->query->ensure_table($geo_table);
+    if (!$table = $this->table_alias) {
+      $table = $this->ensure_my_table();
     }
 
     // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $this->query->add_field(NULL, geo('field_select', 'geo'));
-
-    foreach ($this->content_field['geo_data_value'] as $field) {
-      $this->query->add_field($geo_table, $field);
-    }
-    $key = $this->query->add_field($geo_table, $this->content_field['geo_data_key']);
+    $geo_field = $this->content_field['field_name'] .'_geo';
+    $this->query->add_field(NULL, geo('field_select', $table .'.'. $geo_field));
   }
 
-  function render($values) {
+  function not_render($values) {
     $field = $this->content_field;
     $options = $this->options;
     $db_info = content_database_info($field);
-    $geo_table = $this->definition['geo_table'];
+drupal_set_message(print_r($values, 1)); return;
 
     // $values will be used as a fake $node object;
     // we provide a build_mode for rendering.
@@ -30,8 +26,6 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
     $values->build_mode = 'views';
 
     $item = array();
-
-    $item['value'] = $values->{$geo_table.'_'. $field['geo_data_key']};
 
     $item['wkb'] = $values->{$geo_table.'_wkb'};
     $item['bbox'] = $values->{$geo_table.'_bbox'};

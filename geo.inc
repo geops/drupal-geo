@@ -48,13 +48,15 @@ function geo_wkt_from_point($lat, $lon) {
 
 
 function geo_field_select($field) {
-  return " SRID($field) as srid, 
-    AsBinary($field) AS wkb,
-    asText($field) AS wkt,
-    asText(centroid($field)) AS centroid,
-    asText(envelope($field)) as bbox,
-    Dimension($field) as dimension,
-    GeometryType($field) AS type ";
+  if (!$field) return;
+  $field = check_plain($field);
+  $alias = str_replace('.', '_', $field);
+  $alias = preg_replace('/_geo$/', '', $alias);
+
+  return " SRID($field) as {$alias}_srid, 
+    AsBinary($field) AS {$alias}_wkb,
+    AsBinary(Envelope($field)) AS {$alias}_bbox,
+    AsBinary(Centroid($field)) AS $alias}_centroid";
 }
 
 function geo_query_operators($geo_type) {
