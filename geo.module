@@ -100,10 +100,6 @@ function geo_field_formatter_info() {
       'label' => t('GeoRSS'),
       'field types' => $field_types,
     ),
-    'svg' => array(
-      'label' => t('SVG'),
-      'field types' => $field_types,
-    ),
   );
 }
 

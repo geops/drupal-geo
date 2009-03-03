@@ -65,6 +65,7 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
   }
 
   function viewBox($bbox = NULL) {
+    // Line, Polygon data that has a bounding box.
     if (isset($bbox)) {
       $data = geo_wkb_get_data($bbox, 'text');
       $bbox = explode(' ', $data['value']);
@@ -87,7 +88,7 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
     $this->doc->setAttribute('width', $width .'px');
     $this->doc->setAttribute('height', $height .'px');
 
-    // Set the transformation to correctly face the document.
+    // Set a transformation to correctly orient the results.
     $g = $this->doc->appendChild($this->xml->createElement('g'));
     $g->setAttribute('transform', 'rotate(-90,'.(($width)/2) .','.(($height)/2).')');
     
@@ -113,19 +114,39 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
       if (substr($key, -4) == '_wkb' && $val) {
         $data = geo_wkb_get_data($val, 'text');
 
-        if ($data['type'] == 'point') {
-          $item = $this->xml->createElement('point');
-          $item->setAttribute('cx', $data['x']);
-          $item->setAttribute('cy', $data['y']);
+        switch ($data['type']) {
+          case 'point':
+            $item = $this->xml->createElement('circle');
+            $item->setAttribute('cx', $data['y']);
+            $item->setAttribute('cy', $data['x']);
+            $item->setAttribute('r', '.5%');
 
-          $this->doc->appendChild($item);
-        }
-        elseif (in_array($data['type'], array('linestring', 'polygon'))) {
-          $item = $this->xml->createElement('path');
-          $item->setAttribute('d', 'M'. $data['value'] .'z');
-          $item->setAttribute('fill', 'red');
+            $item->setAttribute('fill', 'black');
+  
+            $this->doc->appendChild($item);
+            break;
+ 
+          case 'linestring':
+            $item = $this->xml->createElement('polyline');
+            $item->setAttribute('points', $data['value']);
 
-          $this->doc->appendChild($item);
+            $item->setAttribute('stroke', 'green');
+            $item->setAttribute('stroke-width', '1%');
+            $item->setAttribute('fill', 'none');
+
+            $this->doc->appendChild($item);
+            break;
+
+          case 'polygon':
+            $item = $this->xml->createElement('path');
+            $item->setAttribute('d', 'M'. $data['value'] .'z');
+            $item->setAttribute('fill', 'red');
+
+            $item->setAttribute('stroke', 'blue');
+            $item->setAttribute('stroke-width', '.5%');
+
+            $this->doc->appendChild($item);
+            break;
         }
       }
     }

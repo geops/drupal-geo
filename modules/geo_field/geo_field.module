@@ -129,12 +129,17 @@ function geo_field_settings($op, $field) {
 
       $data[$table][$geo] = $data[$table][$wkt];
       unset($data[$table][$wkt]);
-      foreach (array('field', 'filter') as $type) {
-        $handler = 'views_handler_'. $type .'_geo';
-        $data[$table][$geo][$type]['field'] = $geo;
-        $data[$table][$geo][$type]['handler'] = $handler;
-        $data[$table][$geo][$type]['geo_type'] = $field['geo_type'];
-      }
+
+      // Set field handler to our own.
+      $data[$table][$geo]['field']['field'] = $geo;
+      $data[$table][$geo]['field']['handler'] = 'views_handler_field_geo_field';
+      $data[$table][$geo]['field']['geo_type'] = $field['geo_type'];
+
+      // Set filter handler to Geo's built-in geo filters.
+      $data[$table][$geo]['filter']['field'] = $geo;
+      $data[$table][$geo]['filter']['handler'] = 'views_handler_filter_geo';
+      $data[$table][$geo]['filter']['geo_type'] = $field['geo_type'];
+
       return $data;
   }
 }
@@ -367,4 +372,14 @@ function geo_field_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     }
     return $rss;
   }
+}
+
+/**
+ * Implementation of hook_geo_views_api().
+ */
+function geo_field_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'geo_field') .'/includes/views',
+  );
 }
