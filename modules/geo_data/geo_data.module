@@ -187,6 +187,7 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
     case 'load':
       $table = $field['geo_data_table'];
       $select = array();
+      $select[] = geo('field_select', 'geo');
       $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
 
       if (is_array($field['geo_data_value'])) {
@@ -202,7 +203,12 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
         $res = db_query(db_distinct_field($table, $key, $sql), $item['value']);
         while ($row = db_fetch_array($res)) {
           foreach ($row as $k => $v) {
-            $ret[$delta]['geo_data_'. $k] = $v;
+            $key = 'geo_data_'. $k;
+
+            // Simply use the Geo values instead.
+            if (substr($k, 0, 4) == 'geo_') $key = substr($k, 4);
+
+            $ret[$delta][$key] = $v;
             if (!isset($ret[$delta]['label']) && in_array($k, $field['geo_data_value'])) {
               $ret[$delta]['label'] = $v;
             }
