@@ -40,6 +40,7 @@ function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NUL
     case 'point': // Contains x, y decimal values.
       $data = array_merge($data, unpack('dx/dy', fread($fp, 16)));
       $data['value'] = $func($data);
+      if (function_exists($post = $func .'_post')) $data = $post($data);
       return $data;
 
     case 'linestring': // Contains count * (point) values.
