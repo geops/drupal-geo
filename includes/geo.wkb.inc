@@ -14,7 +14,7 @@ function geo_wkb_types($key = NULL) {
   return $geo_types;
 }
 
-function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL) {
+function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL) {
   $data = array();
 
   if (!$fp) {

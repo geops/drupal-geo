@@ -49,7 +49,6 @@ class views_plugin_style_geo_kml extends views_plugin_style_geo_xml {
     foreach ($row as $key => $val) {
       // TODO this is for proof-of-concept.  Make sure my wkb's are added right.
       if (substr($key, -4) == '_wkb' && $val) {
-        module_load_include('inc', 'geo', 'includes/geo.wkb');
         $data = geo_wkb_get_data($val, 'kml');
 
         if (in_array($data['type'], array('linestring', 'point'))) {

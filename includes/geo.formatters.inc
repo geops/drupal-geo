@@ -18,7 +18,6 @@ function theme_geo_formatter_lon($element) {
 }
 
 function theme_geo_formatter_georss($element) {
-  module_load_include('inc', 'geo', 'includes/geo.wkb');
   $item = $element['#item'];
   $data = geo_wkb_get_data($item['wkb'], 'text');
 

@@ -168,7 +168,6 @@ function geo_geo_from_wkt($wkt, $srid = GEO_DEFAULT_SRID) {
 }
 
 function geo_rss_item($wkb) {
-  module_load_include('inc', 'geo', 'includes/geo.wkb');
   $data = geo_wkb_get_data($wkb, 'text');
   return array(
     'key' => 'georss:'. strtolower($data['type']),
