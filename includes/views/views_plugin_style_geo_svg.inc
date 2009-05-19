@@ -105,7 +105,6 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
   }
 
   function add_row($doc, $fields) {
-    module_load_include('inc', 'geo', 'includes/geo.wkb');
     foreach ($fields as $key => $val) {
       // TODO this is for proof-of-concept.  Make sure my wkb's are added right.
       if (substr($key, -5) == '_bbox' && $val) {
