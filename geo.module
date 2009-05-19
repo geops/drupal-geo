@@ -116,7 +116,7 @@ function geo_views_api() {
 /**
  * API Function: Format WKB data
  */
-function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL)
+function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL) {
   module_load_include('inc', 'geo', 'includes/geo.wkb');
   return _geo_wkb_get_data($wkb, $format, $fp, $type);
 }
