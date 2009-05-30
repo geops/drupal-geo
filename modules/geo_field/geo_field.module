@@ -324,7 +324,7 @@ function geo_field_latlon_process($element, $edit, $form_state, $form) {
 function geo_field_wkt_process($element, $edit, $form_state, $form) {
   $field = $form['#field_info'][$element['#field_name']];
   $element['wkt'] = array(
-    '#type' => 'textfield',
+    '#type' => 'textarea',
     '#title' => t($field['widget']['label']),
     '#default_value' => isset($element['#value']['wkt']) ? $element['#value']['wkt'] : NULL,
     '#required' => $field['required'],
