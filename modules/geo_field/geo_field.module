@@ -182,9 +182,11 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       }
 
       // Identify ourselves on the node level for RSS and other postprocessing.
-      $geo_fields = isset($node->geo_fields) ?  $node->geo_fields : array();
-      $geo_fields[] = $field['field_name'];
-      return array($field['field_name'] => $ret, 'geo_fields' => $geo_fields);
+      if (!isset($node->geo_fields)) {
+        $node->geo_fields = array();
+      }
+      $node->geo_fields[] = $field['field_name'];
+      return array($field['field_name'] => $ret, 'geo_fields' => $node->geo_fields);
 
     case 'insert':
     case 'update':
