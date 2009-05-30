@@ -46,7 +46,6 @@ function geo_wkt_from_point($lat, $lon) {
   }
 }
 
-
 function geo_field_select($field) {
   if (!$field) return;
   $field = check_plain($field);
@@ -152,6 +151,44 @@ function geo_query_wkt($field, $srid = null) {
 
 function geo_query_wkb($field, $srid = null) {
   return 'asBinary('. $field .')';
+}
+
+function geo_query_distance($field, $srid = null, $target) {
+  $target = "GeomFromText('POINT(". $target['lon'] .','. $target['lat'] .")')";
+  return 'Distance('. $field .', '. $target .')';
+}
+
+function geo_query_within($field, $srid = null, $target) {
+  return "Within($field, GeomFromText('". $target['wkt'] ."'))";
+}
+
+function geo_query_contains($field, $srid = null, $target) {
+  return "Within(GeomFromText('". $target['wkt'] ."'), $field)";
+}
+
+function geo_make_bbox($target, $limit) {
+  $x = $target['lon'];
+  $y = $target['lat'];
+  $offset_x = $limit / (GEO_DEGREE_M * cos($y));
+  $offset_y = $limit / GEO_DEGREE_M;
+
+  $offset_x = $limit / GEO_DEGREE_M; // TODO Miles
+  $offset_y = $limit / round(GEO_DEGREE_M * cos($x / 92215));
+
+  $bbox = array(
+    'points' => array(
+      array('lon' => $x - $offset_x, 'lat' => $y + $offset_y),
+      array('lon' => $x + $offset_x, 'lat' => $y + $offset_y),
+      array('lon' => $x + $offset_x, 'lat' => $y - $offset_y),
+      array('lon' => $x - $offset_x, 'lat' => $y - $offset_y),
+      array('lon' => $x - $offset_x, 'lat' => $y + $offset_y),
+    ),
+  );
+  // TODO call a function?
+  $wkt = '';
+  foreach ($bbox['points'] as $p) $wkt .= $p['lon'] .' '. $p['lat'] .', ';
+  $bbox['wkt'] = 'POLYGON(('. substr($wkt, 0, -2) .'))';
+  return $bbox;
 }
 
 /**

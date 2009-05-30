@@ -4,6 +4,12 @@ class views_handler_filter_geo extends views_handler_filter {
 
   var $no_single = TRUE;
 
+  function option_definition() {
+    $options = parent::option_definition();
+    $options['expose']['contains']['geo_widget'] = array('default' => '');
+    return $options;
+  }
+
   function construct() {
     parent::construct();
     // If this was a CCK field, set the content_field definition.
@@ -15,6 +21,24 @@ class views_handler_filter_geo extends views_handler_filter {
 
   function operator_options() {
     return geo('query_operators', $this->definition['geo_type']);
+  }
+
+  function expose_form_left(&$form, &$form_state) {
+    // Get initial form from the views_handler_filter class.
+    parent::expose_form_left($form, $form_state);
+
+    // Provide a selection of input handlers.
+    $input_types = array();
+    foreach (_content_widget_types() as $name => $info) {
+      if (in_array('geo', $info['field types'])) $input_types[$name] = $info;
+    }
+    // TODO this is proof of concept and not actually working.
+    $form['expose']['geo_widget'] = array(
+      '#type' => 'select',
+      '#title' => 'Widget',
+      '#options' => $input_types;
+      '#default_value' => $this->options['expose']['geo_widget'],
+    );
   }
 
   function exposed_form(&$form, &$form_state) {
