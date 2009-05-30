@@ -126,14 +126,30 @@ function geo_field_settings($op, $field) {
       // Copy the wkt item to geo, and add handlers for the geospatial field.
       $wkt = $field['field_name'] .'_wkt';
       $geo = $field['field_name'] .'_geo';
+      $dst = $field['field_name'] .'_dst';
 
-      $data[$table][$geo] = $data[$table][$wkt];
+      $data[$table][$geo] = $data[$table][$dst] = $data[$table][$wkt];
       unset($data[$table][$wkt]);
 
       // Set field handler to our own.
       $data[$table][$geo]['field']['field'] = $geo;
       $data[$table][$geo]['field']['handler'] = 'views_handler_field_geo_field';
       $data[$table][$geo]['field']['geo_type'] = $field['geo_type'];
+
+      // Add a field handler for distance.
+      $data[$table][$dst]['field']['title'] .= ' - '. t('Distance');
+      $data[$table][$dst]['field']['field'] = $geo;
+      $data[$table][$dst]['field']['handler'] = 'views_handler_field_geo_distance';
+      $data[$table][$dst]['field']['float'] = TRUE;
+      $data[$table][$dst]['field']['click sortable'] = TRUE;
+      $data[$table][$dst]['filter']['title'] .= ' - '. t('Distance');
+      $data[$table][$dst]['filter']['handler'] = 'views_handler_filter_geo_distance';
+      $data[$table][$dst]['filter']['field'] = $geo;
+
+      $data[$table][$dst]['sort']['handler'] = 'views_handler_sort_geo_distance';
+      $data[$table][$dst]['sort']['field'] = $geo;
+
+      $data[$table][$dst]['field']['geo_type'] = $field['geo_type'];
 
       // Set filter handler to Geo's built-in geo filters.
       $data[$table][$geo]['filter']['field'] = $geo;

@@ -5,6 +5,7 @@
  */
 
 define(GEO_SRID_DEFAULT, 4326);
+define(GEO_DEGREE_M, 111206);
 
 /**
  * Call an API function from the geo backend databases.
@@ -81,26 +82,36 @@ function geo_theme() {
  */
 function geo_field_formatter_info() {
   // TODO some other formatters: asKML, asGML, asGeoRSS, etc
-  // TODO Can we do math on the field? area, length, etc?
-  $field_types = array('geo', 'geo_data');
   return array(
     'default' => array(
       'label' => t('Well Known Text'),
-      'field types' => $field_types,
+      'field types' => geo_field_types(),
     ),
     'lat' => array(
       'label' => t('Latitude'),
-      'field types' => $field_types,
+      'field types' => geo_field_types(),
     ),
     'lon' => array(
       'label' => t('Longitude'),
-      'field types' => $field_types,
+      'field types' => geo_field_types(),
     ),
     'georss' => array(
       'label' => t('GeoRSS'),
-      'field types' => $field_types,
+      'field types' => geo_field_types(),
     ),
   );
+}
+
+/**
+ * API Function: Return any field types that may contain geospatial data.
+ */
+function geo_field_types() {
+  static $field_types;
+  if (!isset($field_types)) {
+    $field_types = array('geo', 'geo_data');
+    drupal_alter('geo_field_types', $field_types);
+  }
+  return $field_types;
 }
 
 /**
@@ -119,4 +130,60 @@ function geo_views_api() {
 function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL) {
   module_load_include('inc', 'geo', 'includes/geo.wkb');
   return _geo_wkb_get_data($wkb, $format, $fp, $type);
+}
+
+/**
+ * API Function: List of available units.
+ */
+function geo_units($unit = NULL) {
+  $units = array(
+    'mi' => t('Miles'),  
+    'km' => t('Kilometers'),
+    'm'  => t('Meters'),
+  );
+
+  return $unit ? $units[$unit] : $units;
+}
+
+/**
+ * API Function: Convert between units.
+ */
+function geo_unit_convert($val, $from_unit, $to_unit) {
+  switch ($from_unit) {
+
+    case 'm': // Meters
+      switch ($to_unit) {
+        case 'km':
+          $val = $val / 1000;
+          break;
+        case 'mi':
+          $val = $val / 1609.344;
+          break;
+      }
+      break;
+
+    case 'km': // Kilometers
+      switch ($to_unit) {
+        case 'm':
+          $val = $val * 1000;
+          break;
+        case 'mi':
+          $val = $val * 0.62137;
+          break;
+      }
+      break;
+
+    case 'mi': // Miles
+      switch ($to_unit) {
+        case 'm':
+          $val = $val * 1609.344;
+          break;
+        case 'km':
+          $val = $val * 1.60934;
+          break;
+      }
+      break;
+  }
+
+  return $val;
 }

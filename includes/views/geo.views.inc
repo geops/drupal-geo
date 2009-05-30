@@ -21,6 +21,15 @@ function geo_views_handlers() {
       'views_handler_filter_geo' => array(
        'parent' => 'views_handler_filter',
       ),
+      'views_handler_field_geo_distance' => array(
+       'parent' => 'views_handler_field_numeric',
+      ),
+      'views_handler_filter_geo_distance' => array(
+       'parent' => 'views_handler_filter',
+      ),
+      'views_handler_sort_geo_distance' => array(
+       'parent' => 'views_handler_sort',
+      ),
     ),
   );
 }
