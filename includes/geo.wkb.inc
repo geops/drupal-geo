@@ -128,7 +128,11 @@ function geo_wkb_get_array($data, $items = NULL) {
 }
 
 function geo_wkb_get_array_post($data, $items = NULL) {
-  if ($data['type'] == 'point') $data['value'] = $data['value'][0];
+  if ($data['type'] == 'point') {
+    $data['value'] = $data['value'][0];
+    $data['lat'] = $data['value']['lat'];
+    $data['lon'] = $data['value']['lon'];
+  }
   return $data;
 }
 
