@@ -113,7 +113,22 @@ function geo_wkb_get_text($data, $items = NULL) {
 /**
  * Array, in case that's all you wanted.
  */
-function geo_wkb_get_array($data) {
+function geo_wkb_get_array($data, $items = NULL) {
+  if (isset($data['x']) && isset($data['y'])) {
+    $ret = array('lon' => $data['x'], 'lat' => $data['y']);
+    $ret = array('lon' => $data['x'], 'lat' => $data['y']);
+  }
+  elseif (isset($data['value'])) {
+    $ret = $data['value'];
+  }
+  if (isset($items)) {
+    return array_merge($items, array($ret));
+  }
+  return array($ret);
+}
+
+function geo_wkb_get_array_post($data, $items = NULL) {
+  if ($data['type'] == 'point') $data['value'] = $data['value'][0];
   return $data;
 }
 
