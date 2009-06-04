@@ -40,6 +40,18 @@ function geo_supported_types() {
   );
 }
 
+// TODO seriously clean this up! And add data types!
+function geo_wkt($data) {
+  if (!is_scalar($data)) {
+    $data = (object) $data;
+    if (!isset($data->type)) $data->type = 'point';
+    switch ($data->type) {
+      case 'point':
+        return 'POINT('. $data->lon .' '. $data->lat .')';
+    }
+  }
+}
+
 function geo_wkt_from_point($lat, $lon) {
   if (strlen($lat) || strlen($lon)) {
     return 'POINT('. $lon .' '. $lat .')';
@@ -163,7 +175,11 @@ function geo_query_within($field, $srid = null, $target) {
 }
 
 function geo_query_contains($field, $srid = null, $target) {
-  return "Within(GeomFromText('". $target['wkt'] ."'), $field)";
+  return "Contains(GeomFromText('". $target['wkt'] ."'), $field)";
+}
+
+function geo_query_extent($field) {
+  return "ST_Extent($field)";
 }
 
 function geo_make_bbox($target, $limit) {
@@ -211,6 +227,22 @@ function geo_rss_item($wkb) {
     'value' => $data['value'],
     'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
   );
+}
+
+function geo_gis_input_selector($default_value) {
+  // Provide a selection of input handlers.
+  $input_types = array();
+  foreach (module_invoke_all('gis_input_info') as $name => $info) {
+    $input_types[$name] = $info['title'];
+  }
+
+  $form = array(
+    '#type' => 'select',
+    '#title' => 'Widget',
+    '#options' => $input_types,
+    '#default_value' => $default_value,
+  );
+  return $form;
 }
 
 function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_DEFAULT_SRID) {

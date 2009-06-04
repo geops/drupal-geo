@@ -4,6 +4,7 @@
  * Field formatters for geo_field fields.
  */
 function theme_geo_formatter_default($element) {
+  return $element['#item']['test'];
   if (isset($element['#item']['wkt'])) return $element['#item']['wkt'];
 }
 

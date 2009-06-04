@@ -17,12 +17,12 @@ class views_handler_field_geo extends views_handler_field {
 
     // Add the geo formula as a field.
     if ($format) {
-      $func = geo('query_'. $format, $this->real_field);
+      $func = geo('query_'. $format, $this->real_field, array('aggregate' => TRUE));
     }
     else {
-      $func = geo('query_'. $format, $this->real_field);
+      $func = geo('query_'. $format, $this->real_field, array('aggregate' => TRUE));
     }
     $table = $this->ensure_my_table();
-    $this->query->add_field(NULL, $func, $table);
+    $this->query->add_field(NULL, $func, $table, array('aggregate' => TRUE));
   }
 }

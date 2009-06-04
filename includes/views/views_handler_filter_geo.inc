@@ -6,7 +6,7 @@ class views_handler_filter_geo extends views_handler_filter {
 
   function option_definition() {
     $options = parent::option_definition();
-    $options['expose']['contains']['geo_widget'] = array('default' => '');
+    $options['expose']['contains']['gis_input'] = array('default' => '');
     return $options;
   }
 
@@ -27,23 +27,19 @@ class views_handler_filter_geo extends views_handler_filter {
     // Get initial form from the views_handler_filter class.
     parent::expose_form_left($form, $form_state);
 
-    // Provide a selection of input handlers.
-    $input_types = array();
-    foreach (_content_widget_types() as $name => $info) {
-      if (in_array('geo', $info['field types'])) $input_types[$name] = $info;
-    }
     // TODO this is proof of concept and not actually working.
-    $form['expose']['geo_widget'] = array(
-      '#type' => 'select',
-      '#title' => 'Widget',
-      '#options' => $input_types;
-      '#default_value' => $this->options['expose']['geo_widget'],
-    );
+    $form['expose']['gis_input'] = geo('gis_input_selector', $this->options['expose']['gis_input']);
   }
 
   function exposed_form(&$form, &$form_state) {
+    $info = module_invoke_all('gis_input_info');
+    $info = $info[$this->options['expose']['geo_widget']];
     $key = $this->options['expose']['identifier'];
-    $form[$key] = array('#type' => 'textfield', '#default_value' => $this->value,);
+    $form[$key] = array_merge($info['element'], array(
+      '#title' => $info['title'],
+      '#default_value' => $this->value,
+      '#gis_type' => 'point', // TODO derived.
+    ));
   }
 
   function query() {
@@ -51,12 +47,13 @@ class views_handler_filter_geo extends views_handler_filter {
     $func = $this->operator;
     $srid = GEO_SRID_DEFAULT;
 
-    $value = db_escape_string($this->value);
+    $value = geo('wkt', $this->value);
 
     if ($geo_table = $this->definition['geo_table']) {
       $geo_table = $this->query->ensure_table($geo_table, $this->relationship);
       $field = $geo_table . '.geo';
     }
+    $field = $this->field_name;
 
     foreach (geo('query_function', $func, $field, $value, $srid) as $sql) {
       $this->query->add_where(0, $sql);

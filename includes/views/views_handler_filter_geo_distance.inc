@@ -1,6 +1,13 @@
 <?php //$Id$
 
 class views_handler_filter_geo_distance extends views_handler_filter {
+
+  function option_definition() {
+    $options = parent::option_definition();
+    $options['expose']['contains']['gis_input'] = array('default' => '');
+    return $options;
+  }
+
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
     $form['geo_distance'] = array(
@@ -16,21 +23,40 @@ class views_handler_filter_geo_distance extends views_handler_filter {
       '#default_value' => $this->options['geo_units'],
     );
 
-    $form['geo_target'] = array( '#tree' => TRUE );
-    $form['geo_target']['lat'] = array(
+    $form['value'] = array( '#tree' => TRUE );
+    $form['value']['lat'] = array(
       '#type' => 'textfield',
       '#title' => t('Latitude'),
       '#default_value' => $this->options['geo_target']['lat'],
     );
-    $form['geo_target']['lon'] = array(
+    $form['value']['lon'] = array(
       '#type' => 'textfield',
       '#title' => t('Longitude'),
       '#default_value' => $this->options['geo_target']['lon'],
     );
   }
 
+  function expose_form_left(&$form, &$form_state) {
+    // Get initial form from the views_handler_filter class.
+    parent::expose_form_left($form, $form_state);
+    $form['expose']['gis_input'] = geo('gis_input_selector', $this->options['exp
+ose']['gis_input']);
+  }
+
+  function exposed_form(&$form, &$form_state) {
+    $info = module_invoke_all('gis_input_info');
+    $info = $info[$this->options['expose']['gis_input']];
+    $key = $this->options['expose']['identifier'];
+    $form[$key] = array_merge($info['element'], array(
+      '#title' => $info['title'],
+      '#default_value' => $this->value,
+      '#gis_type' => 'point', // TODO derived.
+    ));
+  }
+
   function query() {
-    $target = $this->options['geo_target'];
+    //$target = $this->options['geo_target'];
+    $target = current($this->value);
 
 		// If there's not already a field with this calculation, add one.
     if (!isset($this->view->field[$this->field])) {
