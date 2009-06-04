@@ -95,6 +95,16 @@ function geo_mysql_spatial_query_distance_sphere($field, $srid, $point) {
   return "($r * ACOS($ysin * SIN(Y($field)/$d) + $ycos * COS(Y($field)/$d) * COS(X($field)/$d - $xd)))";
 }
 
+/**
+ * Aggregate function that returns the total boundary of a result set.
+ */
+function mysql_spatial_geo_query_extent($field) {
+  return "MIN(X(PointN(ExteriorRing(envelope($field)), 1))) AS minx, 
+    MAX(X(PointN(ExteriorRing(envelope($field)), 3))) AS maxx, 
+    MIN(Y(PointN(ExteriorRing(Envelope($field)), 1))) AS miny, 
+    MAX(Y(PointN(ExteriorRing(Envelope($field)), 3))) AS maxy";
+}
+
 /*** Helper functions ***/
 
 /**

@@ -9,15 +9,14 @@ class views_handler_field_geo_field extends content_handler_field_multiple {
     }
 
     // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $geo_field = $this->content_field['field_name'] .'_geo';
-    $this->query->add_field(NULL, geo('field_select', $table .'.'. $geo_field));
+    $geo_field = $table .'.'. $this->content_field['field_name'] .'_geo';
+    $this->query->add_field(NULL, geo('field_select', $geo_field), NULL, array('aggregate' => TRUE));
   }
 
   function not_render($values) {
     $field = $this->content_field;
     $options = $this->options;
     $db_info = content_database_info($field);
-drupal_set_message(print_r($values, 1)); return;
 
     // $values will be used as a fake $node object;
     // we provide a build_mode for rendering.

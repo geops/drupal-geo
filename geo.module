@@ -86,18 +86,26 @@ function geo_field_formatter_info() {
     'default' => array(
       'label' => t('Well Known Text'),
       'field types' => geo_field_types(),
+      'gis types' => array('point', 'linestring', 'polygon'),
+      'gis input' => 'wkt',
     ),
     'lat' => array(
       'label' => t('Latitude'),
       'field types' => geo_field_types(),
+      'gis types' => array('point'),
+      'gis input' => 'array',
     ),
     'lon' => array(
       'label' => t('Longitude'),
       'field types' => geo_field_types(),
+      'gis types' => array('point'),
+      'gis input' => 'array',
     ),
     'georss' => array(
       'label' => t('GeoRSS'),
       'field types' => geo_field_types(),
+      'gis types' => array('point', 'linestring', 'polygon'),
+      'gis input' => 'text',
     ),
   );
 }
@@ -107,6 +115,7 @@ function geo_field_formatter_info() {
  */
 function geo_field_types() {
   static $field_types;
+//print_r(module_invoke_all('gis_fields'));
   if (!isset($field_types)) {
     $field_types = array('geo', 'geo_data');
     drupal_alter('geo_field_types', $field_types);
@@ -115,7 +124,33 @@ function geo_field_types() {
 }
 
 /**
- * Implementation of hook_geo_views_api().
+ * Implementation of hook_content_fieldapi().
+ */
+function geo_content_fieldapi($op, $field) {
+  $fields = $old_fields = variable_get('geo_fields', array());
+
+  // ANY field with a 'geo_type' value is acknowledged here.
+  if (isset($field['geo_type'])) {
+    switch ($op) {
+      case 'create instance':
+        $fields[$field['field name']] = array($field['geo_type']);
+        break;
+
+      case 'delete instance':
+        unset($fields[$field['field_name']]);
+        break;
+    }
+  }
+// TODO store in geo table.
+
+  // Store updated values.
+  if ($fields != $old_fields) {
+    variable_set('geo_fields', $fields);
+  }
+}
+
+/**
+ * Implementation of hook_views_api().
  */
 function geo_views_api() {
   return array(
@@ -179,7 +214,7 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
           $val = $val * 1609.344;
           break;
         case 'km':
-          $val = $val * 1.60934;
+          $val = $val * 1.609344;
           break;
       }
       break;
@@ -187,3 +222,51 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
 
   return $val;
 }
+
+function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+/*
+  TODO this is intended to convert from "storage" datatypes to "expected" data
+  if ($op == 'view') {
+    if (isset($node->content['field_geo'])) {
+      $field_types = _content_field_types();
+    $formatters = $field_types['geo']['formatters'];
+    $item = $node->content['field_geo']['field']['items'][0];
+    $formatter = $item['#formatter'];
+     if (isset($formatters[$formatter]['gis input'])) {
+       $input = $formatters[$formatter]['gis input'];
+   //$data = geo_wkb_get_data($item['wkb'], $input);
+   $data = geo_wkb_get_data($item['#item']['field_geo_wkb'], $input);
+   $node->content['field_geo']['field']['items'][0]['#item'][$input .'_yoh'] = $data['value'];
+   unset($node->content['field_geo']['field']['items'][0]['#item']['wkb']);
+ }
+}
+  //print_r(module_invoke_all('formatter_info')); die;
+    //print_r($node->field_geo); die;
+    //print_r($node->content['field_geo']['field']['items'][0]['#item']); die;
+    //$formatter = $node->content['field_geo']['field']['items'][0]['#formatter'];
+    //$node->content['field_geo']['field']['items'][0]['#item']['test'] = 'POOP';
+    //$node->field_geo['items'][0]['test'] = 'POOP';
+  }
+*/
+}
+
+/**
+ * Implementation of hook_gis_input_info().
+ */
+function geo_gis_input_info($gis_type = NULL) {
+  $inputs = array(
+    'geo_wkt' => array(
+      'title' => t('Well known text'),
+      'gis types' => array('point', 'linestring', 'polygon'),
+      'element' => array(
+        '#type' => 'textfield',
+        '#after_build' => array('geo_textfield_element_process'),
+      ),
+    ),
+  );
+  return $inputs;
+}
+
+function geo_textfield_element_process($element, &$form_state) {
+  // TODO validate and set wkt value.
+
