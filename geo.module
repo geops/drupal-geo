@@ -269,4 +269,4 @@ function geo_gis_input_info($gis_type = NULL) {
 
 function geo_textfield_element_process($element, &$form_state) {
   // TODO validate and set wkt value.
-
+}
