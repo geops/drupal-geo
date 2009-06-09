@@ -224,30 +224,31 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
 }
 
 function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-/*
-  TODO this is intended to convert from "storage" datatypes to "expected" data
   if ($op == 'view') {
-    if (isset($node->content['field_geo'])) {
-      $field_types = _content_field_types();
-    $formatters = $field_types['geo']['formatters'];
-    $item = $node->content['field_geo']['field']['items'][0];
-    $formatter = $item['#formatter'];
-     if (isset($formatters[$formatter]['gis input'])) {
-       $input = $formatters[$formatter]['gis input'];
-   //$data = geo_wkb_get_data($item['wkb'], $input);
-   $data = geo_wkb_get_data($item['#item']['field_geo_wkb'], $input);
-   $node->content['field_geo']['field']['items'][0]['#item'][$input .'_yoh'] = $data['value'];
-   unset($node->content['field_geo']['field']['items'][0]['#item']['wkb']);
- }
-}
-  //print_r(module_invoke_all('formatter_info')); die;
-    //print_r($node->field_geo); die;
-    //print_r($node->content['field_geo']['field']['items'][0]['#item']); die;
-    //$formatter = $node->content['field_geo']['field']['items'][0]['#formatter'];
-    //$node->content['field_geo']['field']['items'][0]['#item']['test'] = 'POOP';
-    //$node->field_geo['items'][0]['test'] = 'POOP';
+    if (isset($node->geo_fields)) {
+      $types = _content_type_info();
+      $types = $types['field types'];
+      foreach ($node->geo_fields as $f => $type) {
+        // #formatter is in field['items'] ( CONTENT_HANDLE_MODULE )
+        if (!$formatter = $node->content[$f]['field']['items']['#formatter']) {
+          // #formatter is in field['items'][$delta] ( CONTENT_HANDLE_CORE )
+          $formatter = $node->content[$f]['field']['items'][0]['#formatter'];
+        }
+        
+        if ($input = $types[$type]['formatters'][$formatter]['gis input']) {
+          foreach ($node->content[$f]['field']['items'] as $i => $item) {
+            if (!is_array($item)) continue;
+            if (!isset($item['#item'][$input])) {
+              $data = geo_wkb_get_data($item['#item']['wkb'], $input);
+if ($type == 'geo') print_r($data);
+              $node->content[$f]['field']['items'][$i]['#item']['gis type'] = $data['type'];
+              $node->content[$f]['field']['items'][$i]['#item'][$input] = $data['value'];
+            }
+          }
+        }
+      }
+    }
   }
-*/
 }
 
 /**
