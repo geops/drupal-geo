@@ -186,12 +186,12 @@ function geo_schema_field($gis_type = 'geometry', $name = 'geo', $srid = NULL) {
   $types = geo_supported_types();
   $schema = array();
   if (isset($types[$gis_type])) {
-    $name => array(
+    $schema[$name] = array(
       'type' => 'blob',
       'mysql_type' => $gis_type,
       'pgsql_type' => $gis_type,
       'description' => t('Geometry field'),
-    ),
+    );
   }
   return $schema;
 }
