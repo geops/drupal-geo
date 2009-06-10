@@ -182,6 +182,20 @@ function geo_query_extent($field) {
   return "ST_Extent($field)";
 }
 
+function geo_schema_field($gis_type = 'geometry', $name = 'geo', $srid = NULL) {
+  $types = geo_supported_types();
+  $schema = array();
+  if (isset($types[$gis_type])) {
+    $name => array(
+      'type' => 'blob',
+      'mysql_type' => $gis_type,
+      'pgsql_type' => $gis_type,
+      'description' => t('Geometry field'),
+    ),
+  }
+  return $schema;
+}
+
 function geo_make_bbox($target, $limit) {
   $x = $target['lon'];
   $y = $target['lat'];
