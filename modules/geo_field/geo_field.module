@@ -280,22 +280,6 @@ function theme_geo_field_wkt($element) {
 }
 
 /**
- * Implementation of hook_nodeapi().
- * Append microformats onto geo node feeds.
- */
-function geo_field_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == 'rss item' && isset($node->geo_fields)) {
-    $rss = array();
-    foreach ($node->geo_fields as $field_name) {
-      foreach ($node->$field_name as $item) {
-        $rss[] = geo('rss_item', $item['wkb']);
-      }
-    }
-    return $rss;
-  }
-}
-
-/**
  * Implementation of hook_views_api().
  */
 function geo_field_views_api() {
