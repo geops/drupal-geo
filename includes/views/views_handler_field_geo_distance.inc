@@ -51,8 +51,10 @@ class views_handler_field_geo_distance extends views_handler_field_numeric {
       case 'filter':
         // Use the point defined in the corresponding filter definition.
         if (isset($this->view->filter[$this->field])) {
-        //  $target = $this->view->filter[$this->field]->options['geo_target'];
-          $target = current($this->view->filter[$this->field]->value);
+          $target = $this->view->filter[$this->field]->value['target'];
+          if (!isset($target['type'])) {
+            $target = current($target);
+          }
         }
         break;
 
