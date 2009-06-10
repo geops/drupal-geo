@@ -141,12 +141,6 @@ function geo_content_fieldapi($op, $field) {
         break;
     }
   }
-// TODO store in geo table.
-
-  // Store updated values.
-  if ($fields != $old_fields) {
-    variable_set('geo_fields', $fields);
-  }
 }
 
 /**
@@ -223,15 +217,18 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
   return $val;
 }
 
+/**
+ * Implementation of hook_nodeapi().
+ */
 function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   if ($op == 'view') {
     if (isset($node->geo_fields)) {
       $types = _content_type_info();
       $types = $types['field types'];
       foreach ($node->geo_fields as $f => $type) {
-        // #formatter is in field['items'] ( CONTENT_HANDLE_MODULE )
+        // #formatter is in field['items'] for CONTENT_HANDLE_MODULE
         if (!$formatter = $node->content[$f]['field']['items']['#formatter']) {
-          // #formatter is in field['items'][$delta] ( CONTENT_HANDLE_CORE )
+          // #formatter is in field['items'][$delta] for CONTENT_HANDLE_CORE
           $formatter = $node->content[$f]['field']['items'][0]['#formatter'];
         }
         
@@ -240,7 +237,6 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
             if (!is_array($item)) continue;
             if (!isset($item['#item'][$input])) {
               $data = geo_wkb_get_data($item['#item']['wkb'], $input);
-if ($type == 'geo') print_r($data);
               $node->content[$f]['field']['items'][$i]['#item']['gis type'] = $data['type'];
               $node->content[$f]['field']['items'][$i]['#item'][$input] = $data['value'];
             }
@@ -248,6 +244,17 @@ if ($type == 'geo') print_r($data);
         }
       }
     }
+  }
+
+  // Append microformats onto geo node feeds.
+  if ($op == 'rss item' && isset($node->geo_fields)) {
+    $rss = array();
+    foreach ($node->geo_fields as $field_name) {
+      foreach ($node->$field_name as $item) {
+        $rss[] = geo('rss_item', $item['wkb']);
+      }
+    }
+    return $rss;
   }
 }
 
@@ -271,3 +278,4 @@ function geo_gis_input_info($gis_type = NULL) {
 function geo_textfield_element_process($element, &$form_state) {
   // TODO validate and set wkt value.
 }
+
