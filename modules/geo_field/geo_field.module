@@ -61,9 +61,6 @@ function geo_field_settings($op, $field) {
     case 'form':
       $form = array();
 
-      // Force 'multiple' in order to guarantee a separate storage table.
-      $form['multiple'] = array('#type' => 'value', '#value' => 1);
-
       // Store the geometry type for this field.
       $form['geo_type'] = array(
         '#type' => 'select',
@@ -74,9 +71,6 @@ function geo_field_settings($op, $field) {
         '#disabled' => !empty($field['geo_type']),
       );
 
-      if (!isset($field['geo_enabled'])) $field['geo_enabled'] = false;
-      $form['geo_enabled'] = array('#type' => 'value', '#value' => $field['geo_enabled']);
-
       // TODO pick the SRID for this column
       if (!isset($field['srid'])) $field['srid'] = GEO_SRID_DEFAULT;
       $form['srid'] = array('#type' => 'value', '#value' => $field['srid']);
@@ -84,39 +78,10 @@ function geo_field_settings($op, $field) {
       return $form;
 
     case 'save':
-      return array('srid', 'geo_enabled', 'geo_type');
+      return array('srid', 'geo_type');
     
     case 'database columns':
-      // Use a well-known-text column for each field.
-      // We'll add a geospatial field separately, which will mirror this value.
-      $spec = array(
-        'wkt' => array(
-          'type' => 'text',
-          'size' => 'big',
-          'not null' => FALSE,
-          'description' => t('Well-known-text format'),
-        ),
-        'geo' => array(
-          'type' => 'blob', // This column will be replaced in _geo_field_init.
-          'geo_type' => $field['geo_type'],
-          'not null' => TRUE,
-          'description' => t('Geometry field'),
-        ),
-      );
-
-      // Add lat/lon values for point fields ( or centroid for others ).
-      $spec['lat'] = array(
-        'type' => 'float',
-        'size' => 'big',
-        'description' => t('Latitude'),
-      );
-      $spec['lon'] = array(
-        'type' => 'float',
-        'size' => 'big',
-        'description' => t('Longitude'),
-      );
-
-      return $spec;
+      return geo('schema_field', $field['geo_type']);
     
     case 'views data':
       // Start with default views data, as constructed by CCK.
@@ -165,38 +130,34 @@ function geo_field_settings($op, $field) {
  */
 function geo_field($op, &$node, $field, &$items, $teaser, $page) {
   // Make sure the CCK table has our geo field.
-  _geo_field_init($field);
+  $db_info = content_database_info($field);
 
   switch ($op) {
 
     case 'load':
-      $ret = $node->$field['field_name'];
-      unset($ret['geo']);
+      $db_info = content_database_info($field);
       $column = $field['field_name'] .'_geo';
-      $res = db_query("SELECT ". geo('field_select', $column) .", delta
-        FROM {". _geo_field_tablename($field) ."} WHERE vid = %d", $node->vid);
+
+      // Include the field delta in the query if it's a multi-value field.
+      $delta = $field['multiple'] ? ', delta' : '';
+
+      $res = db_query("SELECT ". geo('field_select', $column) . $delta ."
+        FROM {". $db_info['table'] ."} WHERE vid = %d", $node->vid);
+
+      $ret = array();
       while ($row = db_fetch_array($res)) { 
+        $delta = isset($row['delta']) ? $row['delta'] : 0;
         foreach ($row as $k => $v) {
-          if ($k != 'delta') $ret[$row['delta']][$k] = $v;
+          $k = str_replace($field['field_name'] .'_', '', $k);
+          if ($k != 'delta') $ret[$delta][$k] = $v;
         }
       }
 
       // Identify ourselves on the node level for RSS and other postprocessing.
-      if (!isset($node->geo_fields)) {
-        $node->geo_fields = array();
-      }
-      $node->geo_fields[] = $field['field_name'];
+      if (!isset($node->geo_fields)) $node->geo_fields = array();
+      $node->geo_fields[$field['field_name']] = 'geo';
+
       return array($field['field_name'] => $ret, 'geo_fields' => $node->geo_fields);
-
-    case 'insert':
-    case 'update':
-      // We can't get Geom functions past query substitutions, so use our own.
-      _geo_field_save($op, $node, $field, $items);
-
-      // Unset the field data to prevent further action.
-      unset($node->$field['field_name']);
-      $items = array();
-      return;
 
     case 'validate':
       foreach ($items as $k => $item) {
@@ -215,8 +176,15 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
 
     case 'presave':
       foreach ($items as $k => $item) {
+        // Allow modules to submit lat/lon points instead of wkt.
         if ($item['lat'] && $item['lon']) {
           $items[$k]['wkt'] = geo('wkt_from_point', $item['lat'], $item['lon']);
+        }
+
+        // Convert the wkt to binary data before the insert. This allows the
+        // input to pass through the binary query substitutions.
+        if(!geo_content_is_empty($item, $field)) {
+          $items[$k]['geo'] = db_result(db_query("SELECT GeomFromText('%s', 4326)", $items[$k]['wkt']));
         }
       }
       return;
@@ -229,44 +197,6 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
  */
 function geo_content_is_empty($item, $field) {
   return empty($item['wkt']);
-}
-
-/**
- * Save function for Geo fields.  Because the storage function includes some
- * calls to database functions, they include quotes that are escaped by the
- * default query substitutions.  Save the value manually instead.
- */
-function _geo_field_save($op, $node, $field, $items) {
-  $table = $table  = _geo_field_tablename($field);
-  $schema = drupal_get_schema($table);
-
-  db_query("DELETE FROM {". $table ."} WHERE vid = %d", $node->vid);
-  foreach ($items as $delta => $item) {
-    if (geo_content_is_empty($item, $field)) continue;
-    $columns = $values = $holders = array();
-    $record = array(
-      'nid' => $node->nid,
-      'vid' => $node->vid,
-      'delta' => $delta,
-    );
-    foreach ($schema['fields'] as $column => $info) {
-      $key = str_replace($field['field_name'] .'_', '', $column);
-      $columns[] = $column;
-
-      if (substr($column, -4) == '_geo') {
-        // No substitution for our geo column and omit the corresponding value.
-        $srid = (int) $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT;
-        $holders[] = "GeomFromText('". db_escape_string($item['wkt']) ."', $srid)";
-      }
-      else {
-        $holders[] = db_type_placeholder($info['type']);
-        $values[] = isset($record[$column]) ? $record[$column] : $item[$key];
-      }
-    }
-
-    db_query("INSERT INTO {". $table ."} (". implode(', ', $columns) .') 
-      VALUES ('. implode(', ', $holders) .')', $values);
-  }
 }
 
 /**
@@ -325,10 +255,16 @@ function geo_field_latlon_process($element, $edit, $form_state, $form) {
 
 function geo_field_wkt_process($element, $edit, $form_state, $form) {
   $field = $form['#field_info'][$element['#field_name']];
+  $value = NULL;
+  if (isset($element['#value']['wkt'])) $value = $element['#value']['wkt'];
+  elseif (isset($element['#value']['wkb'])) {
+    $value = geo_wkb_get_data($element['#value']['wkb'], 'wkt');
+  }
+
   $element['wkt'] = array(
     '#type' => 'textarea',
     '#title' => t($field['widget']['label']),
-    '#default_value' => isset($element['#value']['wkt']) ? $element['#value']['wkt'] : NULL,
+    '#default_value' => $value,
     '#required' => $field['required'],
     '#description' => $field['widget']['description'],
   );
@@ -341,39 +277,6 @@ function theme_geo_field_latlon($element) {
 
 function theme_geo_field_wkt($element) {
   return $element['#children'];
-}
-
-function _geo_field_tablename($field) {
-  return _content_tablename($field['field_name'], CONTENT_DB_STORAGE_PER_FIELD);
-}
-
-function _geo_field_init(&$field) {
-  // We've already molested CCK's table, nothing to see here.
-  if ($field['geo_enabled']) return;
-
-  // Ignore fields that are still in infancy.
-  if (!isset($field['field_name'])) return;
-
-  $table  = _geo_field_tablename($field);
-
-  // CCK hasn't created our table yet. Try again next time.
-  if (!db_table_exists($table)) return;
-
-  $column = $field['field_name'] .'_geo';
-
-  // Reuse the original column definition, but set a different datatype.
-  $spec = $field['columns']['geo'];
-  $spec['type'] = $field['geo_type'];
-  $spec['srid'] = $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT;;
-
-  $ret = array();
-  db_drop_field($ret, $table, $column);
-  if ($field['geo_enabled'] = geo('add_field', $ret, $table, $column, $spec)) {
-    // Re-save the field to ensure that geo_enabled gets set.
-    module_load_include('inc', 'content', 'includes/content.crud');
-    _content_field_write($field, 'update');
-   content_clear_type_cache();
-  }
 }
 
 /**
