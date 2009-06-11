@@ -9,7 +9,9 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
     }
 
     // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $this->query->add_field(NULL, geo('field_select', 'geo'));
+    $alias = $this->ensure_my_table() .'_'. $this->field;
+    $func = geo('field_select', $this->real_field, NULL, $target);
+    $this->query->add_field('', $func, $alias, array('aggregate' => TRUE));
 
     foreach ($this->content_field['geo_data_value'] as $field) {
       $this->query->add_field($geo_table, $field);

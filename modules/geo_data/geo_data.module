@@ -215,13 +215,12 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
           }
         }
       }
-
       // Identify ourselves on the node level for RSS and other postprocessing.
-      if (!isset($node->geo_fields)) {
-        $node->geo_fields = array();
-      }
-      $node->geo_fields[] = $field['field_name'];
+      if (!isset($node->geo_fields)) $node->geo_fields = array();
+      $node->geo_fields[$field['field_name']] = 'geo_data';
+
       return array($field['field_name'] => $ret, 'geo_fields' => $node->geo_fields);
+
 
     case 'validate':
       return;
