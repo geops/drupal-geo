@@ -9,45 +9,52 @@ class views_handler_filter_geo_distance extends views_handler_filter {
     return $options;
   }
 
-  function options_form(&$form, &$form_state) {
-    parent::options_form($form, $form_state);
-    $form['gis_input'] = geo('gis_input_selector', $this->options['gis_input']);
-  }
-
   function value_form(&$form, &$form_state, $key = 'value') {
+    $exposed = $key != 'value';
+    $gis_input = $this->value['gis_input'];
+
     $form[$key] = array('#tree' => TRUE);
-    $form[$key]['geo_distance'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Distance'),
-      '#default_value' => $this->value['geo_distance'],
-      '#size' => 5,
-    );
 
-    $form[$key]['geo_units'] = array(
-      '#type' => 'select',
-      '#title' => t('Units'),
-      '#options' => geo_units(),
-      '#default_value' => $this->value['geo_units'],
-    );
+    $form[$key]['gis_input'] = geo('gis_input_selector', $gis_input);
+    $form[$key]['gis_input']['#access'] = !$exposed;
 
-    $info = module_invoke_all('gis_input_info');
-    $info = $info[$this->options['gis_input']];
-    $form[$key]['target'] = array_merge($info['element'], array(
-      '#title' => $this->options['label'],
-      '#default_value' => $this->value['gis_input_value'],
-      '#gis_type' => 'point', // TODO derived.
-      '#gis_input' => $info['gis input'], // The format expected by the element.
-      '#gis_output' => 'array', // The format expected by this handler.
-      '#weight' => 1,
-    ));
+    if ($gis_input) {
 
-    if (!isset($form[$key]['#after_build'])) {
-      $form[$key]['#after_build'] = array();
+      $form[$key]['geo_distance'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Distance'),
+        '#default_value' => $this->value['geo_distance'],
+        '#size' => 5,
+        '#access' => !$exposed || $this->options['show_geo_distance'],
+      );
+
+      $form[$key]['geo_units'] = array(
+        '#type' => 'select',
+        '#title' => t('Units'),
+        '#options' => geo_units(),
+        '#default_value' => $this->value['geo_units'],
+        '#access' => !$exposed || $this->options['show_geo_units'],
+      );
+  
+      $info = module_invoke_all('gis_input_info');
+      $info = $info[$this->value['gis_input']];
+      $form[$key]['target'] = array_merge($info['element'], array(
+        '#title' => $this->options['label'],
+        '#default_value' => $this->value['gis_input_value'],
+        '#gis_type' => 'point', // TODO derived.
+        '#gis_input' => $info['gis input'], // The format expected by the element.
+        '#gis_output' => 'array', // The format expected by this handler.
+        '#weight' => 1,
+      ));
+
+      if (!isset($form[$key]['#after_build'])) {
+        $form[$key]['#after_build'] = array();
+      }
+      $form[$key]['target']['#after_build'][] = 'geo_element_set_value';
     }
-    $form[$key]['#after_build'][] = 'geo_element_set_value';
 
     // Create an additional field to store the input as it was submitted.
-    $form[$key]['gis_input_value'] = $form['value']['target'];
+    $form[$key]['gis_input_value'] = $form[$key]['target'];
     $form[$key]['gis_input_value']['#access'] = FALSE;
   }
 
@@ -77,6 +84,7 @@ class views_handler_filter_geo_distance extends views_handler_filter {
       $this->value = $value;
       return TRUE;
     }
+    // TODO really?
     return FALSE;
   }
 
@@ -85,6 +93,8 @@ class views_handler_filter_geo_distance extends views_handler_filter {
     $limit  = $value['geo_distance'];
     $units  = $value['geo_units'];
     $target = $value['target'];
+
+    if (!$value['gis_input_value']) return;
 
     // Set the distance limit to meters.
     $limit = (int) geo_unit_convert($limit, $units, 'm');
