@@ -323,7 +323,8 @@ function theme_geo_latlon($element) {
 }
 
 function geo_element_set_value($element, &$form_state) {
-  $input = $element['#gis_input_value'] = $element['#value'];
+  if (!$element['#value']) $element['#value'] = $element['#default_value'];
+  $value = $element['#gis_input_value'] = $element['#value'];
 
   $in  = isset($element['#gis_input']) ? $element['#gis_input'] : 'wkt';
   $out = isset($element['#gis_output']) ? $element['#gis_output'] : 'wkt';
