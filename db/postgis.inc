@@ -52,9 +52,11 @@ function geo_postgis_drop_field($table, $column) {
   // NOTE do I need to drop my spatial index too? should probably check pg docs
 }
 
+/*
 function geo_postgis_field_select($field) {
   return " srid($field) as srid, asText($field) AS wkt, asText(centroid($field)) AS centroid, asText(envelope($field)) as bbox ";
 }
+*/
 
 function geo_postgis_query_function($func, $field, $value, $srid) {
   $ret = array();

@@ -116,7 +116,6 @@ function geo_wkb_get_text($data, $items = NULL) {
 function geo_wkb_get_array($data, $items = NULL) {
   if (isset($data['x']) && isset($data['y'])) {
     $ret = array('lon' => $data['x'], 'lat' => $data['y']);
-    $ret = array('lon' => $data['x'], 'lat' => $data['y']);
   }
   elseif (isset($data['value'])) {
     $ret = $data['value'];

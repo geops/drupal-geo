@@ -7,6 +7,18 @@
 define(GEO_SRID_DEFAULT, 4326);
 define(GEO_DEGREE_M, 111206);
 
+define(GEO_TYPE_POINT, 0);
+define(GEO_TYPE_CURVE, 2);
+define(GEO_TYPE_LINESTRING, 3);
+define(GEO_TYPE_SURFACE, 4);
+define(GEO_TYPE_POLYGON, 5);
+define(GEO_TYPE_COLLECTION, 6);
+define(GEO_TYPE_MULTIPOINT, 7);
+define(GEO_TYPE_MULTICURVE, 8);
+define(GEO_TYPE_MULTILINESTRING, 9);
+define(GEO_TYPE_MULTISURFACE, 10);
+define(GEO_TYPE_MULTIPOLYGON, 11);
+
 /**
  * Call an API function from the geo backend databases.
  * This function will find and load the database backend files, and call
@@ -74,6 +86,12 @@ function geo_theme() {
       'file' => 'geo.formatters.inc',
       'path' => $file_path,
     ),
+    'geo_fields' => array(
+      'arguments' => array('element' => NULL),
+    ),
+    'geo_latlon' => array(
+      'arguments' => array('element' => NULL),
+    ),
   );
 }
 
@@ -115,7 +133,6 @@ function geo_field_formatter_info() {
  */
 function geo_field_types() {
   static $field_types;
-//print_r(module_invoke_all('gis_fields'));
   if (!isset($field_types)) {
     $field_types = array('geo', 'geo_data');
     drupal_alter('geo_field_types', $field_types);
@@ -127,6 +144,7 @@ function geo_field_types() {
  * Implementation of hook_content_fieldapi().
  */
 function geo_content_fieldapi($op, $field) {
+//TODO this will catalog (?) and possibly postprocess geo-fields.
   $fields = $old_fields = variable_get('geo_fields', array());
 
   // ANY field with a 'geo_type' value is acknowledged here.
@@ -249,7 +267,7 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   // Append microformats onto geo node feeds.
   if ($op == 'rss item' && isset($node->geo_fields)) {
     $rss = array();
-    foreach ($node->geo_fields as $field_name) {
+    foreach ($node->geo_fields as $field_name => $type) {
       foreach ($node->$field_name as $item) {
         $rss[] = geo('rss_item', $item['wkb']);
       }
@@ -259,16 +277,98 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 }
 
 /**
+ * Implementation of hook_elements().
+ */
+function geo_elements() {
+  return array(
+    'geo_latlon' => array(
+      '#input' => TRUE,
+      '#process' => array('geo_latlon_process'),
+    ),
+  );
+}
+
+function theme_geo_fields($element) {
+  return $element['#children'];
+}
+
+/**
+ * A #process handler for the latlon element.
+ */
+function geo_latlon_process($element, $edit, $form_state, $form) {
+  $field = $form['#field_info'][$element['#field_name']];
+
+  $element['lat'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Latitude'),
+    '#default_value' => $element['#value']['lat'],
+    '#required' => $element['#required'],
+    '#size' => 12,
+    '#maxlength' => 15,
+  );
+  $element['lon'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Longitude'),
+    '#default_value' => $element['#value']['lon'],
+    '#required' => $element['#required'],
+    '#size' => 12,
+    '#maxlength' => 15,
+  );
+  return $element;
+}
+
+function theme_geo_latlon($element) {
+  $output = '<div class="container-inline">'. $element['#children'] .'</div>';
+  return theme('form_element', $element, $output);
+}
+
+function geo_element_set_value($element, &$form_state) {
+  $input = $element['#gis_input_value'] = $element['#value'];
+
+  $in  = isset($element['#gis_input']) ? $element['#gis_input'] : 'wkt';
+  $out = isset($element['#gis_output']) ? $element['#gis_output'] : 'wkt';
+
+  // No conversion necessary.
+  if ($in == $out) return $element;
+
+  // TODO We are taking the element's requested input and output formats, and
+  // making the necessary adjustments.  This needs to be refactored and set up
+  // in some kind of a handler model.  For now it's a proof-of-concept that
+  // gets the UI & existing inputs up and running.
+  switch ($in) {
+    case 'array':
+      if ($out == 'wkt') {
+        $value = geo('wkt_from_point', $input['lat'], $input['lon']);
+      }
+      break;
+  }
+
+  form_set_value($element, $value, $form_state);
+  return $element;
+}
+
+/**
  * Implementation of hook_gis_input_info().
  */
 function geo_gis_input_info($gis_type = NULL) {
   $inputs = array(
     'geo_wkt' => array(
-      'title' => t('Well known text'),
+      'label' => t('Well known text'),
+      'gis input' => 'wkt',
+      'safe reverse' => TRUE,
       'gis types' => array('point', 'linestring', 'polygon'),
       'element' => array(
         '#type' => 'textfield',
         '#after_build' => array('geo_textfield_element_process'),
+      ),
+    ),
+    'geo_latlon' => array(
+      'label' => t('Latitude/Longitude'),
+      'gis input' => 'array',
+      'safe reverse' => TRUE,
+      'gis types' => array('point'),
+      'element' => array(
+        '#type' => 'geo_latlon',
       ),
     ),
   );
@@ -277,5 +377,5 @@ function geo_gis_input_info($gis_type = NULL) {
 
 function geo_textfield_element_process($element, &$form_state) {
   // TODO validate and set wkt value.
+  return $element;
 }
-

@@ -17,15 +17,19 @@ function geo_views_handlers() {
     'handlers' => array(
       'views_handler_field_geo' => array(
        'parent' => 'views_handler_field',
+       'gis input' => 'array',
       ),
       'views_handler_filter_geo' => array(
        'parent' => 'views_handler_filter',
+       'gis input' => 'array',
       ),
       'views_handler_field_geo_distance' => array(
        'parent' => 'views_handler_field_numeric',
+       'gis input' => 'array',
       ),
       'views_handler_filter_geo_distance' => array(
        'parent' => 'views_handler_filter',
+       'gis input' => 'array',
       ),
       'views_handler_sort_geo_distance' => array(
        'parent' => 'views_handler_sort',
