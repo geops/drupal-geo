@@ -36,8 +36,15 @@ class views_handler_filter_geo_distance extends views_handler_filter {
       '#title' => $this->options['label'],
       '#default_value' => $this->value['gis_input_value'],
       '#gis_type' => 'point', // TODO derived.
+      '#gis_input' => $info['gis input'], // The format expected by the element.
+      '#gis_output' => 'array', // The format expected by this handler.
       '#weight' => 1,
     ));
+
+    if (!isset($form[$key]['#after_build'])) {
+      $form[$key]['#after_build'] = array();
+    }
+    $form[$key]['#after_build'][] = 'geo_element_set_value';
 
     // Create an additional field to store the input as it was submitted.
     $form[$key]['gis_input_value'] = $form['value']['target'];
@@ -79,19 +86,21 @@ class views_handler_filter_geo_distance extends views_handler_filter {
     $units  = $value['geo_units'];
     $target = $value['target'];
 
-		// If there's not already a field with this calculation, add one.
-    if (!isset($this->view->field[$this->field])) {
-      $alias = $this->ensure_my_table() .'_'. $this->field;
-      $func = geo('query_distance', $this->real_field, NULL, $target);
-      $this->query->add_field('', $func, $alias, array('aggregate' => TRUE));
-    }
-
     // Set the distance limit to meters.
     $limit = (int) geo_unit_convert($limit, $units, 'm');
 
+    $srid = GEO_SRID_DEFAULT;
+		// If there's not already a field with this calculation, add one.
+    if (!isset($this->view->field[$this->field])) {
+      $alias = $this->ensure_my_table() .'_'. $this->field;
+      $dst = $func = geo('query_distance', $this->real_field, $srid, $target);
+      //$this->query->add_field('', $func, $alias, array('aggregate' => TRUE));
+      $this->query->add_where('', "$func < $limit");
+    }
+
     // Add a bounding box filter to leverage the geo index for performance.
     $bbox = geo('make_bbox', $target, $limit);
-    $func = geo('query_within', $this->real_field, GEO_SRID_DEFAULT, $bbox);
+    $func = geo('query_within', $this->real_field, $srid, $bbox);
     $this->query->add_where('', $func);
 
     // Add a distance filter to limit on a circular radius.
@@ -99,6 +108,7 @@ class views_handler_filter_geo_distance extends views_handler_filter {
       $table  = $this->ensure_my_table();
       $field = $table .'_' . $this->field;
     }
-    $this->query->add_having(0, "$field < %d", $limit);
+    //$this->query->add_having(0, "$field < %d", $limit);
+    $this->query->add_having(0, "$dst < %d", $limit);
   }
 }

@@ -36,7 +36,7 @@ class views_handler_filter_geo extends views_handler_filter {
     $info = $info[$this->options['expose']['geo_widget']];
     $key = $this->options['expose']['identifier'];
     $form[$key] = array_merge($info['element'], array(
-      '#title' => $info['title'],
+      '#title' => $info['label'],
       '#default_value' => $this->value,
       '#gis_type' => 'point', // TODO derived.
     ));

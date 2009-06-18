@@ -166,16 +166,17 @@ function geo_query_wkb($field, $srid = null) {
 }
 
 function geo_query_distance($field, $srid = null, $target) {
-  $target = "GeomFromText('POINT(". $target['lon'] .','. $target['lat'] .")')";
-  return 'Distance('. $field .', '. $target .')';
+  $target = geo_wkt_from_point($target['lat'], $target['lon']);
+  $query  = 'Distance('. $field .", GeomFromText('". $target ."', $srid))";
+  return '('. GEO_DEGREE_M .' * '. $query .')';
 }
 
 function geo_query_within($field, $srid = null, $target) {
-  return "Within($field, GeomFromText('". $target['wkt'] ."'))";
+  return "Within($field, GeomFromText('". $target['wkt'] ."', $srid))";
 }
 
 function geo_query_contains($field, $srid = null, $target) {
-  return "Contains(GeomFromText('". $target['wkt'] ."'), $field)";
+  return "Contains(GeomFromText('". $target['wkt'] ."', $srid), $field)";
 }
 
 function geo_query_extent($field) {
@@ -188,8 +189,9 @@ function geo_schema_field($gis_type = 'geometry', $name = 'geo', $srid = NULL) {
   if (isset($types[$gis_type])) {
     $schema[$name] = array(
       'type' => 'blob',
-      'mysql_type' => $gis_type,
-      'pgsql_type' => $gis_type,
+      'mysql_type' => 'geometry',
+      'pgsql_type' => 'geometry',
+      'gis type' => $gis_type,
       'description' => t('Geometry field'),
     );
   }
@@ -247,7 +249,7 @@ function geo_gis_input_selector($default_value) {
   // Provide a selection of input handlers.
   $input_types = array();
   foreach (module_invoke_all('gis_input_info') as $name => $info) {
-    $input_types[$name] = $info['title'];
+    $input_types[$name] = $info['label'];
   }
 
   $form = array(
