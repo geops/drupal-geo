@@ -324,13 +324,11 @@ function theme_geo_latlon($element) {
 
 function geo_element_set_value($element, &$form_state) {
   if (!$element['#value']) $element['#value'] = $element['#default_value'];
-  $value = $element['#gis_input_value'] = $element['#value'];
+  $value = $element['#value'];
+  if (!isset($element['#gis_input_value'])) $element['#gis_input_value'] = $value;
 
   $in  = isset($element['#gis_input']) ? $element['#gis_input'] : 'wkt';
   $out = isset($element['#gis_output']) ? $element['#gis_output'] : 'wkt';
-
-  // No conversion necessary.
-  if ($in == $out) return $element;
 
   // TODO We are taking the element's requested input and output formats, and
   // making the necessary adjustments.  This needs to be refactored and set up
@@ -339,11 +337,12 @@ function geo_element_set_value($element, &$form_state) {
   switch ($in) {
     case 'array':
       if ($out == 'wkt') {
-        $value = geo('wkt_from_point', $input['lat'], $input['lon']);
+        $value = geo('wkt_from_point', $value['lat'], $value['lon']);
       }
       break;
   }
 
+  $element['#gis_output_value'] = $value;
   form_set_value($element, $value, $form_state);
   return $element;
 }
@@ -360,7 +359,6 @@ function geo_gis_input_info($gis_type = NULL) {
       'gis types' => array('point', 'linestring', 'polygon'),
       'element' => array(
         '#type' => 'textfield',
-        '#after_build' => array('geo_textfield_element_process'),
       ),
     ),
     'geo_latlon' => array(
@@ -374,9 +372,4 @@ function geo_gis_input_info($gis_type = NULL) {
     ),
   );
   return $inputs;
-}
-
-function geo_textfield_element_process($element, &$form_state) {
-  // TODO validate and set wkt value.
-  return $element;
 }
