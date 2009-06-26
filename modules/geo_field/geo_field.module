@@ -38,7 +38,7 @@ function geo_field_settings($op, $field) {
       );
 
       // TODO pick the SRID for this column
-      if (!isset($field['srid'])) $field['srid'] = GEO_SRID_DEFAULT;
+      if (!$field['srid']) $field['srid'] = GEO_SRID_DEFAULT;
       $form['srid'] = array('#type' => 'value', '#value' => $field['srid']);
 
       return $form;
@@ -141,7 +141,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         // Convert the wkt to binary data before the insert. This allows the
         // input to pass through the binary query substitutions.
         if(!geo_content_is_empty($item, $field)) {
-          $item['geo'] = db_result(db_query("SELECT GeomFromText('%s', %d)", $item['geo'], $item['srid']));
+          $item['geo'] = db_result(db_query("SELECT GeomFromText('%s', %d)", $item['geo'], $field['srid']));
         }
         $items[$k] = $item;
       }
