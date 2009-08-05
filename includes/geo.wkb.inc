@@ -14,7 +14,12 @@ function geo_wkb_types($key = NULL) {
   return $geo_types;
 }
 
-function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL) {
+function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NULL, $byte_order = NULL) {
+  static $local_byte_order;
+  if (!isset($local_byte_order)) {
+    $local_byte_order = current(unpack('c', pack('S', 1)));
+  }
+
   $data = array();
 
   if (!$fp) {
@@ -25,7 +30,9 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
     fseek($fp, 0);
 
     // Fetch the byte order (0 = Big Endian, 1 = Little Endian) and geo type.
-    $data = unpack('cbyte_order/Ltype', fread($fp, 5));
+    $data = unpack('cbyte_order', fread($fp, 1));
+    $byte_order = $data['byte_order'];
+    $data = array_merge($data, unpack(($byte_order ? 'Vtype' : 'Ntype'), fread($fp, 4)));
 
     // Set the geometry type
     $data['type'] = geo_wkb_types($data['type']);
@@ -38,24 +45,30 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
   switch($type) {
 
     case 'point': // Contains x, y decimal values.
-      $data = array_merge($data, unpack('dx/dy', fread($fp, 16)));
+      $tmp = fread($fp, 16);
+      // Check whether the data's byte order matches the machine's byte order.
+      // If not, we need to reverse the data before PHP can unpack it.
+      if ($byte_order != $local_byte_order) {
+        $tmp = strrev(substr($tmp, 0, 8)) . strrev(substr($tmp, 8));
+      }
+      $data = array_merge($data, unpack('dx/dy', $tmp));
       $data['value'] = $func($data);
       if (function_exists($post = $func .'_post')) $data = $post($data);
       return $data;
 
     case 'linestring': // Contains count * (point) values.
-      $data['count'] = current(unpack('L', fread($fp, 4)));
+      $data['count'] = current(unpack(($byte_order ? 'V' : 'N'), fread($fp, 4)));
       for ($i = 1; $i <= $data['count']; $i++) {
-        $point = geo_wkb_get_data(NULL, $format, $fp, 'point');
+        $point = _geo_wkb_get_data(NULL, $format, $fp, 'point', $byte_order);
         $data['value'] = $func($point, $data['value']);
       }
       if (function_exists($post = $func .'_post')) $data = $post($data);
       return $data;
 
     case 'polygon': // Contains count * (linestring) items.
-      $data['count'] = current(unpack('L', fread($fp, 4)));
+      $data['count'] = current(unpack(($byte_order ? 'V' : 'N'), fread($fp, 4)));
       for ($i = 1; $i <= $data['count']; $i++) {
-        $line = geo_wkb_get_data(NULL, $format, $fp, 'linestring');
+        $line = _geo_wkb_get_data(NULL, $format, $fp, 'linestring', $byte_order);
         $data['value'] = $func($line, $data['value']);
       }
       if (function_exists($post = $func .'_post')) $data = $post($data);
