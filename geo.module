@@ -324,12 +324,15 @@ function theme_geo_latlon($element) {
 
 function geo_element_set_value($element, &$form_state) {
   if (!$element['#value']) $element['#value'] = $element['#default_value'];
-  $value = $element['#value'];
-  if (!isset($element['#gis_input_value'])) $element['#gis_input_value'] = $value;
+  if (!isset($element['#gis_input_value'])) $element['#gis_input_value'] = $element['#value'];
 
-  $in  = isset($element['#gis_input']) ? $element['#gis_input'] : 'wkt';
-  $out = isset($element['#gis_output']) ? $element['#gis_output'] : 'wkt';
+  $value = geo_value_convert($element['#value'], $element['#gis_input'], $element['#gis_output']);
+  $element['#gis_output_value'] = $value;
+  form_set_value($element, $value, $form_state);
+  return $element;
+}
 
+function geo_value_convert($value, $in = 'array', $out = 'wkt') {
   // TODO We are taking the element's requested input and output formats, and
   // making the necessary adjustments.  This needs to be refactored and set up
   // in some kind of a handler model.  For now it's a proof-of-concept that
@@ -342,9 +345,7 @@ function geo_element_set_value($element, &$form_state) {
       break;
   }
 
-  $element['#gis_output_value'] = $value;
-  form_set_value($element, $value, $form_state);
-  return $element;
+  return $value;
 }
 
 /**

@@ -4,97 +4,146 @@ class views_handler_filter_geo_distance extends views_handler_filter {
 
   function option_definition() {
     $options = parent::option_definition();
-    $options['gis_input'] = array('default' => 'geo_wkt');
-    $options['gis_input_value'] = array('default' => '');
+    $options['gis_input'] = array('default' => 'geo_latlon');
+    $options['gis_input_value'] = array('default' => array());
     return $options;
   }
 
-  function value_form(&$form, &$form_state, $key = 'value') {
-    $exposed = $key != 'value';
-    $gis_input = $this->value['gis_input'];
+  function value_form(&$form, &$form_state) {
+    $exposed = $form_state['exposed'];
+    $key = $exposed ? $this->options['expose']['identifier'] : 'value';
 
-    $form[$key] = array('#tree' => TRUE);
+    // TODO handle this based on exposdieness - or delete it outright?
+    if ($exposed && empty($form_state['input'])) {
+      $form_state['input'][$key] = $this->value;
+    }
 
-    $form[$key]['gis_input'] = geo('gis_input_selector', $gis_input);
-    $form[$key]['gis_input']['#access'] = !$exposed;
+    if (!$exposed) {
+      $form['gis_input'] = geo('gis_input_selector', $this->options['gis_input']);
+    }
 
-    if ($gis_input) {
+    $form['value'] = array('#tree' => TRUE);
 
-      $form[$key]['geo_distance'] = array(
-        '#type' => 'textfield',
-        '#title' => t('Distance'),
-        '#default_value' => $this->value['geo_distance'],
-        '#size' => 5,
-        '#access' => !$exposed || $this->options['show_geo_distance'],
-      );
+    $form['value']['geo_distance'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Distance'),
+      '#default_value' => $this->value['geo_distance'],
+      '#size' => 5,
+      '#access' => !$exposed || $this->options['show_geo_distance'],
+      '#process' => array('views_process_dependency'),
+      '#dependency' => array('edit-options-value-gis-input'),
+    );
 
-      $form[$key]['geo_units'] = array(
-        '#type' => 'select',
-        '#title' => t('Units'),
-        '#options' => geo_units(),
-        '#default_value' => $this->value['geo_units'],
-        '#access' => !$exposed || $this->options['show_geo_units'],
-      );
+    $form['value']['geo_units'] = array(
+      '#type' => 'select',
+      '#title' => t('Units'),
+      '#options' => geo_units(),
+      '#default_value' => $this->value['geo_units'],
+      '#access' => !$exposed || $this->options['show_geo_units'],
+      '#process' => array('views_process_dependency'),
+      '#dependency' => array('edit-options-value-gis-input'),
+    );
   
-      $info = module_invoke_all('gis_input_info');
-      $info = $info[$this->value['gis_input']];
-      $form[$key]['target'] = array_merge($info['element'], array(
+    // The "target" value gets converted to the value that is actually used.
+    // The gis_input_value field stores the input as it was entered.
+    $form['value']['target'] = array('#tree' => TRUE);
+
+    foreach (module_invoke_all('gis_input_info') as $name => $info) {
+      // The exposed form only shows one input.
+      if ($exposed && ($name != $this->options['gis_input'])) continue;
+
+      // Ignore nonexistent element types.
+      if (!$element = _element_info($info['element']['#type'])) continue;
+      //unset($element['#parents'], $element['#tree']);
+      unset($element['#parents']);
+
+      //$value = is_array($this->value['gis_input_value']) ? $this->value['gis_input_value'][$name] : NULL;
+      $value = is_array($this->value['target']) ? $this->value['target'][$name] : NULL;
+
+      $element = array_merge($element, $info['element']);
+      $element = array_merge($element, array(
         '#title' => $this->options['label'],
-        '#default_value' => $this->value['gis_input_value'],
+        '#default_value' => $value,
         '#gis_type' => 'point', // TODO derived.
         '#gis_input' => $info['gis input'], // The format expected by the element.
         '#gis_output' => 'array', // The format expected by this handler.
-        '#weight' => 1,
+     //   '#access' => (!$exposed || ($name == $this->options['gis_input'])),
       ));
 
-      if (!isset($form[$key]['#after_build'])) {
-        $form[$key]['#after_build'] = array();
+      if (!$exposed) {
+        $element['#process'][] = 'views_process_dependency';
+        $element['#dependency'] = array('edit-options-gis-input' => array($name));
       }
-      $form[$key]['target']['#after_build'][] = 'geo_element_set_value';
+
+      // Add the geo_element_set_value function to the as-translated version.
+      //$element['#after_build'][] = 'geo_element_set_value';
+
+      // Add this element to the form.
+      $element['#tree'] = TRUE;
+      $form['value']['target'][$name] = $element;
     }
-
-    // Create an additional field to store the input as it was submitted.
-    $form[$key]['gis_input_value'] = $form[$key]['target'];
-    $form[$key]['gis_input_value']['#access'] = FALSE;
-  }
-
-  function value_validate($form, &$form_state, $key = 'value') {
-    parent::value_validate($form, $form_state);
-    form_set_value($form[$key]['gis_input_value'], $form[$key]['target']['#gis_input_value'], $form_state);
-  }
-
-  function exposed_form(&$form, &$form_state) {
-    $key = $this->options['expose']['identifier'];
-    $this->value_form($form, $form_state, $key);
-  }
-
-  function exposed_validate($form, &$form_state) {
-    $key = $this->options['expose']['identifier'];
-    $this->value_validate($form, $form_state, $key);
   }
 
   function accept_exposed_input(&$input) {
+    if (empty($this->options['exposed'])) {
+      return TRUE;
+    }
+
     $key = $this->options['expose']['identifier'];
     $value = $input[$key];
 
     // Ensure that the entered value is stored in the user's session.
-    $input[$key]['target'] = $input[$key]['gis_input_value'];
+    //$input[$key]['target'] = $input[$key]['gis_input_value'];
 
-    if ($value['geo_distance'] && $value['geo_units'] && $value['target']) {
+    if (!$this->_value_is_empty($value['target'][$this->options['gis_input']])) {
       $this->value = $value;
       return TRUE;
     }
+    elseif (!$this->_value_is_empty($this->value['target'][$this->options['gis_input']])) {
+      return TRUE;
+    }
+
     // TODO really?
     return FALSE;
   }
 
+  function admin_summary() {
+    $out = '';
+    if ($this->value) {
+      $out = (int) $this->value['geo_distance'];
+      $out .= ' '. geo_units($this->value['geo_units']);
+      $out .= ' '. t('from');
+      $out .= ' '. $this->value['target'][$this->options['gis_input']];
+    }
+    return $out;
+  }
+
+  function _value_is_empty($value) {
+    // TODO this is not very flexible...
+    if (is_scalar($value)) return empty($value);
+    if (is_array($value)) {
+      $val = end($value);
+      return empty($val);
+    }
+  }
+
   function query() {
     $value  = $this->value;
+
     $limit  = $value['geo_distance'];
     $units  = $value['geo_units'];
-    $target = $value['target'];
+    if ($value['target']) {
+      $target = $value['target'][$this->options['gis_input']];
+    }
+    else return;
 
-    if (!$value['gis_input_value']) return;
+    foreach (module_invoke_all('gis_input_info') as $name => $info) {
+      if ($name == $this->options['gis_input']) {
+        // TODO the output format (array) should not be hard-coded.
+        $target = geo_value_convert($target, $info['gis input'], 'array');
+        break;
+      }
+    }
 
     // Set the distance limit to meters.
     $limit = (int) geo_unit_convert($limit, $units, 'm');
