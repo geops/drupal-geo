@@ -27,7 +27,6 @@ class views_handler_field_geo_field extends content_handler_field_multiple {
     foreach (array('wkb', 'bbox', 'srid') as $key) {
       $column = $base .'_'. $key;
       $item[$key] = db_decode_blob($values->$column);
-      unset($values->$column);
     }
 
     // Convert the resulting output to a format recognized by the theme function
