@@ -9,34 +9,32 @@ class views_handler_field_geo_field extends content_handler_field_multiple {
     }
 
     // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $geo_field = $table .'.'. $this->content_field['field_name'] .'_geo';
-    $this->query->add_field(NULL, geo('field_select', $geo_field), NULL, array('aggregate' => TRUE));
+    $this->geo_field = $table .'.'. $this->content_field['field_name'] .'_geo';
+    $this->query->add_field(NULL, geo('field_select', $this->geo_field), NULL, array('aggregate' => TRUE));
   }
 
-  function not_render($values) {
-    $field = $this->content_field;
-    $options = $this->options;
-    $db_info = content_database_info($field);
-
-    // $values will be used as a fake $node object;
-    // we provide a build_mode for rendering.
-    // TODO: we can stick any value in there -
-    // what would make most sense ?  row_style ?
+  function render($values) {
     $values->build_mode = 'views';
+    
+    // Get the formatter's theme name.  This will be used by geo_set_value().
+    $name = $this->options['format'];
+    $formatter = _content_get_formatter($name, $this->content_field['type']);
+    $theme = $formatter['module'] .'_formatter_'. $name;
 
+    // Re-assemble the components of the selected item.
     $item = array();
-
-    $item['wkb'] = $values->{$geo_table.'_wkb'};
-    $item['bbox'] = $values->{$geo_table.'_bbox'};
-
-    foreach ($this->content_field['geo_data_value'] as $column) {
-      $value = $values->{$geo_table.'_'. $column};
-      $item['geo_data_'. $column] = $value;
-      if (!isset($item['label']) && in_array($column, $field['geo_data_value'])) {
-        $item['label'] = $value;
-      }
+    $base = substr($this->field_alias, 0, -4);
+    foreach (array('wkb', 'bbox', 'srid') as $key) {
+      $column = $base .'_'. $key;
+      $item[$key] = db_decode_blob($values->$column);
+      unset($values->$column);
     }
+
+    // Convert the resulting output to a format recognized by the theme function
+    $item = geo_set_value($item, $theme);
+
+    // Do what the field module was going to do.
     $item['#delta'] = !empty($values->{$this->table_alias . '_delta'}) ? $values->{$this->table_alias . '_delta'} : 0;
-    return $this->render_link(content_format($field, $item, $options['format'], $values), $values);
+    return $this->render_link(content_format($this->content_field, $item, $this->options['format'], $values), $values);
   }
 }
