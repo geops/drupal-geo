@@ -65,21 +65,25 @@ function geo_theme() {
       'arguments' => array('element' => NULL),
       'file' => 'geo.formatters.inc',
       'path' => $file_path,
+      'gis input' => 'wkt',
     ),
     'geo_formatter_lat' => array(
       'arguments' => array('element' => NULL),
       'file' => 'geo.formatters.inc',
       'path' => $file_path,
+      'gis input' => 'array',
     ),
     'geo_formatter_lon' => array(
       'arguments' => array('element' => NULL),
       'file' => 'geo.formatters.inc',
       'path' => $file_path,
+      'gis input' => 'array',
     ),
     'geo_formatter_georss' => array(
       'arguments' => array('element' => NULL),
       'file' => 'geo.formatters.inc',
       'path' => $file_path,
+      'gis input' => 'array',
     ),
     'geo_formatter_svg' => array(
       'arguments' => array('element' => NULL),
@@ -239,31 +243,6 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
  * Implementation of hook_nodeapi().
  */
 function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == 'view') {
-    if (isset($node->geo_fields)) {
-      $types = _content_type_info();
-      $types = $types['field types'];
-      foreach ($node->geo_fields as $f => $type) {
-        // #formatter is in field['items'] for CONTENT_HANDLE_MODULE
-        if (!$formatter = $node->content[$f]['field']['items']['#formatter']) {
-          // #formatter is in field['items'][$delta] for CONTENT_HANDLE_CORE
-          $formatter = $node->content[$f]['field']['items'][0]['#formatter'];
-        }
-        
-        if ($input = $types[$type]['formatters'][$formatter]['gis input']) {
-          foreach ($node->content[$f]['field']['items'] as $i => $item) {
-            if (!is_array($item)) continue;
-            if (!isset($item['#item'][$input])) {
-              $data = geo_wkb_get_data($item['#item']['wkb'], $input);
-              $node->content[$f]['field']['items'][$i]['#item']['gis type'] = $data['type'];
-              $node->content[$f]['field']['items'][$i]['#item'][$input] = $data['value'];
-            }
-          }
-        }
-      }
-    }
-  }
-
   // Append microformats onto geo node feeds.
   if ($op == 'rss item' && isset($node->geo_fields)) {
     $rss = array();
@@ -373,4 +352,35 @@ function geo_gis_input_info($gis_type = NULL) {
     ),
   );
   return $inputs;
+}
+
+function geo_set_pre_render(&$element) {
+  if (!isset($element['#pre_render']) 
+    || !in_array('geo_field_convert_value', $element['#pre_render'])) {
+    $element['#pre_render'][] = 'geo_field_convert_value';
+  }
+}
+
+function geo_field_convert_value($element) {
+  foreach (element_children($element) as $key) {
+    if (isset($element[$key]['field']) && $element[$key]['field']['#access']) {
+      $field = $element[$key]['field'];
+      $theme = $field['#single'] ? $field['items'][0]['#theme'] : $field['items']['#theme'];
+      foreach ($field['items'] as $i => $item) {
+        if (is_array($item) && isset($item['#item'])) {
+          $element[$key]['field']['items'][$i]['#item'] = geo_set_value($item['#item'], $theme);
+        }
+      }
+    }
+  }
+  return $element;
+}
+
+function geo_set_value($item, $theme) {
+  $registry = theme_get_registry();
+  if ($format = $registry[$theme]['gis input']) {
+    $value = geo_wkb_get_data($item['wkb'], $format);
+    $item[$format] = $value['value'];
+  }
+  return $item;
 }

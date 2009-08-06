@@ -55,12 +55,10 @@ function geo_field_settings($op, $field) {
       $table = content_views_tablename($field);
 
       // Copy the wkt item to geo, and add handlers for the geospatial field.
-      $wkt = $field['field_name'] .'_wkt';
       $geo = $field['field_name'] .'_geo';
       $dst = $field['field_name'] .'_dst';
 
-      $data[$table][$geo] = $data[$table][$dst] = $data[$table][$wkt];
-      unset($data[$table][$wkt]);
+      $data[$table][$dst] = $data[$table][$geo];
 
       // Set field handler to our own.
       $data[$table][$geo]['field']['field'] = $geo;
@@ -73,7 +71,7 @@ function geo_field_settings($op, $field) {
       $data[$table][$dst]['field']['handler'] = 'views_handler_field_geo_distance';
       $data[$table][$dst]['field']['float'] = TRUE;
       $data[$table][$dst]['field']['click sortable'] = TRUE;
-      $data[$table][$dst]['filter']['title'] .= ' - '. t('Distance');
+      $data[$table][$dst]['filter']['title'] = $data[$table][$dst]['field']['title'];
       $data[$table][$dst]['filter']['handler'] = 'views_handler_filter_geo_distance';
       $data[$table][$dst]['filter']['field'] = $geo;
 
@@ -121,7 +119,10 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       if (!isset($node->geo_fields)) $node->geo_fields = array();
       $node->geo_fields[$field['field_name']] = 'geo';
 
-      return array($field['field_name'] => $ret, 'geo_fields' => $node->geo_fields);
+      return array(
+        $field['field_name'] => $ret,
+        'geo_fields' => $node->geo_fields,
+      );
 
     case 'validate':
       foreach ($items as $k => $item) {
@@ -146,6 +147,18 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         $items[$k] = $item;
       }
       return;
+
+    case 'sanitize':
+      geo_set_pre_render($node->content);
+      return;
+/*
+    case 'sanitize':
+      $types = _content_type_info();
+      echo '<pre>';print_r($field); die;
+      if ($input = $types[$type]['formatters'][$formatter]['gis input']) {
+      }
+      return;
+      */
   }
 }
 
