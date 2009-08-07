@@ -109,6 +109,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       $ret = array();
       while ($row = db_fetch_array($res)) { 
         $delta = isset($row['delta']) ? $row['delta'] : 0;
+        $ret[$delta]['gis type'] = $field['geo_type'];
         foreach ($row as $k => $v) {
           $k = str_replace($field['field_name'] .'_', '', $k);
           if ($k != 'delta') $ret[$delta][$k] = db_decode_blob($v);
@@ -151,14 +152,6 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
     case 'sanitize':
       geo_set_pre_render($node->content);
       return;
-/*
-    case 'sanitize':
-      $types = _content_type_info();
-      echo '<pre>';print_r($field); die;
-      if ($input = $types[$type]['formatters'][$formatter]['gis input']) {
-      }
-      return;
-      */
   }
 }
 
