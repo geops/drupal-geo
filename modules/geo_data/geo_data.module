@@ -198,6 +198,8 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
 
       foreach ($items as $delta => $item) {
         $ret[$delta] = $item;
+        $ret[$delta]['gis type'] = $field['geo_type'];
+
         $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
         $sql .= " WHERE $key = '%s'";
         $res = db_query(db_distinct_field($table, $key, $sql), $item['value']);
@@ -225,6 +227,9 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
     case 'validate':
       return;
 
+    case 'sanitize':
+      geo_set_pre_render($node->content);
+      return;
   }
 }
 
