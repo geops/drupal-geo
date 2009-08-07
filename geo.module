@@ -377,7 +377,9 @@ function geo_field_convert_value($element) {
 }
 
 function geo_set_value($item, $theme) {
+  init_theme();
   $registry = theme_get_registry();
+  
   if ($format = $registry[$theme]['gis input']) {
     $value = geo_wkb_get_data($item['wkb'], $format);
     $item[$format] = $value['value'];
