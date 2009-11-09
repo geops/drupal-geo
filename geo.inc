@@ -13,7 +13,7 @@ function geo_backend_type() {
     switch ($GLOBALS['db_type']) {
       case 'pgsql':
         // use the postgis backend if installed
-        if (db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc 
+        if (db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc
           WHERE proname = 'postgis_version'"))) {
           $backend = 'postgis';
         }
@@ -64,7 +64,7 @@ function geo_field_select($field) {
   $alias = str_replace('.', '_', $field);
   $alias = preg_replace('/_geo$/', '', $alias);
 
-  return " SRID($field) as {$alias}_srid, 
+  return " SRID($field) as {$alias}_srid,
     AsBinary($field) AS {$alias}_wkb,
     AsBinary(Envelope($field)) AS {$alias}_bbox,
     AsBinary(Centroid($field)) AS $alias}_centroid";
@@ -261,7 +261,7 @@ function geo_gis_input_selector($default_value) {
   return $form;
 }
 
-function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_DEFAULT_SRID) {
+function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_SRID_DEFAULT) {
 
   // TODO this should probabaly be moved into db-specific backend files.
   $type = db_result(@db_query("SELECT GeometryType(GeomFromText('%s'))", $wkt));

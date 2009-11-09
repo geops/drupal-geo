@@ -4,20 +4,20 @@
  * Geo: Geospatial storage and retrieval.
  */
 
-define(GEO_SRID_DEFAULT, 4326);
-define(GEO_DEGREE_M, 111206);
+define('GEO_SRID_DEFAULT', 4326);
+define('GEO_DEGREE_M', 111206);
 
-define(GEO_TYPE_POINT, 0);
-define(GEO_TYPE_CURVE, 2);
-define(GEO_TYPE_LINESTRING, 3);
-define(GEO_TYPE_SURFACE, 4);
-define(GEO_TYPE_POLYGON, 5);
-define(GEO_TYPE_COLLECTION, 6);
-define(GEO_TYPE_MULTIPOINT, 7);
-define(GEO_TYPE_MULTICURVE, 8);
-define(GEO_TYPE_MULTILINESTRING, 9);
-define(GEO_TYPE_MULTISURFACE, 10);
-define(GEO_TYPE_MULTIPOLYGON, 11);
+define('GEO_TYPE_POINT', 0);
+define('GEO_TYPE_CURVE', 2);
+define('GEO_TYPE_LINESTRING', 3);
+define('GEO_TYPE_SURFACE', 4);
+define('GEO_TYPE_POLYGON', 5);
+define('GEO_TYPE_COLLECTION', 6);
+define('GEO_TYPE_MULTIPOINT', 7);
+define('GEO_TYPE_MULTICURVE', 8);
+define('GEO_TYPE_MULTILINESTRING', 9);
+define('GEO_TYPE_MULTISURFACE', 10);
+define('GEO_TYPE_MULTIPOLYGON', 11);
 
 /**
  * Call an API function from the geo backend databases.
@@ -188,7 +188,7 @@ function geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NUL
  */
 function geo_units($unit = NULL) {
   $units = array(
-    'mi' => t('Miles'),  
+    'mi' => t('Miles'),
     'km' => t('Kilometers'),
     'm'  => t('Meters'),
   );
@@ -268,7 +268,7 @@ function geo_elements() {
 }
 
 function theme_geo_fields($element) {
-  return $element['#children'];
+  return isset($element['#children']) ? $element['#children'] : '';
 }
 
 /**
@@ -355,7 +355,7 @@ function geo_gis_input_info($gis_type = NULL) {
 }
 
 function geo_set_pre_render(&$element) {
-  if (!isset($element['#pre_render']) 
+  if (!isset($element['#pre_render'])
     || !in_array('geo_field_convert_value', $element['#pre_render'])) {
     $element['#pre_render'][] = 'geo_field_convert_value';
   }
@@ -379,10 +379,15 @@ function geo_field_convert_value($element) {
 function geo_set_value($item, $theme) {
   init_theme();
   $registry = theme_get_registry();
-  
+
   if ($format = $registry[$theme]['gis input']) {
-    $value = geo_wkb_get_data($item['wkb'], $format);
-    $item[$format] = $value['value'];
+    if (isset($item['wkb'])) {
+      $value = geo_wkb_get_data($item['wkb'], $format);
+      $item[$format] = $value['value'];
+    }
+    else {
+      $item[$format] = '';
+    }
   }
   return $item;
 }
