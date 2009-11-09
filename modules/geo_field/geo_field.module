@@ -21,8 +21,6 @@ function geo_field_info() {
  * Implementation of hook_field_settings().
  */
 function geo_field_settings($op, $field) {
-  $field_name = $field['field_name'];
-  
   switch ($op) {
     case 'form':
       $form = array();
@@ -45,10 +43,13 @@ function geo_field_settings($op, $field) {
 
     case 'save':
       return array('srid', 'geo_type');
-    
+
     case 'database columns':
-      return geo('schema_field', $field['geo_type']);
-    
+      if (!empty($field['geo_type'])) {
+        return geo('schema_field', $field['geo_type']);
+      }
+      break;
+
     case 'views data':
       // Start with default views data, as constructed by CCK.
       $data = content_views_field_views_data($field);
@@ -107,12 +108,16 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         FROM {". $db_info['table'] ."} WHERE vid = %d", $node->vid);
 
       $ret = array();
-      while ($row = db_fetch_array($res)) { 
+      while ($row = db_fetch_array($res)) {
         $delta = isset($row['delta']) ? $row['delta'] : 0;
         $ret[$delta]['gis type'] = $field['geo_type'];
         foreach ($row as $k => $v) {
           $k = str_replace($field['field_name'] .'_', '', $k);
           if ($k != 'delta') $ret[$delta][$k] = db_decode_blob($v);
+        }
+        // Unset the value if it's not actually populated.
+        if (empty($ret[$delta]['wkb'])) {
+          unset($ret[$delta]);
         }
       }
 
@@ -187,8 +192,13 @@ function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
   foreach ($items as $key => $item) {
     // Convert from the storage format (wkb) to the element's expected format.
     if ($info['gis input']) {
-      $data = geo_wkb_get_data($item['wkb'], $info['gis input']);
-      $items[$key] = $data['value'];
+      if (isset($item['wkb'])) {
+        $data = geo_wkb_get_data($item['wkb'], $info['gis input']);
+        $items[$key] = $data['value'];
+      }
+      else {
+        $items[$key] = '';
+      }
     }
   }
 

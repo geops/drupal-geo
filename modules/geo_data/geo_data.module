@@ -193,7 +193,7 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
       if (is_array($field['geo_data_value'])) {
         foreach ($field['geo_data_value'] as $val) {
           $select[] = db_escape_string(check_plain($val));
-       }
+        }
       }  
 
       foreach ($items as $delta => $item) {
@@ -222,7 +222,6 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
       $node->geo_fields[$field['field_name']] = 'geo_data';
 
       return array($field['field_name'] => $ret, 'geo_fields' => $node->geo_fields);
-
 
     case 'validate':
       return;
