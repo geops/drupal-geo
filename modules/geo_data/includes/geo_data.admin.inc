@@ -22,32 +22,36 @@ function geo_data_admin() {
   $form['#attributes']['enctype'] = 'multipart/form-data';
   $form['import'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Import shape data'),
+    '#title' => t('Import shapefile'),
     '#tree' => TRUE,
-    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+    '#description' => t('The shapefile must be a .zip file that includes, at a minimum, a .shp, .dbf and .shx file.'),
   );
   $form['import']['file'] = array(
     '#type' => 'file',
-    '#title' => t('Shape file'),
+    '#title' => t('Shapefile'),
+    '#required' => true,
   );
   $form['import']['table_name'] = array(
     '#type' => 'textfield',
     '#title' => t('Table name'),
-    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+    '#description' => t('The name of the table to import the data into. This name must contain only lowercase letters, numbers, and underscores.'),
+    '#required' => true,
   );
   $form['import']['srid'] = array(
     '#type' => 'textfield',
     '#title' => t('SRID'),
     '#default_value' => GEO_SRID_DEFAULT,
+    '#description' => t('The <a href="http://en.wikipedia.org/wiki/SRID">Spatial Reference IDentifier</a> that indicates the projection system of the shapefile to be imported.'),
+    '#required' => true,
   );
   $form['import']['create'] = array(
     '#type' => 'checkbox',
     '#title' => t('Create a new table.'),
     '#default_value' => 1,
-    '#description' => t('You can import geospatial data from any source, and its data will be available to your Drupal site.'),
+    '#description' => t('Check this box to import the shapefile into a new table.'),
   );
   
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Save values'));
+  $form['submit'] = array('#type' => 'submit', '#value' => t('Import Shapefile'));
   return $form;
 }
 
