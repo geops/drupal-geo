@@ -51,7 +51,13 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
       if ($byte_order != $local_byte_order) {
         $tmp = strrev(substr($tmp, 0, 8)) . strrev(substr($tmp, 8));
       }
-      $data = array_merge($data, unpack('dx/dy', $tmp));
+
+      // Fetch the point and ensure there are no locale-specific commas.
+      $point = unpack('dx/dy', $tmp);
+      $point['x'] = str_replace(',', '.', $point['x']);
+      $point['y'] = str_replace(',', '.', $point['y']);
+ 
+      $data = array_merge($data, $point);
       $data['value'] = $func($data);
       if (function_exists($post = $func .'_post')) $data = $post($data);
       return $data;
