@@ -59,44 +59,8 @@ function geo($op = NULL) {
  * Implementation of hook_theme().
  */
 function geo_theme() {
-  $file_path = drupal_get_path('module', 'geo') .'/includes';
-  return array(
-    'geo_formatter_default' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo.formatters.inc',
-      'path' => $file_path,
-      'gis input' => 'wkt',
-    ),
-    'geo_formatter_lat' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo.formatters.inc',
-      'path' => $file_path,
-      'gis input' => 'array',
-    ),
-    'geo_formatter_lon' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo.formatters.inc',
-      'path' => $file_path,
-      'gis input' => 'array',
-    ),
-    'geo_formatter_georss' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo.formatters.inc',
-      'path' => $file_path,
-      'gis input' => 'array',
-    ),
-    'geo_formatter_svg' => array(
-      'arguments' => array('element' => NULL),
-      'file' => 'geo.formatters.inc',
-      'path' => $file_path,
-    ),
-    'geo_fields' => array(
-      'arguments' => array('element' => NULL),
-    ),
-    'geo_latlon' => array(
-      'arguments' => array('element' => NULL),
-    ),
-  );
+  module_load_include('theme.inc', 'geo', 'theme/geo');
+  return geo_theme_theme();
 }
 
 /**
