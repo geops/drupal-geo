@@ -275,8 +275,6 @@ function theme_geo_fields($element) {
  * A #process handler for the latlon element.
  */
 function geo_latlon_process($element, $edit, $form_state, $form) {
-  $field = $form['#field_info'][$element['#field_name']];
-
   $element['lat'] = array(
     '#type' => 'textfield',
     '#title' => t('Latitude'),
@@ -299,16 +297,6 @@ function geo_latlon_process($element, $edit, $form_state, $form) {
 function theme_geo_latlon($element) {
   $output = '<div class="container-inline">'. $element['#children'] .'</div>';
   return theme('form_element', $element, $output);
-}
-
-function geo_element_set_value($element, &$form_state) {
-  if (!$element['#value']) $element['#value'] = $element['#default_value'];
-  if (!isset($element['#gis_input_value'])) $element['#gis_input_value'] = $element['#value'];
-
-  $value = geo_value_convert($element['#value'], $element['#gis_input'], $element['#gis_output']);
-  $element['#gis_output_value'] = $value;
-  form_set_value($element, $value, $form_state);
-  return $element;
 }
 
 function geo_value_convert($value, $in = 'array', $out = 'wkt') {
