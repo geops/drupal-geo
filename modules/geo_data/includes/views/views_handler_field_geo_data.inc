@@ -9,9 +9,8 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
     }
 
     // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $alias = $this->ensure_my_table() .'_'. $this->field;
-    $func = geo('field_select', $this->real_field, NULL, $target);
-    $this->query->add_field('', $func, $alias, array('aggregate' => TRUE));
+    $func = geo('field_select', $geo_table . '.' . $this->real_field);
+    $this->query->add_field('', $func, '', array('aggregate' => TRUE));
 
     foreach ($this->content_field['geo_data_value'] as $field) {
       $this->query->add_field($geo_table, $field);
@@ -37,6 +36,7 @@ class views_handler_field_geo_data extends content_handler_field_multiple {
 
     $item['wkb'] = $values->{$geo_table.'_wkb'};
     $item['bbox'] = $values->{$geo_table.'_bbox'};
+    $item['centroid'] = $values->{$geo_table.'_centroid'};
 
     foreach ($this->content_field['geo_data_value'] as $column) {
       $value = $values->{$geo_table.'_'. $column};
