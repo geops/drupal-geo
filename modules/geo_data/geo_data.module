@@ -226,11 +226,14 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
 
     case 'validate':
       return;
-
-    case 'sanitize':
-      geo_set_pre_render($node->content);
-      return;
   }
+}
+
+/**
+ * Implementation of hook_content_is_empty().
+ */
+function geo_data_content_is_empty($item, $field) {
+  return empty($item['value']);
 }
 
 /**
@@ -272,14 +275,6 @@ function geo_data_select_process($element, $edit, $form_state, $form) {
     '#default_value' => isset($element['#value']['value']) ? $element['#value']['value'] : NULL,
   );
   return $element;
-}
-
-function theme_geo_data_select($element) {
-  return $element['#children'];
-}
-
-function geo_data_content_is_empty($item, $field) {
-  return empty($item['value']);
 }
 
 function geo_data_allowed_values($field) {
@@ -324,28 +319,41 @@ function geo_data_field_formatter_info() {
 }
 
 /**
+ * API function: Load a geo_data source.
+ */
+function geo_data_load($data) {
+  module_load_include('inc', 'geo_data', 'includes/geo_data');
+  if (isset($data->data)) {
+    foreach (unserialize($data->data) as $key => $val) {
+      $data->$key = $val;
+    }
+    unset($data->$data);
+  }
+  $data = New geo_data_table($data);
+  return $data;
+}
+
+/**
+ * API function: List geo_data sources.
+ */
+function geo_data_list($reset = FALSE) {
+  static $list;
+  if ($reset || !isset($list)) {
+    $list = array();
+    $res = db_query("SELECT * FROM {geo_data} ORDER BY title");
+    while ($row = db_fetch_object($res)) {
+      $list[$row->gdid] = geo_data_load($row);
+    }
+  }
+  return $list;
+}
+
+/**
  * Implementation of hook_theme().
  */
 function geo_data_theme() {
-  return array(
-    'geo_data_formatter_default' => array('element' => NULL),
-    'geo_data_formatter_key' => array('element' => NULL),
-    'geo_data_select' => array( 'arguments' => array('element' => NULL) ),
-  );
-}
-
-/**
- * Default field theme function: return value field.
- */
-function theme_geo_data_formatter_default($element) {
-  return check_plain($element['#item']['label']);
-}
-
-/**
- * Default field theme function: return key field.
- */
-function theme_geo_data_formatter_key($element) {
-  return check_plain($element['#item']['value']);
+  module_load_include('theme.inc', 'geo_data', 'theme/geo_data');
+  return geo_data_theme_theme();
 }
 
 /**
@@ -357,4 +365,3 @@ function geo_data_views_api() {
     'path' => drupal_get_path('module', 'geo_data') .'/includes/views',
   );
 }
-
