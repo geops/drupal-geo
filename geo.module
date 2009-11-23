@@ -71,25 +71,25 @@ function geo_field_formatter_info() {
   return array(
     'default' => array(
       'label' => t('Well Known Text'),
-      'field types' => geo_field_types(),
+      'field types' => geo_field_type_names(),
       'gis types' => array('point', 'linestring', 'polygon'),
       'gis input' => 'wkt',
     ),
     'lat' => array(
       'label' => t('Latitude'),
-      'field types' => geo_field_types(),
+      'field types' => geo_field_type_names(),
       'gis types' => array('point'),
       'gis input' => 'array',
     ),
     'lon' => array(
       'label' => t('Longitude'),
-      'field types' => geo_field_types(),
+      'field types' => geo_field_type_names(),
       'gis types' => array('point'),
       'gis input' => 'array',
     ),
     'georss' => array(
       'label' => t('GeoRSS'),
-      'field types' => geo_field_types(),
+      'field types' => geo_field_type_names(),
       'gis types' => array('point', 'linestring', 'polygon'),
       'gis input' => 'text',
     ),
@@ -102,10 +102,18 @@ function geo_field_formatter_info() {
 function geo_field_types() {
   static $field_types;
   if (!isset($field_types)) {
-    $field_types = array('geo', 'geo_data');
+    $field_types = array('geo' => array(), 'geo_data' => array());
     drupal_alter('geo_field_types', $field_types);
   }
   return $field_types;
+}
+
+/**
+ * API Function: Return a flat array list of field types that may contain 
+ * geospatial data.
+ */
+function geo_field_type_names() {
+  return array_keys(geo_field_types());
 }
 
 /**
@@ -118,7 +126,7 @@ function geo_fields($reset = FALSE) {
     $fields = array();
     if (function_exists('content_fields')) {
       foreach (content_fields() as $field) {
-        if (in_array($field['type'], $field_types)) {
+        if (in_array($field['type'], array_keys($field_types))) {
           $fields[$field['field_name']] = array(
             'label' => $field['widget']['label'],
             'gis type' => $field['geo_type'],
@@ -131,6 +139,14 @@ function geo_fields($reset = FALSE) {
     }
   }
   return $fields;
+}
+
+/**
+ * API Function: Return a flat array list of CCK fields that contain 
+ * geospatial data.
+ */
+function geo_field_names($reset = FALSE) {
+  return array_keys(geo_fields($reset));
 }
 
 /**
