@@ -119,7 +119,8 @@ function geo_postgis_table_desc($table) {
     a.attnotnull AS not_null,
     d.adsrc AS default   
     FROM pg_class c
-    LEFT JOIN pg_attribute a ON (a.attrelid = c.oid)    LEFT OUTER JOIN pg_attrdef d ON (d.adrelid = c.oid AND d.adnum = a.attnum)
+    LEFT JOIN pg_attribute a ON (a.attrelid = c.oid)
+    LEFT OUTER JOIN pg_attrdef d ON (d.adrelid = c.oid AND d.adnum = a.attnum)
     WHERE c.relname = '%s'
     AND a.attnum > 0
     AND NOT a.attisdropped

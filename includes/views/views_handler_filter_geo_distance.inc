@@ -75,9 +75,6 @@ class views_handler_filter_geo_distance extends views_handler_filter {
         $element['#dependency'] = array('edit-options-gis-input' => array($name));
       }
 
-      // Add the geo_element_set_value function to the as-translated version.
-      //$element['#after_build'][] = 'geo_element_set_value';
-
       // Add this element to the form.
       $element['#tree'] = TRUE;
       $form['value']['target'][$name] = $element;

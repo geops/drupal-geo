@@ -67,7 +67,7 @@ function geo_field_select($field) {
   return " SRID($field) as {$alias}_srid,
     AsBinary($field) AS {$alias}_wkb,
     AsBinary(Envelope($field)) AS {$alias}_bbox,
-    AsBinary(Centroid($field)) AS $alias}_centroid";
+    AsBinary(Centroid($field)) AS {$alias}_centroid";
 }
 
 function geo_query_operators($geo_type) {
