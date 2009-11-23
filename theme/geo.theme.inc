@@ -35,9 +35,13 @@ function geo_theme_theme() {
     ),
     'geo_fields' => array(
       'arguments' => array('element' => NULL),
+      'file' => 'geo.theme.inc',
+      'path' => $path,
     ),
     'geo_latlon' => array(
       'arguments' => array('element' => NULL),
+      'file' => 'geo.theme.inc',
+      'path' => $path,
     ),
   );
 }
@@ -71,4 +75,13 @@ function theme_geo_formatter_georss($element) {
   if (isset($tag)) {
     return '<'. $tag .'>' . $value .'</'. $tag .'>';
   }
+}
+
+function theme_geo_fields($element) {
+  return isset($element['#children']) ? $element['#children'] : '';
+}
+
+function theme_geo_latlon($element) {
+  $output = '<div class="container-inline">'. $element['#children'] .'</div>';
+  return theme('form_element', $element, $output);
 }
