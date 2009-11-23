@@ -109,6 +109,31 @@ function geo_field_types() {
 }
 
 /**
+ * API Function: Return a list of CCK fields that contain geospatial data.
+ */
+function geo_fields($reset = FALSE) {
+  static $fields;
+  if (!$reset || !isset($fields)) {
+    $field_types = geo_field_types();
+    $fields = array();
+    if (function_exists('content_fields')) {
+      foreach (content_fields() as $field) {
+        if (in_array($field['type'], $field_types)) {
+          $fields[$field['field_name']] = array(
+            'label' => $field['widget']['label'],
+            'gis type' => $field['geo_type'],
+            'srid' => $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT,
+            'module' => $field['module'],
+            'gis format' => 'wkb', // TODO hard-coded.
+          );
+        }
+      }
+    }
+  }
+  return $fields;
+}
+
+/**
  * Implementation of hook_content_fieldapi().
  */
 function geo_content_fieldapi($op, $field) {
@@ -207,15 +232,26 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
  * Implementation of hook_nodeapi().
  */
 function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  // Append microformats onto geo node feeds.
-  if ($op == 'rss item' && isset($node->geo_fields)) {
-    $rss = array();
-    foreach ($node->geo_fields as $field_name => $type) {
-      foreach ($node->$field_name as $item) {
-        $rss[] = geo('rss_item', $item['wkb']);
+
+  switch ($op) {
+
+    case 'rss item':
+      // Append microformats on geo node feeds.
+      $rss = array();
+      foreach (geo_fields() as $field_name => $field) { 
+        if (!isset($node->$field_name)) continue;
+
+        foreach ($node->$field_name as $item) {
+          $rss[] = geo('rss_item', $item['wkb']);
+        }
       }
-    }
-    return $rss;
+      return $rss;
+
+    case 'view':
+      // Add a #pre_render callback to convert geo values to a format 
+      // understood by the theme function in use by that field.
+      $node->content['#pre_render'][] = 'geo_field_convert_value';
+      return;
   }
 }
 
@@ -229,10 +265,6 @@ function geo_elements() {
       '#process' => array('geo_latlon_process'),
     ),
   );
-}
-
-function theme_geo_fields($element) {
-  return isset($element['#children']) ? $element['#children'] : '';
 }
 
 /**
@@ -256,11 +288,6 @@ function geo_latlon_process($element, $edit, $form_state, $form) {
     '#maxlength' => 15,
   );
   return $element;
-}
-
-function theme_geo_latlon($element) {
-  $output = '<div class="container-inline">'. $element['#children'] .'</div>';
-  return theme('form_element', $element, $output);
 }
 
 function geo_value_convert($value, $in = 'array', $out = 'wkt') {
@@ -306,14 +333,7 @@ function geo_gis_input_info($gis_type = NULL) {
   return $inputs;
 }
 
-function geo_set_pre_render(&$element) {
-  if (!isset($element['#pre_render'])
-    || !in_array('geo_field_convert_value', $element['#pre_render'])) {
-    $element['#pre_render'][] = 'geo_field_convert_value';
-  }
-}
-
-function geo_field_convert_value($element) {
+function geo_field_convert_value(&$element) {
   foreach (element_children($element) as $key) {
     if (isset($element[$key]['field']) && $element[$key]['field']['#access']) {
       $field = $element[$key]['field'];
