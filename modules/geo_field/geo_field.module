@@ -168,16 +168,12 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         }
       }
       return;
-
-    case 'sanitize':
-      geo_set_pre_render($node->content);
-      return;
   }
 }
 
 /**
  * Implementation of hook_content_is_empty().
- * It's named after the field type (geo), not the module (geo_data).
+ * It's named after the field type (geo), not the module (geo_field).
  */
 function geo_content_is_empty($item, $field) {
   return empty($item['geo']);
