@@ -22,11 +22,6 @@ function geo_data_theme_theme() {
       'file' => 'geo_data.theme.inc',
       'path' => $path,
     ),
-    'geo_data_admin_tables' => array(
-      'arguments' => array('form' => NULL),
-      'file' => 'geo_data.theme.inc',
-      'path' => $path,
-    ),
   );
 }
 
@@ -49,30 +44,4 @@ function theme_geo_data_formatter_key($element) {
  */
 function theme_geo_data_select($element) {
   return $element['#children'];
-}
-
-/**
- * Theme function for the geo_data table listing.
- */
-function theme_geo_data_admin_tables($form) {
-  $hdrs = array(
-    t('Name'),
-    t('Table'),
-    t('Records'),
-    '',
-  );
-
-  $rows = array();
-  foreach (element_children($form['tables']) as $k => $table) {
-    $row = array();
-    $row[] = drupal_render($form['tables'][$k]['label']);
-    $row[] = drupal_render($form['tables'][$k]['count']);
-    $row[] = drupal_render($form['tables'][$k]);
-    $rows[] = $row;
-  }
-
-  $output = theme('table', $hdrs, $rows);
-  $output .= drupal_render($form);
-
-  return $output;
 }
