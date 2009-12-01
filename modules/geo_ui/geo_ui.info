@@ -1,0 +1,6 @@
+; $Id$
+name = Geo UI
+description = An interface for working with geospatial data.
+package = Geo
+dependencies[] = geo
+core = 6.x

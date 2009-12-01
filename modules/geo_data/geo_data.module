@@ -9,31 +9,6 @@
  */
 
 /**
- * Implementation of hook_menu().
- */
-function geo_data_menu() {
-  return array(
-    'admin/build/geo' => array(
-      'path'        => 'admin/build/geo',
-      'title'       => t('Geospatial data'),
-      'description' => t('Manage geographic information'),
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('geo_data_admin'),
-      'access arguments' => array('administer geospatial data'),
-      'file'        => 'geo_data.admin.inc',
-      'file path' => drupal_get_path('module', 'geo_data') .'/includes'
-    ),
-  );
-}
-
-/**
- * Implementation of hook_perm()
- */
-function geo_data_perm() {
-  return array('administer geospatial data');
-}
-
-/**
  * CCK Field integration for geospatial data.
  * In contrast with the geo_field module, this field module provides references
  * to imported geospatial data.
@@ -316,36 +291,6 @@ function geo_data_field_formatter_info() {
       'field types' => array('geo_data'),
     ),
   );
-}
-
-/**
- * API function: Load a geo_data source.
- */
-function geo_data_load($data) {
-  module_load_include('inc', 'geo_data', 'includes/geo_data');
-  if (isset($data->data)) {
-    foreach (unserialize($data->data) as $key => $val) {
-      $data->$key = $val;
-    }
-    unset($data->$data);
-  }
-  $data = New geo_data_table($data);
-  return $data;
-}
-
-/**
- * API function: List geo_data sources.
- */
-function geo_data_list($reset = FALSE) {
-  static $list;
-  if ($reset || !isset($list)) {
-    $list = array();
-    $res = db_query("SELECT * FROM {geo_data} ORDER BY title");
-    while ($row = db_fetch_object($res)) {
-      $list[$row->gdid] = geo_data_load($row);
-    }
-  }
-  return $list;
 }
 
 /**
