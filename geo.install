@@ -1,0 +1,96 @@
+<?php // $Id$
+
+function geo_schema() {
+
+  $schema = array(
+    'geo' => array(
+      'fields' => array(
+        'gid' => array(
+          'type' => 'serial',
+          'not null' => TRUE,
+        ),
+        'name' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+        ),
+        'title' => array(
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+        ),
+        'handler' => array(
+          'type' => 'varchar',
+          'not null' => TRUE,
+          'length' => 32,
+        ),
+        'table_name' => array(
+          'type' => 'varchar',
+          'length' => 255,
+        ),
+        'column_name' => array(
+          'type' => 'varchar',
+          'length' => 255,
+        ),
+        'geo_type' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+        ),
+        'geo_dimension' => array(
+          'type' => 'int',
+          'size' => 'tiny',
+        ),
+        'srid' => array(
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => GEO_SRID_DEFAULT,
+        ),
+        'indexed' => array(
+          'type' => 'int',
+          'size' => 'tiny',
+          'not null' => FALSE,
+          'default' => 0,
+        ),
+        'data' => array(
+          'type' => 'text',
+          'serialize' => TRUE,
+        ),
+      ),
+      'primary key' => array('gid'),
+    ),
+  );
+
+  // The table already exists. Query it to locate any additional tables.
+  if (db_table_exists('geo')) {
+    $res = db_query("SELECT * FROM {geo} WHERE table_name IS NOT NULL");
+    while ($row = db_fetch_array($res)) {
+      $geo = geo_load($row);
+      if (method_exists($geo, 'schema') && $item = $geo->schema()) {
+        $schema = array_merge($schema, $item);
+      }
+    }
+  }
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function geo_install() {
+  drupal_install_schema('geo');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function geo_uninstall() {
+  drupal_uninstall_schema('geo');
+}
+
+/**
+ * Install the newly-created schema.
+ */
+function geo_update_1() {
+  drupal_install_schema('geo');
+  return array();
+}

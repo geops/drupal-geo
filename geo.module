@@ -19,6 +19,8 @@ define('GEO_TYPE_MULTILINESTRING', 9);
 define('GEO_TYPE_MULTISURFACE', 10);
 define('GEO_TYPE_MULTIPOLYGON', 11);
 
+define('GEO_UNKNOWN', -1);
+
 /**
  * Call an API function from the geo backend databases.
  * This function will find and load the database backend files, and call
@@ -109,7 +111,7 @@ function geo_field_types() {
 }
 
 /**
- * API Function: Return a flat array list of field types that may contain 
+ * API Function: Return a flat array list of field types that may contain
  * geospatial data.
  */
 function geo_field_type_names() {
@@ -142,11 +144,194 @@ function geo_fields($reset = FALSE) {
 }
 
 /**
- * API Function: Return a flat array list of CCK fields that contain 
+ * API Function: Return a flat array list of CCK fields that contain
  * geospatial data.
  */
 function geo_field_names($reset = FALSE) {
   return array_keys(geo_fields($reset));
+}
+
+/**
+ * API function: List geo sources.
+ */
+function geo_list($reset = FALSE) {
+  static $list;
+  if ($reset || !isset($list)) {
+    $list = array();
+    $res = db_query("SELECT * FROM {geo_data} ORDER BY title");
+    while ($row = db_fetch_array($res)) {
+      $row['gid'] = $row['gdid']; // TODO after schema
+      $row[handler] = 'GeoSQL'; // TODO
+      $list[$row['gid']] = geo_load($row);
+    }
+  }
+  return $list;
+}
+
+/**
+ * API function: Load a geometry.
+ */
+function geo_load($values) {
+  // Default handler.
+  $handler  = 'GeoSimple';
+
+  // Already loaded, simply return it.
+  if (is_object($values) && method_exists($values, 'gid')) {
+    return $values;
+  }
+
+  if (is_scalar($values)) {
+    if (is_numeric($values)) {
+      // It's the gid of a known geometry dataset.
+      $values = db_fetch_array(db_query("SELECT * FROM {geo}
+        WHERE gid = %d", $values));
+    }
+    else {
+      // It's the name of a handler. Load it with defaults.
+      $handler = $values;
+      unset($values);
+    }
+  }
+  else {
+    $values = (array) $values;
+    if (isset($values['handler'])) {
+      $handler = $values['handler'];
+    }
+    elseif (isset($values['gid'])) {
+      $values = array_merge($values, db_fetch_array(db_query("SELECT *
+        FROM {geo} WHERE gid = %d", $values['gid'])));
+    }
+  }
+  if (geo_handler_load($handler)) {
+    return New $handler($values);
+  }
+}
+
+/**
+ * API function: Save a geometry.
+ */
+function geo_save($geo) {
+  $geo = geo_load($geo);
+
+  $schema = drupal_get_schema('geo');
+  $fields = array_keys($schema['fields']);
+
+  $row = array('data' => array());
+  foreach ($geo->vars() as $name => $val) {
+    if (in_array($name, $fields)) {
+      $row[$name] = $val;
+    }
+    else {
+      $row['data'][$name] = $val;
+    }
+  }
+  $row['handler'] = get_class($geo);
+
+  // Store the reference to this datasource in our geo tables.
+  $update = isset($row['gid']) ? 'gid' : NULL;
+  drupal_write_record('geo', $row, $update);
+
+  // Allow the handler to save the geometry, if that functionality exists.
+  $geo->setGID($row['gid']);
+  if (method_exists($geo, 'save')) {
+    $geo->save();
+  }
+}
+
+/**
+ * API function: List all available geo handlers.
+ */
+function geo_handlers() {
+  static $handlers;
+  if (!isset($handlers)) {
+    $handlers = module_invoke_all('geo_handler_info');
+    drupal_alter('geo_handler', $handlers);
+  }
+  return $handlers;
+}
+
+/**
+ * API function: Load a geo backend.
+ */
+function geo_handler_load($name) {
+  static $cache;
+
+  if (!isset($cache)) {
+    $cache = array();
+    // Include the geo interface class, geometries, and simple handling.
+    module_load_include('inc', 'geo', 'includes/handlers/geo');
+    module_load_include('inc', 'geo', 'includes/handlers/geo_simple');
+  }
+
+  // Already loaded.
+  if (isset($cache[$name])) return $cache[$name];
+
+  $handlers = geo_handlers();
+  if ($name && $handler = $handlers[$name]) {
+    // Ensure the parent is loaded.
+    if (isset($handler['parent'])) geo_handler_load($handler['parent']);
+
+    // Respect the 'path' element that may have been specified.
+    $file = isset($handler['path']) ? $handler['path'] .'/' : '';
+    $file .= $handler['file'];
+
+    $cache[$name] = require_once $file;
+    return $cache[$name];
+  }
+}
+
+/**
+ * Implementation of hook_geo_handler_info().
+ */
+function geo_geo_handler_info() {
+  $path = drupal_get_path('module', 'geo') .'/includes/handlers';
+  $handlers = array(
+    'GeoSimple' => array(
+      'title' => t('Simple geometry library'),
+      'description' => t('A fully-PHP library for basic geometry functions and conversions.'),
+      'file' => 'geo_simple.inc',
+      'path' => $path,
+    ),
+    'GeoSQL' => array(
+      'title' => t('SQL'),
+      'description' => t('Minimal SQL framework for databases that support GIS.  It is expected that you will use a derivative of this backend.'),
+      'file' => 'geo_sql.inc',
+      'path' => $path,
+    ),
+    'GeoSQLMySQL' => array(
+      'title' => t('MySQL'),
+      'description' => t('MySQL spatial extensions for MySQL 4.1+'),
+      'parent' => 'GeoSQL',
+      'file' => 'geo_sql_mysql.inc',
+      'path' => $path,
+      'geo_types' => array(
+        GEO_TYPE_POINT,
+        GEO_TYPE_LINESTRING,
+        GEO_TYPE_POLYGON,
+        GEO_TYPE_COLLECTION,
+        GEO_TYPE_MULTIPOINT,
+        GEO_TYPE_MULTILINESTRING,
+        GEO_TYPE_MULTIPOLYGON,
+      ),
+    ),
+    'GeoSQLPostGIS' => array(
+      'title' => t('PostGIS'),
+      'description' => t('For PostgreSQL databases with the PostGIS library enabled.'),
+      'parent' => 'GeoSQL',
+      'file' => 'geo_sql_postgis.inc',
+      'path' => $path,
+      'geo_types' => array(
+        GEO_TYPE_POINT,
+        GEO_TYPE_LINESTRING,
+        GEO_TYPE_POLYGON,
+        GEO_TYPE_COLLECTION,
+        GEO_TYPE_MULTIPOINT,
+        GEO_TYPE_MULTILINESTRING,
+        GEO_TYPE_MULTIPOLYGON,
+      ),
+    ),
+  );
+  return $handlers;
 }
 
 /**
@@ -254,7 +439,7 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     case 'rss item':
       // Append microformats on geo node feeds.
       $rss = array();
-      foreach (geo_fields() as $field_name => $field) { 
+      foreach (geo_fields() as $field_name => $field) {
         if (!isset($node->$field_name)) continue;
 
         foreach ($node->$field_name as $item) {
@@ -264,7 +449,7 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       return $rss;
 
     case 'view':
-      // Add a #pre_render callback to convert geo values to a format 
+      // Add a #pre_render callback to convert geo values to a format
       // understood by the theme function in use by that field.
       $node->content['#pre_render'][] = 'geo_field_convert_value';
       return;
