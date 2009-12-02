@@ -22,6 +22,7 @@ class GeoSQL implements GeoInterface {
   protected $table_name;
   protected $column_name;
   protected $schema;
+  protected $indexed = GEO_UNKNOWN;
   protected $count;
 
   function __construct($values = NULL) {
@@ -101,13 +102,13 @@ class GeoSQL implements GeoInterface {
   }
 
   function setSRID($value = NULL) {
-    if (is_int($value)) {
+    if (is_numeric($value)) {
       $this->srid = $value;
     }
   }
 
   function setGeoType($value = NULL) {
-    if (is_int($value)) {
+    if (is_numeric($value)) {
       $this->geo_type = $value;
     }
   }
@@ -148,6 +149,33 @@ class GeoSQL implements GeoInterface {
     if (is_array($this->schema)) {
       return $this->schema;
     }
+  }
+
+  public function setIndexed($value, $execute = FALSE) {
+    $value = (bool) $value;
+    if (($this->indexed != GEO_UNKNOWN) && ($this->indexed != $value)) {
+      $execute = TRUE;
+    }
+
+    $this->indexed = $value;
+
+    // Call the appropriate database function to effect the index change.
+    if ($execute) {
+      if ($this->indexed()) {
+        $this->addIndex();
+      }
+      else {
+        $this->dropIndex();
+      }
+    }
+  }
+
+  protected function addIndex() { }
+
+  protected function dropIndex() { }
+
+  function indexed() {
+    return $this->indexed;
   }
 
   function setCount() {

@@ -17,19 +17,22 @@ class GeoSQLMySQL extends GeoSQL {
   }
 
   public function setSRID($value = NULL) {
-    if ($value && is_int($value)) {
+    if ($value && is_numeric($value)) {
       $this->srid = $value;
     }
     // Attempt to retreive the the SRID from one of the data values.
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $this->srid = db_result(db_query("SELECT SRID(%s)
-        FROM {". $table ."} LIMIT 1", $column));
+      if ($srid = db_result(db_query("SELECT SRID(%s)
+          FROM {". $table ."} LIMIT 1", $column))) {
+
+        $this->srid = $srid;
+      }
     }
   }
 
   public function setGeoType($value = NULL) {
-    if ($value && is_int($value)) {
+    if (!is_null($value) && is_numeric($value)) {
       $this->geo_type = $value;
     }
     // Attempt to retreive the the geo_type from one of the data values.
@@ -42,6 +45,24 @@ class GeoSQLMySQL extends GeoSQL {
       if (defined('GEO_TYPE_'. $type)) {
         $this->geo_type = constant('GEO_TYPE_'. $type);
       }
+    }
+  }
+
+  protected function addIndex() {
+    if (!$this->indexed) return;
+
+    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    if (strlen($name) > 6) {
+      db_query("CREATE SPATIAL INDEX $name ON  {". $this->tableName() ."} (%s)", $this->columnName());
+    }
+  }
+
+  protected function dropIndex() {
+    if ($this->indexed) return;
+
+    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    if (strlen($name) > 6) {
+      db_query("DROP INDEX $name ON  {". $this->tableName() ."}");
     }
   }
 

@@ -39,7 +39,7 @@ function geo_schema() {
         'srid' => array(
           'type' => 'int',
           'not null' => TRUE,
-          'default' => GEO_SRID_DEFAULT,
+          'default' => -1,
         ),
         'indexed' => array(
           'type' => 'int',

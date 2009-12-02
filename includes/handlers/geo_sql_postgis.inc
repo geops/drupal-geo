@@ -79,7 +79,7 @@ class GeoSQLPostGIS extends GeoSQL {
   }
 
   public function setSRID($value = NULL) {
-    if ($value && is_int($value)) {
+    if ($value && is_numeric($value)) {
       $this->srid = $value;
     }
     // Attempt to look up this value from the geometry_columns table.
@@ -95,7 +95,7 @@ class GeoSQLPostGIS extends GeoSQL {
   }
 
   public function setGeoType($value = NULL) {
-    if ($value && is_int($value)) {
+    if (!is_null($value) && is_numeric($value)) {
       $this->geo_type = $value;
     }
     // Attempt to look up this value from the geometry_columns table.
@@ -112,6 +112,26 @@ class GeoSQLPostGIS extends GeoSQL {
     // Convert from a named type to Geo API's constant value.
     if (isset($type)) {
       $this->geo_type = constant('GEO_TYPE_'. $type);
+    }
+  }
+
+  protected function addIndex() {
+    if (!$this->indexed) return;
+
+    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    if (strlen($name) > 6) {
+      db_query("CREATE INDEX $name ON  {". $this->tableName() ."}
+        USING gist(%s)", $this->columnName());
+    }
+  }
+
+  protected function dropIndex() {
+    if ($this->indexed) return;
+
+    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    if (strlen($name) > 6) {
+      db_query("CREATE SPATIAL INDEX $name ON  {". $this->tableName() ."}
+        USING gist(%s)", $this->columnName());
     }
   }
 
