@@ -179,6 +179,27 @@ function geo_load($values) {
 }
 
 /**
+ * API function: Create a new dataset using the default SQL handler.
+ */
+function geo_create_dataset($values = array(), $create = TRUE) {
+  global $db_type;
+  $values['handler'] = ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
+
+  // Save and return a new geo object.
+  $geo = geo_save($values);
+
+  if ($create && is_array($schema = $geo->schema())) {
+    foreach ($schema as $table => $info) {
+      db_create_table($ret, $table, $info);
+    }
+    $geo->setIndexed($geo->indexed(), TRUE);
+    drupal_get_schema(NULL, TRUE);
+  }
+
+  return $geo;
+}
+
+/**
  * API function: Save a geometry dataset.
  */
 function geo_save($geo) {
@@ -207,6 +228,11 @@ function geo_save($geo) {
   if (method_exists($geo, 'save')) {
     $geo->save();
   }
+
+  // Reset the geo_list static cache.
+  geo_list(TRUE);
+
+  return $geo;
 }
 
 /**

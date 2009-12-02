@@ -10,7 +10,7 @@
  *
  * I also borrowed heavily from existing code by Juan Carlos Gonzalez Ulloa:
  *   http://sourceforge.net/projects/shp2mysql-php
- */ 
+ */
 function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = GEO_SRID_DEFAULT) {
   if (!$table_name) {
     $parts = pathinfo($filename);
@@ -52,24 +52,25 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
   // Shape file headers are stored in the first 100 bytes of the shp/shx files.
   $headers += _shp_headers(zip_entry_read($files['shp'], 100));
 
-  // Create a new table based on the data we've obtained thus far.
-  if ($create_table) {
-    $ret = array();
-    if (db_table_exists($table_name)) {
-      db_drop_table($ret, $table_name);
-    }
-    db_create_table($ret, $table_name, $schema);
-  }
-
   // Add the geo column that will contain shape data.
-  $spec = array(
-    'type' => strtolower($headers['geo_type']),
-    'not null' => TRUE,
-    'description' => t('Geometry field'),
+  $schema['fields'] = array_merge($schema['fields'], geo('schema_field', $headers['geo_type']));
+  $schema['fields']['geo']['not null'] = TRUE;
+
+  // Create a geo dataset.
+  $name = preg_replace('/^geo_data_/', '', $table_name);
+  $values = array(
+    'name' => $name,
+    'title' => ucwords(strtolower($name)),
+    'table_name' => $table_name,
+    'column_name' => 'geo',
+    'geo_type' => geo_type($headers['geo_type']),
     'srid' => $srid,
+    'indexed' => TRUE,
+    'schema' => array($table_name => $schema),
   );
-  geo('add_field', $ret, $table_name, 'geo', $spec);
-  $fields = join(', ', array_keys($headers['field_lengths'])) .', geo';
+  $geo = geo_create_dataset($values);
+
+  // TODO indexed, correctly deal with 'create_table' flag.
 
   $row_count = 0;
   while ($shp = _shp_get_record($files['shp'])) {
@@ -82,16 +83,13 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
 
       // Use a predefined function to filter and process each value.
       $process = $headers['field_filters'][$name];
-      $values[] = $process($value);
+      $values[$name] = $process($value);
     }
 
-    // Add the geometry text.
-    $values[] = "GeomFromText('". $shp['data']['wkt'] ."', $srid)";
+    // TODO NOT EFFICIENT
+    $values['geo'] = db_result(db_query("SELECT GeomFromText('%s', %d)", $shp['data']['wkt'], $srid));
 
-    // We've already handled sanitization of table_name, column names and 
-    // values, so we're going to skip the substitutions.
-    db_query("INSERT INTO {$table_name} ( $fields )
-      VALUES (". join(', ', $values) .")");
+    drupal_write_record($table_name, $values);
 
     $row_count++;
   }
@@ -202,8 +200,7 @@ function _dbf_headers(&$fp, &$schema) {
 }
 
 function _shp_data_text($value) {
-  $value = db_escape_string(trim(drupal_convert_to_utf8($value, 'ascii')));
-  return "'$value'";
+  return trim(drupal_convert_to_utf8($value, 'ascii'));
 }
 
 function _shp_data_bool($value) {
@@ -215,7 +212,7 @@ function _shp_data_date($value) {
   $y = (int) substr($value, 0, 4);
   $m = (int) substr($value, 4, 2);
   $d = (int) substr($value, 6, 2);
-  return "'$y-$m-$d'";
+  return "$y-$m-$d";
 }
 
 function _shp_headers($data) {

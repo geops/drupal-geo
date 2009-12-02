@@ -183,18 +183,22 @@ function geo_content_fieldapi($op, $field) {
     // we just don't care about tracking these.
     if (!isset($geo_column)) return;
 
-    if (!$geo = geo_load(array('name' => $field['field_name']))) {
-      global $db_type;
-      // TODO this isn't exactly robust or reusable.
-      $handler = ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
-      $geo = geo_load($handler);
+    $title = $field['widget']['label'];
+
+    $info = array(
+      'name' => $field['field_name'],
+      'title' => $title,
+      'geo_type' => $geo_type,
+    );
+   
+    if (!$geo = geo_load($info)) {
+      $geo = geo_create_dataset($info);
     }
 
     switch ($op) {
       case 'create instance':
       case 'update instance':
-        $geo->setName($field['field_name']);
-        $geo->setTitle($field['widget']['label']);
+        $geo->setTitle($title);
         $geo->setSRID($field['srid']);
         $geo->setGeoType($geo_type);
 

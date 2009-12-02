@@ -26,7 +26,7 @@ function geo_ui_admin_list() {
   return $output;
 }
 
-function geo_ui_admin() {
+function geo_ui_admin($form_state) {
   $form['#attributes']['enctype'] = 'multipart/form-data';
 
   $form['tables'] = array(
@@ -43,20 +43,20 @@ function geo_ui_admin() {
   $form['import']['file'] = array(
     '#type' => 'file',
     '#title' => t('Shapefile'),
-    '#required' => true,
+    //'#required' => TRUE,
   );
   $form['import']['table_name'] = array(
     '#type' => 'textfield',
     '#title' => t('Table name'),
     '#description' => t('The name of the table to import the data into. This name must contain only lowercase letters, numbers, and underscores.'),
-    '#required' => true,
+    '#required' => TRUE,
   );
   $form['import']['srid'] = array(
     '#type' => 'textfield',
     '#title' => t('SRID'),
     '#default_value' => GEO_SRID_DEFAULT,
     '#description' => t('The <a href="http://en.wikipedia.org/wiki/SRID">Spatial Reference IDentifier</a> that indicates the projection system of the shapefile to be imported.'),
-    '#required' => true,
+    '#required' => TRUE,
   );
   $form['import']['create'] = array(
     '#type' => 'checkbox',
@@ -64,7 +64,7 @@ function geo_ui_admin() {
     '#default_value' => 1,
     '#description' => t('Check this box to import the shapefile into a new table.'),
   );
-  
+
   $form['submit'] = array('#type' => 'submit', '#value' => t('Import Shapefile'));
   return $form;
 }
@@ -72,9 +72,9 @@ function geo_ui_admin() {
 function geo_ui_admin_submit($form, &$form_state) {
   if (isset($_FILES['files']['name']['import'])) {
     module_load_include('inc', 'geo', 'includes/shp2sql');
-    $file = $_FILES['files']['tmp_name']['import']; 
-    $table_name = 'geo_ui_'. $form_state['values']['import']['table_name'];
-    $create = 'geo_ui_'. $form_state['values']['import']['table_name'];
+    $file = $_FILES['files']['tmp_name']['import'];
+    $table_name = 'geo_data_'. $form_state['values']['import']['table_name'];
+    $create = $form_state['values']['import']['create'];
     $srid = $form_state['values']['import']['srid'];
     geo_shp2sql($file, $table_name, $create, $srid);
   }
