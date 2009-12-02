@@ -245,12 +245,8 @@ interface GeoInterface {
    *
    * @param Geometry $g
    * @return integer
-   *
-   *  This function differs from the OGC specification by permitting the
-   *  Geometry parameter to be NULL.  If this parameter is omitted, the
-   *  function should return the default dimension of the instance.
    */
-  public function dimension($g = NULL);
+  public function dimension($g);
 
   /**
    * Returns the name of the instantiable subtype of Geometry of which
@@ -364,11 +360,13 @@ interface GeoInterface {
   public function setGID($value = NULL);
   public function gid();
 
+  public function setName($value);
+  public function name();
+
   public function setTitle($value);
   public function title();
 
   public function setSRID($value = NULL);
-  public function setGeoDimension($value = NULL);
   public function setGeoType($value = NULL);
 
   public function geoType();
