@@ -94,22 +94,6 @@ class GeoSQLPostGIS extends GeoSQL {
     }
   }
 
-  public function setGeoDimension($value = NULL) {
-    if ($value && is_int($value)) {
-      $this->geo_dimension = $value;
-    }
-    // Attempt to look up this value from the geometry_columns table.
-    elseif ($info = $this->postgisGeometryColumnInfo()) {
-      $this->geo_dimension = $info->coord_dimension;
-    }
-    // Attempt to retreive the the dimension from one of the data values.
-    // note that this only works when the column has data.
-    elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $this->geo_dimension = db_result(db_query("SELECT Dimension(%s)
-        FROM {". $table ."} LIMIT 1", $column));
-    }
-  }
-
   public function setGeoType($value = NULL) {
     if ($value && is_int($value)) {
       $this->geo_type = $value;
@@ -244,7 +228,7 @@ class GeoSQLPostGIS extends GeoSQL {
     return $this->sql("ST_AsBinary(%g)", array($g));
   }
 
-  public function dimension($g = NULL) {
+  public function dimension($g) {
     return $this->sql("ST_Dimension(%g)", array($g));
 
     // If the geometry is NULL, derive the dimension for this instance.

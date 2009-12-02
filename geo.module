@@ -99,6 +99,16 @@ function geo_field_formatter_info() {
 }
 
 /**
+ * API Function: Return a type constant for named
+ */
+function geo_type($name) {
+  $name = strtoupper($name);
+  if (defined('GEO_TYPE_'. $name)) {
+    return constant('GEO_TYPE_'. $name);
+  }
+}
+
+/**
  * API Function: Return any field types that may contain geospatial data.
  */
 function geo_field_types() {
@@ -134,6 +144,7 @@ function geo_fields($reset = FALSE) {
             'gis type' => $field['geo_type'],
             'srid' => $field['srid'] ? $field['srid'] : GEO_SRID_DEFAULT,
             'module' => $field['module'],
+            'field' => $field,
             'gis format' => 'wkb', // TODO hard-coded.
           );
         }
@@ -158,10 +169,8 @@ function geo_list($reset = FALSE) {
   static $list;
   if ($reset || !isset($list)) {
     $list = array();
-    $res = db_query("SELECT * FROM {geo_data} ORDER BY title");
+    $res = db_query("SELECT * FROM {geo} ORDER BY title");
     while ($row = db_fetch_array($res)) {
-      $row['gid'] = $row['gdid']; // TODO after schema
-      $row[handler] = 'GeoSQL'; // TODO
       $list[$row['gid']] = geo_load($row);
     }
   }
@@ -172,9 +181,6 @@ function geo_list($reset = FALSE) {
  * API function: Load a geometry.
  */
 function geo_load($values) {
-  // Default handler.
-  $handler  = 'GeoSimple';
-
   // Already loaded, simply return it.
   if (is_object($values) && method_exists($values, 'gid')) {
     return $values;
@@ -194,13 +200,20 @@ function geo_load($values) {
   }
   else {
     $values = (array) $values;
-    if (isset($values['handler'])) {
-      $handler = $values['handler'];
+    if (!isset($values['handler'])) {
+      if (isset($values['gid'])) {
+        $values = array_merge($values, db_fetch_array(db_query("SELECT *
+          FROM {geo} WHERE gid = %d", $values['gid'])));
+      }
+      elseif (isset($values['name'])) {
+        if ($handler_values = db_fetch_array(db_query("SELECT *
+          FROM {geo} WHERE name = '%s'", $values['name']))) {
+
+          $values = array_merge($values, $handler_values);
+          }
+      }
     }
-    elseif (isset($values['gid'])) {
-      $values = array_merge($values, db_fetch_array(db_query("SELECT *
-        FROM {geo} WHERE gid = %d", $values['gid'])));
-    }
+    $handler = $values['handler'];
   }
   if (geo_handler_load($handler)) {
     return New $handler($values);
@@ -208,7 +221,7 @@ function geo_load($values) {
 }
 
 /**
- * API function: Save a geometry.
+ * API function: Save a geometry dataset.
  */
 function geo_save($geo) {
   $geo = geo_load($geo);
@@ -231,10 +244,22 @@ function geo_save($geo) {
   $update = isset($row['gid']) ? 'gid' : NULL;
   drupal_write_record('geo', $row, $update);
 
-  // Allow the handler to save the geometry, if that functionality exists.
+  // Allow the handler do its own saving tasks.
   $geo->setGID($row['gid']);
   if (method_exists($geo, 'save')) {
     $geo->save();
+  }
+}
+
+/**
+ * API function: Delete a geometry dataset.
+ */
+function geo_delete($geo) {
+  if (method_exists($geo, 'delete')) {
+    $geo->delete();
+  }
+  if (isset($geo->gid)) {
+    db_query("DELETE FROM {geo} WHERE gid = %d", $geo->gid);
   }
 }
 
@@ -338,18 +363,43 @@ function geo_geo_handler_info() {
  * Implementation of hook_content_fieldapi().
  */
 function geo_content_fieldapi($op, $field) {
-//TODO this will catalog (?) and possibly postprocess geo-fields.
-  $fields = $old_fields = variable_get('geo_fields', array());
+  if (in_array($field['type'], geo_field_type_names())) {
 
-  // ANY field with a 'geo_type' value is acknowledged here.
-  if (isset($field['geo_type'])) {
+    $db_info = content_database_info($field);
+    foreach ($db_info['columns'] as $column => $info) {
+      if ($info['gis type']) {
+        if (!is_null($geo_type = geo_type($info['gis type']))) {
+          $geo_column = $info['column'];
+        }
+      }
+    }
+
+    // It's possible that a geo field doesn't actually store data.  For now,
+    // we just don't care about tracking these.
+    if (!isset($geo_column)) return;
+
+    if (!$geo = geo_load(array('name' => $field['field_name']))) {
+      global $db_type;
+      // TODO this isn't exactly robust or reusable.
+      $handler = ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
+      $geo = geo_load($handler);
+    }
+
     switch ($op) {
       case 'create instance':
-        $fields[$field['field name']] = array($field['geo_type']);
+      case 'update instance':
+        $geo->setName($field['field_name']);
+        $geo->setTitle($field['widget']['label']);
+        $geo->setSRID($field['srid']);
+        $geo->setGeoType($geo_type);
+
+        $geo->setTableName($db_info['table']);
+        $geo->setColumnName($geo_column);
+        geo_save($geo);
         break;
 
       case 'delete instance':
-        unset($fields[$field['field_name']]);
+        geo_delete($geo);
         break;
     }
   }

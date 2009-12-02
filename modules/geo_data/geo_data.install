@@ -39,7 +39,6 @@ function geo_data_update_2() {
 
       $geo = geo_load($row);
       $geo->setGeoType();
-      $geo->setGeoDimension();
       $geo->setSRID();
 
       geo_save($geo);
@@ -189,7 +188,6 @@ function geo_data_update_2() {
       );
       $geo = geo_load($row);
       $geo->setGeoType();
-      $geo->setGeoDimension();
       $geo->setSRID();
       geo_save($geo);
     }

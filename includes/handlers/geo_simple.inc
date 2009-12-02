@@ -14,11 +14,10 @@
 class GeoSimple implements GeoInterface {
 
   protected $gid;
-  protected $title;
   protected $name;
+  protected $title;
   protected $srid = GEO_UNKNOWN;
   protected $geo_type;
-  protected $geo_dimension;
 
   private function geometryTypes() {
     return array(
@@ -210,8 +209,8 @@ class GeoSimple implements GeoInterface {
     return $this->unimplemented();
   }
 
-  public function dimension($g = NULL) {
-    if ($g) return (int) $g->dimension;
+  public function dimension($g) {
+    return $this->unimplemented();
   }
 
   public function geometryType($g = NULL) {
@@ -427,6 +426,14 @@ class GeoSimple implements GeoInterface {
     return NULL;
   }
 
+  function setName($value) {
+    $this->name = preg_replace('/[^a-z0-9_]/', '', strtolower($value));
+  }
+
+  function name() {
+    return $this->name;
+  }
+
   function setTitle($value) {
     $this->title = filter_xss($value);
   }
@@ -441,15 +448,6 @@ class GeoSimple implements GeoInterface {
     }
     else {
       $this->srid = GEO_SRID_DEFAULT;
-    }
-  }
-
-  function setGeoDimension($value = NULL) {
-    if (is_int($value)) {
-      $this->geo_dimension = $value;
-    }
-    else {
-      $this->geo_type = GEO_UNKNOWN;
     }
   }
 

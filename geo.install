@@ -36,10 +36,6 @@ function geo_schema() {
           'type' => 'int',
           'not null' => TRUE,
         ),
-        'geo_dimension' => array(
-          'type' => 'int',
-          'size' => 'tiny',
-        ),
         'srid' => array(
           'type' => 'int',
           'not null' => TRUE,
@@ -92,5 +88,28 @@ function geo_uninstall() {
  */
 function geo_update_1() {
   drupal_install_schema('geo');
+  return array();
+}
+
+/**
+ * Drop the geo_dimension column if it exists.
+ */
+function geo_update_2() {
+  $ret = array();
+  if (db_column_exists('geo', 'geo_dimension')) {
+    db_drop_field($ret, 'geo', 'geo_dimension');
+  }
+  return $ret;
+}
+
+/**
+ * Catalog any fields that may have been created by a geo field module.
+ */
+function geo_update_3() {
+  module_load_include('crud.inc', 'content', 'includes/content');
+  foreach (geo_fields() as $field) {
+    // Call geo_content_fieldapi() directly.
+    geo_content_fieldapi('update instance', $field['field']);
+  }
   return array();
 }

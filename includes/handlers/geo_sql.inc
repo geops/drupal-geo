@@ -14,11 +14,10 @@
 class GeoSQL implements GeoInterface {
 
   protected $gid;
-  protected $title;
   protected $name;
+  protected $title;
   protected $srid = GEO_UNKNOWN;
   protected $geo_type;
-  protected $geo_dimension;
 
   protected $table_name;
   protected $column_name;
@@ -93,15 +92,17 @@ class GeoSQL implements GeoInterface {
     return $this->title;
   }
 
+  function setName($value) {
+    $this->name = preg_replace('/[^a-z0-9_]/', '', strtolower($value));
+  }
+
+  function name() {
+    return $this->name;
+  }
+
   function setSRID($value = NULL) {
     if (is_int($value)) {
       $this->srid = $value;
-    }
-  }
-
-  function setGeoDimension($value = NULL) {
-    if (is_int($value)) {
-      $this->geo_dimension = $value;
     }
   }
 
@@ -284,9 +285,7 @@ class GeoSQL implements GeoInterface {
     return $this->unimplemented();
   }
 
-  public function dimension($g = NULL) {
-    if (!$g) return $this->geo_dimension;
-
+  public function dimension($g) {
     return $this->unimplemented();
   }
 

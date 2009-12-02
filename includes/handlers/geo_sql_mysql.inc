@@ -28,18 +28,6 @@ class GeoSQLMySQL extends GeoSQL {
     }
   }
 
-  public function setGeoDimension($value = NULL) {
-    if ($value && is_int($value)) {
-      $this->geo_dimension = $value;
-    }
-    // Attempt to retreive the the dimension from one of the data values.
-    // note that this only works when the column has data.
-    elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $this->geo_dimension = db_result(db_query("SELECT Dimension(%s)
-        FROM {". $table ."} LIMIT 1", $column));
-    }
-  }
-
   public function setGeoType($value = NULL) {
     if ($value && is_int($value)) {
       $this->geo_type = $value;
@@ -158,11 +146,8 @@ class GeoSQLMySQL extends GeoSQL {
     return $this->sql("AsBinary(%g)", array($g));
   }
 
-  public function dimension($g = NULL) {
+  public function dimension($g) {
     if ($g) return $this->sql("Dimension(%g)", array($g));
-
-    // If the geometry is NULL, derive the dimension for this instance.
-    $this->setDimension();
     return $this->geo_dimension;
   }
 
