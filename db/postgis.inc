@@ -10,54 +10,6 @@
 
 /*** API Functions ***/
 
-/**
- * Adds a geometry column to the specified table.
- * 
- * @param $table
- *   The name of the table to which to add the column. Do not include braces ({}).
- * @param $field_name
- *   The name of the field to use.
- * @param $type
- *   The OpenGIS type of the column.
- *   Valid types are: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRYCOLLECTION
- * @param $srid
- *   The Spatial Reference ID of this column's projection. The most commonly used SRID is GEO_SRID_DEFAULT, which corresponds to unprojected lat-long in WGS84.
- * @return boolean
- * Success or failure
- */
-function geo_postgis_add_field(&$ret, $table, $field, $spec) {
-  // NOTE for now, all geometries are 2d. deal with it
-  // TODO is there a way to get the current schema? until i figure this out, everything is public
-  $ret[] =  db_query("SELECT AddGeometryColumn('public', '{". $table ."}', '%s', %d, '%s', 2);", $field, $spec['srid'], strtoupper($spec['type']));
-  // TODO perhaps send the message returned from the db to watchdog?
-  // if successful, add a spatial index on the field
-  $ret[] = db_query("CREATE INDEX {". $table ."}_". $field ."_idx ON {". $table ."} USING GIST ($field GIST_GEOMETRY_OPS)");
-  return true;
-}
-
-/**
- * Remove a geometry column from the specified table.
- *
- * @param $table
- *   The name of the table from which to drop the column. Do not include braces ({}).
- * @param $field_name
- *   The name of the field to drop.
- *
- * @return boolean
- *  Success or failure
- *
- */
-function geo_postgis_drop_field($table, $column) {
-  $res = db_query("SELECT DropGeometryColumn('public', '{%s}', '%s'", $table, $column);
-  // NOTE do I need to drop my spatial index too? should probably check pg docs
-}
-
-/*
-function geo_postgis_field_select($field) {
-  return " srid($field) as srid, asText($field) AS wkt, asText(centroid($field)) AS centroid, asText(envelope($field)) as bbox ";
-}
-*/
-
 function geo_postgis_query_function($func, $field, $value, $srid) {
   $ret = array();
   $value = "ST_Transform(GeomFromText('$value', $srid), SRID($field))";
@@ -75,7 +27,7 @@ function geo_postgis_query_function($func, $field, $value, $srid) {
 
 /**
  * Return a list of fields, keyed by table, of geo tables.
- * 
+ *
  * @param $table
  *  an optional string of the table name to look in
  *
@@ -113,11 +65,11 @@ function geo_postgis_tables($exclude = NULL) {
  * Parse out the table descriptions from the geometry information stored in the table.
  */
 function geo_postgis_table_desc($table) {
-  $res = db_query("SELECT  a.attname AS name, 
+  $res = db_query("SELECT  a.attname AS name,
     col_description(c.oid, a.attnum) AS description,
     format_type(a.atttypid, a.atttypmod) AS type,
     a.attnotnull AS not_null,
-    d.adsrc AS default   
+    d.adsrc AS default
     FROM pg_class c
     LEFT JOIN pg_attribute a ON (a.attrelid = c.oid)
     LEFT OUTER JOIN pg_attrdef d ON (d.adrelid = c.oid AND d.adnum = a.attnum)
@@ -138,7 +90,7 @@ function geo_postgis_table_desc($table) {
     $columns[$row['name']]['not_null'] = (bool) str_replace('f', '', $row['not_null']);
   }
 
-  $res = db_query("SELECT c.relname AS table, 
+  $res = db_query("SELECT c.relname AS table,
       pg_catalog.pg_get_constraintdef(r.oid, true) AS constraint
     FROM pg_catalog.pg_constraint r
     LEFT JOIN pg_catalog.pg_class c ON r.conrelid = c.oid
@@ -170,7 +122,7 @@ function geo_postgis_table_desc($table) {
 
 // provide a quick way to get the SRID of a column and use it in the storage
 function _geo_fromtext($string, $table, $field) {
-  $srid = db_result(db_query("SELECT srid FROM {gis_sources} 
+  $srid = db_result(db_query("SELECT srid FROM {gis_sources}
     WHERE table = '%s' AND field = '%s'"));
 
   return "GeomFromText('$string', $srid)";
