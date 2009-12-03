@@ -6,6 +6,7 @@
  * @package geo
  */
 
+
 /**
  * Implementation of hook_views_handlers().
  */
@@ -15,6 +16,10 @@ function geo_views_handlers() {
       'path' => drupal_get_path('module', 'geo') .'/includes/views',
     ),
     'handlers' => array(
+      // For any field that handles geo data.
+      'views_handler_field_geo_field' => array(
+        'parent' => 'content_handler_field_multiple',
+      ),
       'views_handler_field_geo' => array(
        'parent' => 'views_handler_field',
        'gis input' => 'array',
@@ -80,7 +85,7 @@ function geo_views_plugins() {
         'uses options' => TRUE,
         'type' => 'geo_xml',
         'path' => drupal_get_path('module', 'geo') .'/includes/views',
-      ), 
+      ),
       'geo_svg' => array(
         'title' => t('SVG'),
         'help' => t('Generates a SVG document from a view.'),
@@ -91,7 +96,7 @@ function geo_views_plugins() {
         'uses options' => TRUE,
         'type' => 'geo_xml',
         'path' => drupal_get_path('module', 'geo') .'/includes/views',
-      ), 
+      ),
     ),
   );
 }
