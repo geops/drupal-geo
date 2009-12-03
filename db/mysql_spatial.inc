@@ -9,46 +9,6 @@
 
 /*** API Functions ***/
 
-/**
- * Adds a geometry column to the specified table.
- * 
- * @param $table
- *   The name of the table to which to add the column. Do not include braces ({}).
- * @param $field_name
- *   The name of the field to use.
- * @param $type
- *   The OpenGIS type of the column.
- *   Valid types are: POINT, LINESTRING, POLYGON, MULTIPOINT, MULTILINESTRING, MULTIPOLYGON, GEOMETRYCOLLECTION
- * @param $srid
- *   The Spatial Reference ID of this column's projection. The most commonly used SRID is GEO_SRID_DEFAULT, which corresponds to unprojected lat-long in WGS84.
- * @return boolean
- * Success or failure
- */
-function geo_mysql_spatial_add_field(&$ret, $table, $field, $spec) {
-  // NOTE for now, all geometries are 2d. deal with it
-  $ret[] = db_query("ALTER TABLE {%s} ADD %s %s NOT NULL", $table, $field, $spec['type']);
-  db_query("CREATE SPATIAL INDEX {$table}_${field}_idx ON  {". $table ."} ($field)");
-
-  // @@@ Error handling
-  return true;
-}
-
-/**
- * Remove a geometry column from the specified table.
- *
- * @param $table
- *   The name of the table from which to drop the column.
- * @param $field_name
- *   The name of the field to drop.
- *
- * @return boolean
- *  Success or failure
- */
-function geo_mysql_spatial_drop_field($table, $column) {
-  db_query("ALTER TABLE {%s} DROP COLUMN %s", $table, $column);
-  return true;
-}
-
 function geo_mysql_spatial_query_function($func, $field, $value, $srid) {
   return array("$func(GeomFromText('$value', $srid), $field)");
 }
@@ -66,7 +26,7 @@ function geo_mysql_spatial_query_distance($field, $srid, $point) {
 
   // Offsets, in meters.
   $mod_x = GEO_DEGREE_M * cos($y / 57.2958);
-  $mod_y = GEO_DEGREE_M; 
+  $mod_y = GEO_DEGREE_M;
 
   return "SQRT(POW(($mod_x * (X($field) - $x)), 2) + POW(($mod_y * (Y($field) - $y)), 2))";
 }
@@ -99,9 +59,9 @@ function geo_mysql_spatial_query_distance_sphere($field, $srid, $point) {
  * Aggregate function that returns the total boundary of a result set.
  */
 function mysql_spatial_geo_query_extent($field) {
-  return "MIN(X(PointN(ExteriorRing(envelope($field)), 1))) AS minx, 
-    MAX(X(PointN(ExteriorRing(envelope($field)), 3))) AS maxx, 
-    MIN(Y(PointN(ExteriorRing(Envelope($field)), 1))) AS miny, 
+  return "MIN(X(PointN(ExteriorRing(envelope($field)), 1))) AS minx,
+    MAX(X(PointN(ExteriorRing(envelope($field)), 3))) AS maxx,
+    MIN(Y(PointN(ExteriorRing(Envelope($field)), 1))) AS miny,
     MAX(Y(PointN(ExteriorRing(Envelope($field)), 3))) AS maxy";
 }
 
@@ -109,7 +69,7 @@ function mysql_spatial_geo_query_extent($field) {
 
 /**
  * Return a list of fields, keyed by table, of geo tables.
- * 
+ *
  * @param $table
  *  an optional string of the table name to look in
  *
@@ -168,44 +128,12 @@ function geo_mysql_spatial_table_desc($table) {
     $columns[$row['name']]['not_null'] = $row['null_ok']=='YES' ? FALSE : TRUE;
     unset($columns[$row['name']]['null_ok']);
   }
-
-  // @@@ I have no clue what this section is for. ~Bdragon
-
-/*  $res = db_query("SELECT c.relname AS table, 
-      pg_catalog.pg_get_constraintdef(r.oid, true) AS constraint
-    FROM pg_catalog.pg_constraint r
-    LEFT JOIN pg_catalog.pg_class c ON r.conrelid = c.oid
-    WHERE c.relname = '%s' AND r.contype = 'c'", $table);
-*/
-
-  /*
-   Find constraints that are similar to the ones here, and set attributes
-
-   CHECK (geometrytype(the_geom) = 'MULTIPOLYGON'::text OR the_geom IS NULL)
-   CHECK (ndims(the_geom) = 2)
-   CHECK (srid(the_geom) = 26915)
-  */
-  //while ($row = db_fetch_object($res)) {
-  //  $table = $row->table;
-  //  foreach($geo as $f) {
-  //    if (strpos($row->constraint, "ndims($f)" )) {
-  //      $columns[$f]['dimensions'] = preg_replace('/\D/','', $row->constraint);
-  //    }
-  //    elseif (strpos($row->constraint, "srid($f)" )) {
-  //      $columns[$f]['srid'] = preg_replace('/\D/','', $row->constraint);
-  //    }
-  //    elseif (strpos($row->constraint, "geometrytype($f)" )) {
-  //      $columns[$f]['geometry_type'] = preg_replace('/.*\'(\w+)\'.*/','$1', $row->constraint);
-  //    }
-  //  }
-  //}
-
   return $columns;
 }
 
 // provide a quick way to get the SRID of a column and use it in the storage
 function _geo_fromtext($string, $table, $field) {
-  $srid = db_result(db_query("SELECT srid FROM {gis_sources} 
+  $srid = db_result(db_query("SELECT srid FROM {gis_sources}
     WHERE table = '%s' AND field = '%s'"));
 
   return "GeomFromText('$string', $srid)";
