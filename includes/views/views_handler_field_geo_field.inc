@@ -13,7 +13,7 @@ class views_handler_field_geo_field extends content_handler_field_multiple {
     $this->query->add_field(NULL, geo('field_select', $this->geo_field), NULL, array('aggregate' => TRUE));
   }
 
-  function pre_render(&$values) { 
+  function pre_render(&$values) {
     foreach ($values as $i => $row) {
       // Re-assemble the components of the selected item.
       $item = array();
@@ -28,7 +28,7 @@ class views_handler_field_geo_field extends content_handler_field_multiple {
 
   function render(&$values) {
     $values->build_mode = 'views';
-    
+
     // Get the formatter's theme name.  This will be used by geo_set_value().
     $name = $this->options['format'];
     $formatter = _content_get_formatter($name, $this->content_field['type']);
