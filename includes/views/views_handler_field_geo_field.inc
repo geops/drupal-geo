@@ -1,44 +1,46 @@
 <?php //$Id$
 
-class views_handler_field_geo_field extends content_handler_field_multiple {
+class views_handler_field_geo_field extends content_handler_field {
+
   function query() {
-    parent::query();
+    $this->geo = geo_load(array('name' => $this->content_field['field_name']));
 
-    if (!$table = $this->table_alias) {
-      $table = $this->ensure_my_table();
-    }
+    // Set up a table name and field name that are unique to this query.
+    $table = $this->ensure_my_table();
+    $this->field_alias = $table .'_'. $this->field;
 
-    // geo_field_select will return the SRID, Envelope, Centroid, and WKB data.
-    $this->geo_field = $table .'.'. $this->content_field['field_name'] .'_geo';
-    $this->query->add_field(NULL, geo('field_select', $this->geo_field), NULL, array('aggregate' => TRUE));
+    // Ensure that the query acts on the table and column aliases defined here.
+    $this->geo->setTableName($table);
+    $this->geo->setColumnName($this->field);
+
+    // For now, we fetch the result as binary data.
+    $func = 'AsBinary';
+
+    // Add the field, using the Geo API method for getting it.
+    $field = $this->geo->$func($this->geo);
+    $this->query->add_field(NULL, $field, $this->field_alias, array('aggregate' => TRUE));
+
+    $this->add_additional_fields();
   }
 
   function pre_render(&$values) {
-    foreach ($values as $i => $row) {
-      // Re-assemble the components of the selected item.
-      $item = array();
-      $base = substr($this->field_alias, 0, -4);
-      foreach (array('wkb', 'bbox', 'srid') as $key) {
-        $column = $base .'_'. $key;
-        $item[$key] = db_decode_blob($row->$column);
-      }
-      $values[$i]->{$this->field_alias} = $item;
-    }
-  }
 
-  function render(&$values) {
-    $values->build_mode = 'views';
-
-    // Get the formatter's theme name.  This will be used by geo_set_value().
     $name = $this->options['format'];
     $formatter = _content_get_formatter($name, $this->content_field['type']);
     $theme = $formatter['module'] .'_formatter_'. $name;
 
-    // Convert the resulting output to a format recognized by the theme function
-    $item = geo_set_value($values->{$this->field_alias}, $theme);
+    foreach ($values as $i => $row) {
+      // For some reason, this gets called repeatedly.  Don't double-process.
+      if (is_array($row->{$this->field_alias})) return;
 
-    // Do what the field module was going to do.
-    $item['#delta'] = !empty($values->{$this->table_alias . '_delta'}) ? $values->{$this->table_alias . '_delta'} : 0;
-    return $this->render_link(content_format($this->content_field, $item, $this->options['format'], $values), $values);
+      $field = array(
+        'srid' => $this->geo->srid(),
+        'wkb' => db_decode_blob($row->{$this->field_alias}),
+      );
+
+      // Convert the output to a format recognized by the theme function
+      if ($value = geo_set_value($field, $theme));
+      $values[$i]->{$this->field_alias} = $value['geo'];
+    }
   }
 }

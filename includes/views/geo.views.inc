@@ -6,6 +6,141 @@
  * @package geo
  */
 
+/**
+ * Implementation of hook_views_data().
+ */
+function geo_views_data() {
+  $data = array();
+
+  // Get all of the datasets stored in Geo's API.
+  foreach (geo_list() as $geo) {
+
+    // If available, use the views_data provided by the handler and move on.
+    if (method_exists($geo, 'views_data')) {
+      $data = array_merge($geo->views_data(), $data);
+      continue;
+    }
+
+    // Only the SQL backends are likely to have these methods.
+    if (method_exists($geo, 'tableName')) $table = $geo->tableName();
+    if (method_exists($geo, 'columnName')) $column = $geo->columnName();
+    if (method_exists($geo, 'schema')) $schema = $geo->schema();
+
+    // There's a geometry column,
+    if ($table && $column) {
+      $data['geo'][$table] = array(
+        'field' => array(
+          'handler' => 'views_handler_field_numeric',
+          'float' => $float,
+          'click sortable' => TRUE,
+        ),
+        'sort' => array(
+          'handler' => 'views_handler_sort',
+        ),
+        'filter' => array(
+          'handler' => 'views_handler_filter_numeric',
+        ),
+        'argument' => array(
+          'handler' => 'views_handler_argument_numeric',
+          'click sortable' => TRUE,
+        ),
+      );
+    }
+
+    // This dataset has additional metadata in a schema definition.
+    if (isset($schema)) {
+      foreach ($schema as $geo_table => $info) {
+
+        // Field information
+        foreach ($info['fields'] as $field_name => $field_info) {
+          $views_field = array();
+
+          // Use the field's predefined views stuff.
+          if (isset($field['views'])) {
+            $views_field = $field['views'];
+          }
+
+          // Make our best guess at what kind of views support to use.
+          else {
+            switch ($field_info['type']) {
+              case 'serial':
+              case 'int':
+              case 'float':
+              case 'numeric':
+                $float = in_array($field_info['type'], array('float', 'numeric'));
+                $views_field = array(
+                  'field' => array(
+                    'handler' => 'views_handler_field_numeric',
+                    'float' => $float,
+                    'click sortable' => TRUE,
+                  ),
+                  'sort' => array(
+                    'handler' => 'views_handler_sort',
+                  ),
+                  'filter' => array(
+                    'handler' => 'views_handler_filter_numeric',
+                  ),
+                  'argument' => array(
+                    'handler' => 'views_handler_argument_numeric',
+                    'click sortable' => TRUE,
+                  ),
+                );
+                break;
+
+              case 'varchar':
+              case 'char':
+                $views_field = array(
+                  'field' => array(
+                    'handler' => 'views_handler_field',
+                  ),
+                  'sort' => array(
+                    'handler' => 'views_handler_sort',
+                  ),
+                  'filter' => array(
+                    'handler' => 'views_handler_filter_string',
+                  ),
+                  'argument' => array(
+                    'handler' => 'views_handler_argument_string',
+                  ),
+                );
+                break;
+
+              case 'text':
+                $views_field = array(
+                  'field' => array(
+                    'handler' => 'views_handler_field',
+                    'click sortable' => TRUE,
+                  ),
+                  'sort' => array(
+                    'handler' => 'views_handler_sort',
+                  ),
+                  'filter' => array(
+                    'handler' => 'views_handler_filter_string',
+                  ),
+                  'argument' => array(
+                    'handler' => 'views_handler_argument_string',
+                    'click sortable' => TRUE,
+                  ),
+                );
+                break;
+
+              case 'blob':
+                // Don't deal with these.
+                break;
+
+              case 'datetime':
+            }
+          }
+
+          if ($views_field) {
+            $views_field['title'] = '';
+            $views_field['help'] = '';
+          }
+        }
+      }
+    }
+  }
+}
 
 /**
  * Implementation of hook_views_handlers().
@@ -18,7 +153,7 @@ function geo_views_handlers() {
     'handlers' => array(
       // For any field that handles geo data.
       'views_handler_field_geo_field' => array(
-        'parent' => 'content_handler_field_multiple',
+        'parent' => 'content_handler_field',
       ),
       'views_handler_field_geo' => array(
        'parent' => 'views_handler_field',

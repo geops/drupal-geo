@@ -107,37 +107,29 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
   switch ($op) {
 
     case 'load':
-      $db_info = content_database_info($field);
-      $column = $field['field_name'] .'_geo';
+      if (!$items) return;
+
+      $geo = geo_load(array('name' => $field['field_name']));
 
       // Include the field delta in the query if it's a multi-value field.
       $delta = $field['multiple'] ? ', delta' : '';
 
-      $res = db_query("SELECT ". geo('field_select', $column) . $delta ."
-        FROM {". $db_info['table'] ."} WHERE vid = %d", $node->vid);
+      // Result from CCK's select was garbage.  Re-query with AsBinary().
+      $res = db_query("SELECT ". $geo->AsBinary($geo) .' AS geo '. $delta ."
+        FROM {". $geo->tableName() ."} WHERE vid = %d", $node->vid);
 
-      $ret = array();
       while ($row = db_fetch_array($res)) {
         $delta = isset($row['delta']) ? $row['delta'] : 0;
-        $ret[$delta]['gis type'] = $field['geo_type'];
-        foreach ($row as $k => $v) {
-          $k = str_replace($field['field_name'] .'_', '', $k);
-          if ($k != 'delta') $ret[$delta][$k] = db_decode_blob($v);
-        }
-        // Unset the value if it's not actually populated.
-        if (empty($ret[$delta]['wkb'])) {
-          unset($ret[$delta]);
-        }
+
+        $items[$delta]['gis type'] = $field['geo_type'];
+        $items[$delta]['geo'] = $items[$delta]['wkb'] = db_decode_blob($row['geo']);
       }
 
-      // Identify ourselves on the node level for RSS and other postprocessing.
-      if (!isset($node->geo_fields)) $node->geo_fields = array();
-      $node->geo_fields[$field['field_name']] = 'geo';
-
-      return array(
-        $field['field_name'] => $ret,
-        'geo_fields' => $node->geo_fields,
-      );
+      // Unset the value if it's not actually populated.
+      foreach($items as $delta => $item) {
+        if (empty($item['geo'])) unset($items[$delta]);
+      }
+      return array($field['field_name'] => $items);
 
     case 'validate':
       foreach ($items as $k => $item) {
@@ -148,7 +140,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         // Convert to $wkt and validate it.
         $wkt = geo_value_convert($item['geo'], $gis_input, 'wkt');
 
-        if (($error = geo('wkt_validate', $wkt, $field['geo_type'])) !== TRUE) {
+        if ($wkt && ($error = geo('wkt_validate', $wkt, $field['geo_type'])) !== TRUE) {
           $error_field = $field['field_name'];
           form_set_error($error_field, $error);
         }
@@ -202,14 +194,14 @@ function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
 
   foreach ($items as $key => $item) {
     // Convert from the storage format (wkb) to the element's expected format.
-    if (!isset($item['geo'])) {
+    //if (!isset($item['geo'])) {
       if ($info['gis input']) {
         if (isset($item['wkb'])) {
           $data = geo_wkb_get_data($item['wkb'], $info['gis input']);
           $items[$key]['geo'] = $data['value'];
         }
       }
-    }
+    //}
   }
 
   $element['#theme'] = 'geo_fields';

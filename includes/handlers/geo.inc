@@ -357,6 +357,8 @@ interface GeoInterface {
   public function addPoint($linestring, $point, $position = NULL);
 
   // Implementation-specfic functions: useful primarily to the Geo API.
+  public function geoCompatible($g);
+
   public function setGID($value = NULL);
   public function gid();
 
@@ -489,8 +491,8 @@ class Geometry implements GeoGeometry{
   protected $handler;
 
   // Determine whether another item's handler is compatible with this one.
-  // TODO! this is important and useful for the sql() function.
   public function geoCompatible($g) {
+    return $this->call('geoCompatible');
   }
 
   // Call my handler's version of the requested function, including additional args.
