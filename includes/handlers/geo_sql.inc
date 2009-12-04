@@ -61,20 +61,29 @@ class GeoSQL implements GeoInterface {
 
           // If the backend is the same as this one, query the column directly.
           if ($g->geoCompatible($this)) {
-            $sql = preg_replace('/%g/', '%s', $sql['sql'], 1);
-            $args[$i] = $g->sqlTableAlias();
+            $sql = preg_replace('/\%g/', $g->sqlTableAlias(), $sql, 1);
           }
 
-          // Otherwise, use the Binary representation.
+          // Otherwise, get the WKT representation and call GeomFomText on it.
           else {
-            $sql = preg_replace('/%g/', '%b', $sql['sql'], 1);
-            $args[$i] = $g->asBinary();
+            $wkt = GeoSimple::asText($g);
+            $sql = preg_replace('/\%g/', "GeomFromText('". $wkt ."')", $sql, 1);
           }
         }
       }
     }
 
-    return array('sql' => $sql, 'args' => $args);
+    return $sql;
+  }
+
+  function sqlTableAlias() {
+    if (($table = $this->tableName()) && ($column = $this->columnName())) {
+      return $table .'.'. $column;
+    }
+  }
+
+  function geoCompatible($g) {
+    return (get_class($g) == get_class($this));
   }
 
   function setGID($value = NULL) {

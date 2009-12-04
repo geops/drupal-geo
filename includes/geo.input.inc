@@ -55,12 +55,13 @@ function geo_set_value($item, $theme) {
   $registry = theme_get_registry();
 
   if ($format = $registry[$theme]['gis input']) {
-    if (isset($item['wkb'])) {
+    if (isset($item['wkb']) && !isset($item[$format])) {
+      if (!isset($item['wkb'])) $item['wkb'] = $item['geo'];
       $value = geo_wkb_get_data($item['wkb'], $format);
-      $item[$format] = $value['value'];
+      $item['geo'] = $item[$format] = $value['value'];
     }
     else {
-      $item[$format] = '';
+      $item['geo'] = $item[$format] = '';
     }
   }
   return $item;

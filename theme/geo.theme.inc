@@ -50,15 +50,15 @@ function geo_theme_theme() {
  * Field formatters for geo fields.
  */
 function theme_geo_formatter_default($element) {
-  return $element['#item']['wkt'];
+  return $element['#item'];
 }
 
 function theme_geo_formatter_lat($element) {
-  return $element['#item']['array']['lat'];
+  if ($element['#item']['geo']) return $element['#item']['geo']['lat'];
 }
 
 function theme_geo_formatter_lon($element) {
-  return $element['#item']['array']['lon'];
+  if ($element['#item']['geo']) return $element['#item']['geo']['lon'];
 }
 
 function theme_geo_formatter_georss($element) {
@@ -66,11 +66,11 @@ function theme_geo_formatter_georss($element) {
 
   if (in_array($item['gis type'], array('point', 'line', 'polygon'))) {
     $tag = 'georss:'. $item['gis type'];
-    $value = $item['text'];
+    $value = $item['geo'];
   }
   elseif($item['bbox']) {
     $tag = 'georss:bbox';
-    $value = $item['bbox'];
+    $value = $item['geo'];
   }
   if (isset($tag)) {
     return '<'. $tag .'>' . $value .'</'. $tag .'>';

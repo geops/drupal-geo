@@ -35,6 +35,10 @@ class GeoSimple implements GeoInterface {
     );
   }
 
+  function geoCompatible($g) {
+    return (get_class($g) == get_class($this));
+  }
+
   private function unimplemented() {
     drupal_set_message(t('Attempt to call an unimplemented function'));
     return FALSE;

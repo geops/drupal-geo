@@ -41,7 +41,7 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
   $func = 'geo_wkb_get_'. $format;
 
   if (!isset($type)) $type = $data['type'];
- 
+
   switch($type) {
 
     case 'point': // Contains x, y decimal values.
@@ -56,7 +56,7 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
       $point = unpack('dx/dy', $tmp);
       $point['x'] = str_replace(',', '.', $point['x']);
       $point['y'] = str_replace(',', '.', $point['y']);
- 
+
       $data = array_merge($data, $point);
       $data['value'] = $func($data);
       if (function_exists($post = $func .'_post')) $data = $post($data);
