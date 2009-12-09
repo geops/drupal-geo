@@ -38,13 +38,15 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $form['op_val_end']['#weight'] = 5;
 
     // Hide the numeric inputs from anything that doesn't return numeric values.
+    $form['value']['op_val_end'] = $form['op_val_end'];
+    unset($form['op_val_end']);
     $form['op_val_start']['#type'] = 'hidden';
     $form['op_val_start']['#id'] = 'value-options';
     $form['op_val_start']['#prefix'] = '<div>';
     $form['op_val_start']['#process'] = array('views_process_dependency');
     $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions);
 
-    $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
+    $form['value']['op_val_end']['#suffix'] = '</div><br clear="all" />';
 
     // Units.
     $form['value']['units'] = array(
@@ -56,7 +58,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
       '#dependency' => array('radio:options[function]' => $num_functions ),
       '#weight' => 2,
     );
-    //drupal_set_message('<pre>'.print_r($form, 1));
+    // drupal_set_message('<pre>'.print_r($form, 1));
   }
 
   function exposed_form(&$form, &$form_state) {
