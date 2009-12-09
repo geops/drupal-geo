@@ -349,24 +349,19 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     if ($info['requires target']) $deps[] = $function;
   }
 
-  $form['target_div_prefix'] = array(
+  $form['value']['input'] = array(
+    '#type' => 'select',
+    '#title' => 'Widget',
+    '#default_value' => $handler->value['input'],
+  );
+
+  $form['value']['target_div_prefix'] = array(
     '#type' => 'hidden',
     '#id' => 'geo-target-options',
     '#prefix' => '<div><fieldset id="geo-target-options"><legend>' . t('Provide a target for this function') . '</legend>',
     '#process' => array('views_process_dependency'),
     '#dependency' => array('radio:options[function]' => $deps),
     '#weight' => 9,
-  );
-
-  // Add a distance handler to ensure it gets the proper weight.
-  $form['distance'] = array();
-
-  $form['target'] = array('#tree' => TRUE, '#weight' => 10);
-
-  $form['target']['input'] = array(
-    '#type' => 'select',
-    '#title' => 'Widget',
-    '#default_value' => $handler->options['target']['input'],
   );
 
   $input_options = array();
@@ -384,15 +379,15 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     ));
 
     $element['#process'][] = 'views_process_dependency';
-    $element['#dependency'] = array('edit-options-target-input' => array($name));
+    $element['#dependency'] = array('edit-options-value-input' => array($name));
 
-    $form['target']['value'][$name] = $element;
+    $form['value']['target'][$name] = $element;
   }
 
   // Set the list of elements back to the target options.
-  $form['target']['input']['#options'] = $input_options;
+  $form['value']['input']['#options'] = $input_options;
 
-  $form['target_div_suffix'] = array(
+  $form['value']['target_div_suffix'] = array(
     '#value' => '</fieldset></div>',
     '#weight' => 11,
   );
