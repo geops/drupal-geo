@@ -177,7 +177,8 @@ class GeoSQLMySQL extends GeoSQL {
 
     // If the geometry is NULL, derive the geometrytype for this instance.
     $this->setGeoType();
-    return GeoSimple::geometryType($this);
+    $types = GeoSimple::geometryTypes();
+    return $types[$this->geo_type];
   }
 
   public function SRID($g = NULL) {
@@ -282,5 +283,97 @@ class GeoSQLMySQL extends GeoSQL {
 
   public function contains($g1, $g2) {
     return $this->sql("MBRContains(%g, %g)", array($g1, $g2));
+  }
+
+  /**
+   * MySQL has no native support for the extent function.
+   * Construct one manually.
+   */
+  public function extent($g) {
+    // TODO this is incorrect!  It's returning coordinates rather than an
+    // actual geometry (box)
+    return $this->sql("MIN(X(PointN(ExteriorRing(Envelope(%g)), 1))) AS minx,
+      MAX(X(PointN(ExteriorRing(Envelope(%g)), 3))) AS maxx,
+      MIN(Y(PointN(ExteriorRing(Envelope(%g)), 1))) AS miny,
+      MAX(Y(PointN(ExteriorRing(Envelope(%g)), 3))) AS maxy",
+      array($g, $g, $g, $g));
+  }
+
+  /**
+   * MySQL has no native support for distance calculations between geometries
+   * Approximate this using the Pythagorean function.
+   *
+   * NOTE: As we can only support points, the distance measured will be from
+   * Centroid to centroid.  This means that geometries such as Polygons and
+   * Linestrings will have an artificially-high distance result.
+   *
+   * Imagine two 10x10 squares that are adjacent to each other.  In reality,
+   * The distance between these objects is 0.  But this calculation would
+   * return 10. (radius of 5 + radius of 5)
+   *
+   * Still, it's better than nothing.
+   */
+  public function distance($g1, $g2) {
+    // Convert $g2 to a point and get its x and y coordinates.
+    list($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+      $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
+
+    // Perhaps it wasn't a point.  Try with a centroid.
+    if (!$x && !$y) {
+      list ($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+        $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
+    }
+
+    // Offsets, in meters.
+    $mod_x = GEO_DEGREE_M * cos($y / 57.2958);
+    $mod_y = GEO_DEGREE_M;
+
+    $g = ($g1->geoType() == GEO_TYPE_POINT ) ? '%g' : 'Centroid(%g)';
+
+    // Let MySQL take it from here with the pythagorean function.
+    $sql = "SQRT(POW(($mod_x * (X($g) - $x)), 2)
+      + POW(($mod_y * (Y($g) - $y)), 2))";
+
+    return $this->sql($sql, array($g1, $g1));
+  }
+
+  /**
+   * Calculate distance using the Great Circle Distance Formula.
+   * This is more accurate than the distance() function over large distances,
+   * but less efficient.
+   *
+   * NOTE: As we can only support points, the distance measured will be from
+   * Centroid to centroid.  This means that geometries such as Polygons and
+   * Linestrings will have an artificially-high distance result.
+   */
+  public function distanceSpheroid($g1, $g2) {
+    // Convert $g2 to a point and get its x and y coordinates.
+    list($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+      $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
+
+    // Perhaps it wasn't a point.  Try with a centroid.
+    if (!$x && !$y) {
+      list ($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+        $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
+    }
+
+    // Radius of the earth in meters.
+    $r = 6370986;
+
+    // Degree offset.
+    $d = 57.2958;
+
+    // Offsets, in meters.
+    $ysin = sin($y / $d);
+    $ycos = cos($y / $d);
+    $xd   = $x/$d;
+
+    $g = ($g1->geoType() == GEO_TYPE_POINT ) ? '%g' : 'Centroid(%g)';
+
+    $sql = "($r * ACOS($ysin * SIN(Y($g)/$d) + $ycos
+      * COS(Y($g)/$d)
+      * COS(X($g)/$d - $xd)))";
+
+    return $this->sql($sql, array($g1, $g1, $g1));
   }
 }

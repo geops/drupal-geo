@@ -70,117 +70,14 @@ function geo_field_select($field) {
     AsBinary(Centroid($field)) AS {$alias}_centroid";
 }
 
-function geo_query_operators($geo_type) {
-  return array(
-    'Equals' => t('Equals'),
-    'NOT Equals' => t('Does not equal'),
-    'Intersects' => t('Intersects'),
-    'NOT Intersects' => t('Does not intersect'),
-    'Within' => t('Within'),
-    'NOT Within' => t('Not within'),
-  );
-}
-
-function geo_query_functions($geo_type) {
-  $geo_type = strtolower($geo_type);
-  $functions = array( 'wkt' => 'wkt', 'wkb' => 'wkb' );
-
-  if ($geo_type == 'point') {
-    $functions['lat'] = 'lat';
-    $functions['lon'] = 'lon';
-  }
-
-  if ($geo_type == 'polygon' || $geo_type == 'linestring') {
-    $functions['area'] = 'area';
-    $functions['bbox'] = 'bbox';
-    $functions['perimeter'] = 'perimeter';
-  }
-
-  if ($geo_type == 'linestring') {
-    $functions['start'] = 'start';
-    $functions['end'] = 'end';
-  }
-
-  // TODO distance? given that we have a starting point?
-
-  return $functions;
-}
-
-function geo_query_handlers($geo_type) {
-  // TODO are these all supported by default?  (and through which functions?)
-  return array(
-    'wkt' => t('Well Known Text'),
-    'wkb' => t('Well Known Binary'),
-    'svg' => t('SVG'),
-    'kml' => t('KML'),
-    'gml' => t('GML'),
-  );
-}
-
-function geo_query_area($field, $srid = null) {
-  return 'Area('. $field .')';
-}
-
-function geo_query_bbox($field, $srid = null) {
-  return 'Envelope('. $field .')';
-}
-
-function geo_query_centroid($field, $srid = null) {
-  return 'Centroid('. $field .')';
-}
-
-function geo_query_geo_type($field, $srid = null) {
-  return 'GeometryType('. $field .')';
-}
-
-function geo_query_end($field, $srid = null) {
-  return 'EndPoint('. $field .')';
-}
-
-function geo_query_lat($field, $srid = null) {
-  return 'Y('. $field .')';
-}
-
-function geo_query_lon($field, $srid = null) {
-  return 'X('. $field .')';
-}
-
-function geo_query_length($field, $srid = null) {
-  return 'Length('. $field .')';
-}
-
 function geo_query_perimeter($field, $srid = null) {
   return 'Length(ConvexHull('. $field .')';
-}
-
-function geo_query_start($field, $srid = null) {
-  return 'StartPoint('. $field .')';
-}
-
-function geo_query_wkt($field, $srid = null) {
-  return 'asText('. $field .')';
-}
-
-function geo_query_wkb($field, $srid = null) {
-  return 'asBinary('. $field .')';
 }
 
 function geo_query_distance($field, $srid = null, $target) {
   $target = geo_wkt_from_point($target['lat'], $target['lon']);
   $query  = 'Distance('. $field .", GeomFromText('". $target ."', $srid))";
   return '('. GEO_DEGREE_M .' * '. $query .')';
-}
-
-function geo_query_within($field, $srid = null, $target) {
-  return "Within($field, GeomFromText('". $target['wkt'] ."', $srid))";
-}
-
-function geo_query_contains($field, $srid = null, $target) {
-  return "Contains(GeomFromText('". $target['wkt'] ."', $srid), $field)";
-}
-
-function geo_query_extent($field) {
-  return "ST_Extent($field)";
 }
 
 function geo_schema_field($gis_type = 'geometry', $name = 'geo', $srid = NULL) {
@@ -243,22 +140,6 @@ function geo_rss_item($wkb) {
     'value' => $data['value'],
     'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
   );
-}
-
-function geo_gis_input_selector($default_value) {
-  // Provide a selection of input handlers.
-  $input_types = array();
-  foreach (module_invoke_all('gis_input_info') as $name => $info) {
-    $input_types[$name] = $info['label'];
-  }
-
-  $form = array(
-    '#type' => 'select',
-    '#title' => 'Widget',
-    '#options' => $input_types,
-    '#default_value' => $default_value,
-  );
-  return $form;
 }
 
 function geo_wkt_validate($wkt, $geo_type = NULL, $srid = GEO_SRID_DEFAULT) {

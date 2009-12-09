@@ -353,18 +353,74 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
   return $val;
 }
 
-function geo_value_convert($value, $in = 'array', $out = 'wkt') {
-  // TODO We are taking the element's requested input and output formats, and
-  // making the necessary adjustments.  This needs to be refactored and set up
-  // in some kind of a handler model.  For now it's a proof-of-concept that
-  // gets the UI & existing inputs up and running.
-  switch ($in) {
+// TODO We are taking the element's requested input and output formats, and
+// making the necessary adjustments.  This needs to be refactored and set up
+// in some kind of a handler model.  For now it's a proof-of-concept that
+// gets the UI & existing inputs up and running.
+function geo_value($input, $output_format, $input_format = 'wkb') {
+
+  // Nothing to do here.
+  if ($output_format == $input_format) return $input;
+
+  switch ($input_format) {
+    case 'wkb':
+      $value = geo_wkb_get_data($input, $output_format);
+      return $value['value'];
+
+    case 'wkt':
+      break;
+
     case 'array':
-      if ($out == 'wkt') {
-        $value = geo('wkt_from_point', $value['lat'], $value['lon']);
+      if ($output_format == 'wkt') {
+        return geo('wkt_from_point', $input['lat'], $input['lon']);
       }
       break;
   }
+}
 
-  return $value;
+/**
+ * Determine which gis input formats are supported by a theme function.
+ */
+function geo_theme_input($theme) {
+  static $registry;
+  if (!isset($registry)) {
+    init_theme();
+    $registry = theme_get_registry();
+  }
+  return $registry[$theme]['gis input'];
+}
+
+/**
+ * Determine which gis input formats are supported by a formatter.
+ */
+function geo_formatter_input($name, $field_type) {
+  $formatter = _content_get_formatter($name, $field_type);
+  return geo_theme_input($formatter['module'] .'_formatter_'. $name);
+}
+
+/**
+ * Return a list of possible inputs.
+ */
+function geo_inputs() {
+  static $inputs;
+  if (!isset($inputs)) {
+    $inputs = module_invoke_all('gis_input_info') ;
+    foreach ($inputs as $name => $info) {
+      // Ignore nonexistent element types.
+      if (!$element = _element_info($info['element']['#type'])) continue;
+
+      // Build out the element from its system defaults and from the hook.
+      $element = array_merge($element, $info['element']);
+      $element['#gis_input'] = $info['gis input'];
+      unset($element['#parents']);
+
+      $inputs[$name]['element'] = $element;
+    }
+  }
+  return $inputs;
+}
+
+function geo_input_element_info($name) {
+  $inputs = geo_inputs();
+  return $inputs[$name]['element'];
 }

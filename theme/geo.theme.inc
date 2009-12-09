@@ -50,7 +50,7 @@ function geo_theme_theme() {
  * Field formatters for geo fields.
  */
 function theme_geo_formatter_default($element) {
-  return $element['#item'];
+  return $element['#item']['geo'];
 }
 
 function theme_geo_formatter_lat($element) {

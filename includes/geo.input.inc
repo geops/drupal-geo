@@ -40,29 +40,13 @@ function geo_field_convert_value(&$element) {
     if (isset($element[$key]['field']) && $element[$key]['field']['#access']) {
       $field = $element[$key]['field'];
       $theme = $field['#single'] ? $field['items'][0]['#theme'] : $field['items']['#theme'];
+      $format = geo_theme_input($theme);
       foreach ($field['items'] as $i => $item) {
         if (is_array($item) && isset($item['#item'])) {
-          $element[$key]['field']['items'][$i]['#item'] = geo_set_value($item['#item'], $theme);
+          $element[$key]['field']['items'][$i]['#item'][$format] = geo_value($item['#item']['wkb'], $format);
         }
       }
     }
   }
   return $element;
-}
-
-function geo_set_value($item, $theme) {
-  init_theme();
-  $registry = theme_get_registry();
-
-  if ($format = $registry[$theme]['gis input']) {
-    if (isset($item['wkb']) && !isset($item[$format])) {
-      if (!isset($item['wkb'])) $item['wkb'] = $item['geo'];
-      $value = geo_wkb_get_data($item['wkb'], $format);
-      $item['geo'] = $item[$format] = $value['value'];
-    }
-    else {
-      $item['geo'] = $item[$format] = '';
-    }
-  }
-  return $item;
 }
