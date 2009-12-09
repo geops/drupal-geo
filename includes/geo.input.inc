@@ -42,7 +42,7 @@ function geo_field_convert_value(&$element) {
       $theme = $field['#single'] ? $field['items'][0]['#theme'] : $field['items']['#theme'];
       $format = geo_theme_input($theme);
       foreach ($field['items'] as $i => $item) {
-        if (is_array($item) && isset($item['#item'])) {
+        if ($format && is_array($item) && isset($item['#item'])) {
           $element[$key]['field']['items'][$i]['#item'][$format] = geo_value($item['#item']['wkb'], $format);
         }
       }
