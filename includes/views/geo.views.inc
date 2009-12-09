@@ -353,6 +353,7 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#type' => 'select',
     '#title' => 'Widget',
     '#default_value' => $handler->value['input'],
+    '#weight' => 10,
   );
 
   $form['value']['target_div_prefix'] = array(
@@ -380,8 +381,10 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
     $element['#process'][] = 'views_process_dependency';
     $element['#dependency'] = array('edit-options-value-input' => array($name));
+    $element['#weight'] = 11;
 
     $form['value']['target'][$name] = $element;
+    $form['value']['target']['#weight'] = 11;
   }
 
   // Set the list of elements back to the target options.
@@ -389,6 +392,6 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
   $form['value']['target_div_suffix'] = array(
     '#value' => '</fieldset></div>',
-    '#weight' => 11,
+    '#weight' => 12,
   );
 }
