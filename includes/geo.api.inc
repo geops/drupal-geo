@@ -395,6 +395,11 @@ function geo_theme_input($theme) {
  */
 function geo_formatter_input($name, $field_type) {
   $formatter = _content_get_formatter($name, $field_type);
+
+  // The formatter has defined a 'gis input' value.
+  if (isset($formatter['gis input'])) return $formatter['gis input'];
+
+  // Perhaps the theme has defined a 'gis input' value.  Let's check!
   return geo_theme_input($formatter['module'] .'_formatter_'. $name);
 }
 
