@@ -7,10 +7,8 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
   function option_definition() {
     $options = parent::option_definition();
     $options['function'] = array('default' => 'distance');
-    $options['target'] = array(
-      'input' => array('default' => 'geo_latlon'),
-      'value' => array('default' => array()),
-    );
+    $options['value']['target'] = array('default' => NULL);
+    $options['value']['input'] = array('default' => 'geo_latlon');
     $options['units'] = array('default' => 'mi');
     return $options;
   }
@@ -20,10 +18,6 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
 
     // This helper function provides a function chooser and sets up targets.
     geo_views_target_form($form, $form_state, $this, 'filter');
-
-
-//    $form['function']['#weight'] = 0;
-//    $form['distance']['#weight'] = 2;
 
     // Special-case distance filters, which have additional inputs.
     $dst_functions = $num_functions = array();
@@ -53,38 +47,16 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
 
     // Units.
-    $form['units'] = array(
+    $form['value']['units'] = array(
       '#type' => 'select',
       '#title' => t('Units'),
       '#options' => geo_units(),
       '#default_value' => $this->options['units'],
       '#process' => array('views_process_dependency'),
       '#dependency' => array('radio:options[function]' => $num_functions ),
-      '#weight' => 6,
+      '#weight' => 2,
     );
-
-   // drupal_set_message('<pre>'.print_r($form, 1));
-
-/*
-    $form['distance']['distance'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Distance'),
-      '#default_value' => $this->options['distance']['distance'],
-      '#size' => 5,
-      '#process' => array('views_process_dependency'),
-      '#dependency' => array('edit-options-function' => $dst_functions),
-      '#prefix' => '<div class="container-inline">',
-    );
-    $form['distance']['units'] = array(
-      '#type' => 'select',
-      '#title' => t('Units'),
-      '#options' => geo_units(),
-      '#default_value' => $this->options['distance']['units'],
-      '#process' => array('views_process_dependency'),
-      '#dependency' => array('edit-options-function' => $dst_functions ),
-      '#suffix' => '</div>',
-    );
-*/
+    //drupal_set_message('<pre>'.print_r($form, 1));
   }
 
   function exposed_form(&$form, &$form_state) {
@@ -93,7 +65,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $key = $this->options['expose']['identifier'];
 
     // Get the selected input element (e.g. latlon, geocoded textbox, etc.)
-    $input = geo_input_element_info($this->options['target']['input']);
+    $input = geo_input_element_info($this->options['value']['input']);
 
     if(substr($this->options['function'], 0, 8) == 'distance') {
       // TODO add distancy stuff here.
@@ -115,9 +87,12 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
 
     $info = $this->geo->functionInfo($function);
     if ($info['requires target']) {
-      $input = $this->options['target']['input'];
-      $value = $this->options['target']['value'][$input];
+      $input = $this->value['input'];
+      $value = $this->value['target'][$input];
       $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
+
+      // Prevent an erroneous query if there's no target to
+      if (!$target) return;
     }
 
     $table = $this->ensure_my_table();
@@ -139,7 +114,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
    		// TODO Add a bounding box filter to leverage the geo index for performance
 
       // Convert the limiting values to meters.
-      if ($units = $this->options['units']) {
+      if ($units = $this->value['units']) {
         foreach (array('value', 'min', 'max') as $key) {
           $this->value[$key] = (int) geo_unit_convert($this->value[$key], $units, 'm');
         }
