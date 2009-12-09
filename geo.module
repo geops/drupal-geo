@@ -190,7 +190,7 @@ function geo_content_fieldapi($op, $field) {
       'title' => $title,
       'geo_type' => $geo_type,
     );
-   
+
     if (!$geo = geo_load($info)) {
       $geo = geo_create_dataset($info);
     }

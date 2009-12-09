@@ -13,58 +13,6 @@ function geo_mysql_spatial_query_function($func, $field, $value, $srid) {
   return array("$func(GeomFromText('$value', $srid), $field)");
 }
 
-/**
- * Calculate the distance using the Pythagorean theorem.  It's cheaper than
- * the spherical versions, but less accurate.
- * TODO only works for points - the X() and Y() functions should be supplanted
- *      by something that's cognizant of other geometries.
- */
-function geo_mysql_spatial_query_distance($field, $srid, $point) {
-  // Point data.
-  $x = $point['lon'];
-  $y = $point['lat'];
-
-  // Offsets, in meters.
-  $mod_x = GEO_DEGREE_M * cos($y / 57.2958);
-  $mod_y = GEO_DEGREE_M;
-
-  return "SQRT(POW(($mod_x * (X($field) - $x)), 2) + POW(($mod_y * (Y($field) - $y)), 2))";
-}
-
-/**
- * Calculate the distance using the Great Circle Distance Formula.
- * TODO only works for points - the X() and Y() functions should be supplanted
- *      by something that's cognizant of other geometries.
- */
-function geo_mysql_spatial_query_distance_sphere($field, $srid, $point) {
-  // Radius of the earth in meters.
-  $r = 6370986;
-
-  // Degree offset.
-  $d = 57.2958;
-
-  // Point data.
-  $x = $point['lon'];
-  $y = $point['lat'];
-
-  // Offsets, in meters.
-  $ysin = sin($y / $d);
-  $ycos = cos($y / $d);
-  $xd   = $x/$d;
-
-  return "($r * ACOS($ysin * SIN(Y($field)/$d) + $ycos * COS(Y($field)/$d) * COS(X($field)/$d - $xd)))";
-}
-
-/**
- * Aggregate function that returns the total boundary of a result set.
- */
-function mysql_spatial_geo_query_extent($field) {
-  return "MIN(X(PointN(ExteriorRing(envelope($field)), 1))) AS minx,
-    MAX(X(PointN(ExteriorRing(envelope($field)), 3))) AS maxx,
-    MIN(Y(PointN(ExteriorRing(Envelope($field)), 1))) AS miny,
-    MAX(Y(PointN(ExteriorRing(Envelope($field)), 3))) AS maxy";
-}
-
 /*** Helper functions ***/
 
 /**

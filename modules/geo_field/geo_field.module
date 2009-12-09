@@ -49,44 +49,6 @@ function geo_field_settings($op, $field) {
         return geo('schema_field', $field['geo_type']);
       }
       break;
-
-    case 'views data':
-      // Start with default views data, as constructed by CCK.
-      $data = content_views_field_views_data($field);
-      $table = content_views_tablename($field);
-
-      // Copy the wkt item to geo, and add handlers for the geospatial field.
-      $geo = $field['field_name'] .'_geo';
-      $dst = $field['field_name'] .'_dst';
-
-      $data[$table][$dst] = $data[$table][$geo];
-
-      // Set field handler to our own.
-      $data[$table][$geo]['field']['field'] = $geo;
-      $data[$table][$geo]['field']['handler'] = 'views_handler_field_geo_field';
-      $data[$table][$geo]['field']['geo_type'] = $field['geo_type'];
-
-      // Add a field handler for distance.
-      $data[$table][$dst]['field']['title'] .= ' - '. t('Distance');
-      $data[$table][$dst]['field']['field'] = $geo;
-      $data[$table][$dst]['field']['handler'] = 'views_handler_field_geo_distance';
-      $data[$table][$dst]['field']['float'] = TRUE;
-      $data[$table][$dst]['field']['click sortable'] = TRUE;
-      $data[$table][$dst]['filter']['title'] = $data[$table][$dst]['field']['title'];
-      $data[$table][$dst]['filter']['handler'] = 'views_handler_filter_geo_distance';
-      $data[$table][$dst]['filter']['field'] = $geo;
-
-      $data[$table][$dst]['sort']['handler'] = 'views_handler_sort_geo_distance';
-      $data[$table][$dst]['sort']['field'] = $geo;
-
-      $data[$table][$dst]['field']['geo_type'] = $field['geo_type'];
-
-      // Set filter handler to Geo's built-in geo filters.
-      $data[$table][$geo]['filter']['field'] = $geo;
-      $data[$table][$geo]['filter']['handler'] = 'views_handler_filter_geo';
-      $data[$table][$geo]['filter']['geo_type'] = $field['geo_type'];
-
-      return $data;
   }
 }
 
@@ -138,7 +100,10 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         if(geo_content_is_empty($item, $field)) return;
 
         // Convert to $wkt and validate it.
-        $wkt = geo_value_convert($item['geo'], $gis_input, 'wkt');
+        $wkt = $item['geo'];
+        if ($gis_input) {
+          $wkt = geo_value($wkt, 'wkt', $gis_input);
+        }
 
         if ($wkt && ($error = geo('wkt_validate', $wkt, $field['geo_type'])) !== TRUE) {
           $error_field = $field['field_name'];
@@ -152,7 +117,10 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         if(!geo_content_is_empty($item, $field)) {
 
           // Convert to WKT (TODO we don't have direct-to-wkb functions yet!)
-          $wkt = geo_value_convert($item['geo'], $gis_input, 'wkt');
+          if ($gis_input) {
+            $wkt = geo_value($item['geo'], 'wkt', $gis_input);
+          }
+          else $wkt = $item['geo'];
 
           // Convert the WKT to binary data before the insert. This allows the
           // input to pass through the binary query substitutions.
@@ -176,7 +144,7 @@ function geo_content_is_empty($item, $field) {
  */
 function geo_field_widget_info() {
   $widget_info = array();
-  foreach (module_invoke_all('gis_input_info') as $name => $info) {
+  foreach (geo_inputs() as $name => $info) {
     if (!$info['safe reverse']) continue;
     $widget_info[$name] = $info;
     $widget_info[$name]['field types'] = array_keys(geo_field_info());
@@ -214,14 +182,4 @@ function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
   ));
 
   return $element;
-}
-
-/**
- * Implementation of hook_views_api().
- */
-function geo_field_views_api() {
-  return array(
-    'api' => 2,
-    'path' => drupal_get_path('module', 'geo_field') .'/includes/views',
-  );
 }

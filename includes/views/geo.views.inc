@@ -6,14 +6,33 @@
  * @package geo
  */
 
+require_once dirname(__FILE__) . '/views_join_geo.inc';
+
 /**
  * Implementation of hook_views_data().
  */
 function geo_views_data() {
   $data = array();
 
+  $geo_fields = geo_field_names();
+
   // Get all of the datasets stored in Geo's API.
   foreach (geo_list() as $geo) {
+
+    // Do not process Geo CCK fields, these will be handled separately.
+    if (in_array($geo->name(), $geo_fields)) continue;
+
+    // Create an all-purpose Geo base table.
+    if (!isset($data['geo'])) {
+
+      $data['geo_data']['table']['base'] = array(
+        'title' => t('Geospatial data'),
+        'description' => t(''),
+      );
+
+      // Add to 'geo' group.
+      $data['geo_data']['table']['group']  = t('Geo');
+    }
 
     // If available, use the views_data provided by the handler and move on.
     if (method_exists($geo, 'views_data')) {
@@ -26,118 +45,190 @@ function geo_views_data() {
     if (method_exists($geo, 'columnName')) $column = $geo->columnName();
     if (method_exists($geo, 'schema')) $schema = $geo->schema();
 
-    // There's a geometry column,
+    // There's a geometry column. Set up fields relationships between geo data.
     if ($table && $column) {
-      $data['geo'][$table] = array(
-        'field' => array(
-          'handler' => 'views_handler_field_numeric',
-          'float' => $float,
-          'click sortable' => TRUE,
-        ),
-        'sort' => array(
-          'handler' => 'views_handler_sort',
-        ),
-        'filter' => array(
-          'handler' => 'views_handler_filter_numeric',
-        ),
-        'argument' => array(
-          'handler' => 'views_handler_argument_numeric',
-          'click sortable' => TRUE,
+
+      // Add to 'geo' group.
+      $data[$table]['table']['group']  = t('Geo');
+
+      // Establish a relationship to the geo_data base table.
+      $data[$table]['table']['join']  = array(
+        'geo_data' => array(
+          'handler' => 'views_join_geo',
+          'left_field' => 'geo',
+          'field' => $column,
+          'geo_gid' => $geo->gid(),
         ),
       );
-    }
 
-    // This dataset has additional metadata in a schema definition.
-    if (isset($schema)) {
-      foreach ($schema as $geo_table => $info) {
+      // Establish a relationship to the geo_data "base table".
+      $data[$table][$column] = array(
+        'title' => $geo->title(),
+        'field' => array(
+          'handler' => 'views_handler_field_geo',
+          'geo_gid' => $geo->gid(),
+        ),
+        'argument' => array(
+          'handler' => 'views_handler_argument_geo',
+          'geo_gid' => $geo->gid(),
+        ),
+        'filter' => array(
+          'handler' => 'views_handler_filter_geo',
+          'geo_gid' => $geo->gid(),
+        ),
+        'sort' => array(
+          'handler' => 'views_handler_sort_geo',
+          'geo_gid' => $geo->gid(),
+        ),
+      );
 
-        // Field information
-        foreach ($info['fields'] as $field_name => $field_info) {
-          $views_field = array();
+      // This dataset has additional metadata in a schema definition.
+      if (isset($schema)) {
 
-          // Use the field's predefined views stuff.
-          if (isset($field['views'])) {
-            $views_field = $field['views'];
-          }
+        foreach ($schema as $geo_table => $info) {
 
-          // Make our best guess at what kind of views support to use.
-          else {
-            switch ($field_info['type']) {
-              case 'serial':
-              case 'int':
-              case 'float':
-              case 'numeric':
-                $float = in_array($field_info['type'], array('float', 'numeric'));
-                $views_field = array(
-                  'field' => array(
-                    'handler' => 'views_handler_field_numeric',
-                    'float' => $float,
-                    'click sortable' => TRUE,
-                  ),
-                  'sort' => array(
-                    'handler' => 'views_handler_sort',
-                  ),
-                  'filter' => array(
-                    'handler' => 'views_handler_filter_numeric',
-                  ),
-                  'argument' => array(
-                    'handler' => 'views_handler_argument_numeric',
-                    'click sortable' => TRUE,
-                  ),
-                );
-                break;
+          // Field information
+          foreach ($info['fields'] as $field_name => $field_info) {
+            $views_field = array();
 
-              case 'varchar':
-              case 'char':
-                $views_field = array(
-                  'field' => array(
-                    'handler' => 'views_handler_field',
-                  ),
-                  'sort' => array(
-                    'handler' => 'views_handler_sort',
-                  ),
-                  'filter' => array(
-                    'handler' => 'views_handler_filter_string',
-                  ),
-                  'argument' => array(
-                    'handler' => 'views_handler_argument_string',
-                  ),
-                );
-                break;
-
-              case 'text':
-                $views_field = array(
-                  'field' => array(
-                    'handler' => 'views_handler_field',
-                    'click sortable' => TRUE,
-                  ),
-                  'sort' => array(
-                    'handler' => 'views_handler_sort',
-                  ),
-                  'filter' => array(
-                    'handler' => 'views_handler_filter_string',
-                  ),
-                  'argument' => array(
-                    'handler' => 'views_handler_argument_string',
-                    'click sortable' => TRUE,
-                  ),
-                );
-                break;
-
-              case 'blob':
-                // Don't deal with these.
-                break;
-
-              case 'datetime':
+            // Use the field's predefined views stuff.
+            if (isset($field['views'])) {
+              $views_field = $field['views'];
             }
-          }
 
-          if ($views_field) {
-            $views_field['title'] = '';
-            $views_field['help'] = '';
+            // Make our best guess at what kind of views support to use.
+            else {
+              switch ($field_info['type']) {
+                case 'serial':
+                case 'int':
+                case 'float':
+                case 'numeric':
+                  $float = in_array($field_info['type'], array('float', 'numeric'));
+                  $views_field = array(
+                    'field' => array(
+                      'handler' => 'views_handler_field_numeric',
+                      'float' => $float,
+                      'click sortable' => TRUE,
+                    ),
+                    'sort' => array(
+                      'handler' => 'views_handler_sort',
+                    ),
+                    'filter' => array(
+                      'handler' => 'views_handler_filter_numeric',
+                    ),
+                    'argument' => array(
+                      'handler' => 'views_handler_argument_numeric',
+                      'click sortable' => TRUE,
+                    ),
+                  );
+                  break;
+
+                case 'varchar':
+                case 'char':
+                  $views_field = array(
+                    'field' => array(
+                      'handler' => 'views_handler_field',
+                    ),
+                    'sort' => array(
+                      'handler' => 'views_handler_sort',
+                    ),
+                    'filter' => array(
+                      'handler' => 'views_handler_filter_string',
+                    ),
+                    'argument' => array(
+                      'handler' => 'views_handler_argument_string',
+                    ),
+                  );
+                  break;
+
+                case 'text':
+                  $views_field = array(
+                    'field' => array(
+                      'handler' => 'views_handler_field',
+                      'click sortable' => TRUE,
+                    ),
+                    'sort' => array(
+                      'handler' => 'views_handler_sort',
+                    ),
+                    'filter' => array(
+                      'handler' => 'views_handler_filter_string',
+                    ),
+                    'argument' => array(
+                      'handler' => 'views_handler_argument_string',
+                      'click sortable' => TRUE,
+                    ),
+                  );
+                  break;
+
+                case 'blob':
+                  // Don't bother with these.
+                  break;
+
+                case 'datetime':
+              }
+            }
+
+            if ($views_field) {
+              // Set some common values.
+              $views_field['title'] = $geo->title() .' - '. $field_name;
+              $views_field['help'] = '';
+
+              // Specify the table and field names in the Views field definition,
+              // because we're using generic name of 'geo' to group these.
+              $views_field['table'] = $geo_table;
+
+              // Add it to the geo base table.
+              $data[$geo_table][$field_name] = $views_field;
+            }
           }
         }
       }
+    }
+  }
+
+  return $data;
+}
+
+/**
+ * Implementation of CCK's hook_field_settings_alter().
+ */
+function geo_field_settings_alter(&$data, $op, $field) {
+  if ($op == 'views data') {
+    if (in_array($field['field_name'], geo_field_names())) {
+
+      // No views data from the field module.  Start with CCK defaults
+      if (!$data) $data = content_views_field_views_data($field);
+
+      // Load the geo handler that controls this dataset.
+      if ($geo = geo_load(array('name' => $field['field_name']))) {
+        $geo->setTableName(content_views_tablename($field));
+
+        $db_info = content_database_info($field);
+        foreach ($db_info['columns'] as $column => $info) {
+          $table = $geo->tableName();
+          $field = $info['column'];
+
+          if ($info['gis type']) {
+            // Add a relationship to the Geo join handler.
+            $data[$table][$field]['relationship'] = array(
+              'handler' => 'views_handler_relationship_geo',
+              'join_handler' => 'views_join_geo',
+              'base' => 'geo_data',
+              'field' => 'geo',
+              'label' => t('Geo'),
+              'geo_gid' => $geo->gid(),
+            );
+
+            // Set all field handlers to Geo's built-in versions.
+            foreach (array('field', 'filter', 'argument', 'sort') as $item) {
+              $handler = 'views_handler_'. $item .'_geo';
+              $data[$table][$field][$item]['handler'] = $handler;
+              $data[$table][$field][$item]['geo_gid'] = $geo->gid();
+            }
+          }
+        }
+      }
+      // TODO this isn't picking up any of geo_data's fields!
     }
   }
 }
@@ -151,27 +242,22 @@ function geo_views_handlers() {
       'path' => drupal_get_path('module', 'geo') .'/includes/views',
     ),
     'handlers' => array(
-      // For any field that handles geo data.
-      'views_handler_field_geo_field' => array(
-        'parent' => 'content_handler_field',
+      'views_join_geo' => array(
+        'parent' => 'views_join',
+      ),
+      'views_handler_relationship_geo' => array(
+        'parent' => 'views_handler_relationship',
+        'join_handler' => 'views_join_geo',
       ),
       'views_handler_field_geo' => array(
        'parent' => 'views_handler_field',
        'gis input' => 'array',
       ),
       'views_handler_filter_geo' => array(
-       'parent' => 'views_handler_filter',
+       'parent' => 'views_handler_filter_numeric',
        'gis input' => 'array',
       ),
-      'views_handler_field_geo_distance' => array(
-       'parent' => 'views_handler_field_numeric',
-       'gis input' => 'array',
-      ),
-      'views_handler_filter_geo_distance' => array(
-       'parent' => 'views_handler_filter',
-       'gis input' => 'array',
-      ),
-      'views_handler_sort_geo_distance' => array(
+      'views_handler_sort_geo' => array(
        'parent' => 'views_handler_sort',
       ),
     ),
@@ -233,5 +319,81 @@ function geo_views_plugins() {
         'path' => drupal_get_path('module', 'geo') .'/includes/views',
       ),
     ),
+  );
+}
+
+/**
+ * A helper function used across views handlers to select a target geometry.
+ */
+function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
+
+  if (!isset($handler->geo)) {
+    $handler->geo = geo_load(array('gid' => $handler->definition['geo_gid']));
+  }
+
+  $functions = $handler->geo->functionNames($group);
+
+  // Select which function to use.
+  $form['function'] = array(
+    '#type' => 'radios',
+    '#title' => t($group .' function to use'),
+    '#default_value' => $handler->options['function'],
+    '#options' => $functions,
+  );
+
+  // Some of these functions require a relationship to another value.
+  // If so, show the target handling functionality here.
+  $deps = array();
+  foreach ($functions as $function => $label) {
+    $info = $handler->geo->functionInfo($function);
+    if ($info['requires target']) $deps[] = $function;
+  }
+
+  $form['target_div_prefix'] = array(
+    '#type' => 'hidden',
+    '#id' => 'geo-target-options',
+    '#prefix' => '<div><fieldset id="geo-target-options"><legend>' . t('Provide a target for this function') . '</legend>',
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('radio:options[function]' => $deps),
+    '#weight' => 9,
+  );
+
+  // Add a distance handler to ensure it gets the proper weight.
+  $form['distance'] = array();
+
+  $form['target'] = array('#tree' => TRUE, '#weight' => 10);
+
+  $form['target']['input'] = array(
+    '#type' => 'select',
+    '#title' => 'Widget',
+    '#default_value' => $handler->options['target']['input'],
+  );
+
+  $input_options = array();
+  foreach (geo_inputs() as $name => $info) {
+    $element = $info['element'];
+
+    $input_options[$name] = $info['label'];
+
+    $element = array_merge($element, array(
+      '#title' => $handler->options['label'],
+      '#default_value' => $handler->options['target']['value'][$name],
+      '#gis_type' => $handler->geo->geometryType(),
+      '#gis_output' => 'wkt', // The format expected by this handler.
+      '#tree' => TRUE,
+    ));
+
+    $element['#process'][] = 'views_process_dependency';
+    $element['#dependency'] = array('edit-options-target-input' => array($name));
+
+    $form['target']['value'][$name] = $element;
+  }
+
+  // Set the list of elements back to the target options.
+  $form['target']['input']['#options'] = $input_options;
+
+  $form['target_div_suffix'] = array(
+    '#value' => '</fieldset></div>',
+    '#weight' => 11,
   );
 }

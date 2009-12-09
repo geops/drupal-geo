@@ -57,6 +57,8 @@ class GeoSQL implements GeoInterface {
   function sql($sql, $args = array()) {
     if (is_array($args)) {
       foreach ($args as $i => $g) {
+        $srid = GEO_SRID_DEFAULT;
+        $wkt = NULL;
         if (is_object($g)) {
 
           // If the backend is the same as this one, query the column directly.
@@ -67,8 +69,13 @@ class GeoSQL implements GeoInterface {
           // Otherwise, get the WKT representation and call GeomFomText on it.
           else {
             $wkt = GeoSimple::asText($g);
-            $sql = preg_replace('/\%g/', "GeomFromText('". $wkt ."')", $sql, 1);
           }
+        }
+        elseif(is_string($g)) {
+          $wkt = $g;
+        }
+        if (isset($wkt)) {
+          $sql = preg_replace('/\%g/', "GeomFromText('$wkt', $srid)", $sql, 1);
         }
       }
     }
@@ -80,6 +87,187 @@ class GeoSQL implements GeoInterface {
     if (($table = $this->tableName()) && ($column = $this->columnName())) {
       return $table .'.'. $column;
     }
+  }
+
+  /**
+   * Return a list of functions supported by this backend.
+   *
+   * These are used in a user interface (e.g. Views administration)
+   */
+  function supportedFunctions() {
+    return array(
+      'AsBinary' => array(
+        'label' => t('Well-known binary'),
+      ),
+      'AsText' => array(
+        'label' => t('Well-known text'),
+        'display' => TRUE,
+      ),
+      'x' => array(
+        'label' => t('Longitude'),
+        'returns' => 'float',
+        'geo types' => array(GEO_TYPE_POINT),
+        'sort' => TRUE,
+        'display' => TRUE,
+      ),
+      'y' => array(
+        'label' => t('Latitude'),
+        'returns' => 'float',
+        'geo types' => array(GEO_TYPE_POINT),
+        'sort' => TRUE,
+        'display' => TRUE,
+      ),
+      'length' => array(
+        'label' => t('Length'),
+        'returns' => 'float',
+        'geo types' => array(GEO_TYPE_LINESTRING),
+        'sort' => TRUE,
+        'display' => TRUE,
+        'filter' => TRUE,
+      ),
+      'area' => array(
+        'label' => t('Area'),
+        'returns' => 'float',
+        'geo types' => array(GEO_TYPE_POLYGON),
+        'sort' => TRUE,
+        'display' => TRUE,
+        'filter' => TRUE,
+      ),
+      'distance' => array(
+        'label' => t('Distance'),
+        'returns' => 'float',
+        'requires target' => TRUE,
+        'sort' => TRUE,
+        'display' => TRUE,
+        'filter' => TRUE,
+      ),
+      'distanceSpheroid' => array(
+        'label' => t('Distance (Spherical)'),
+        'returns' => 'float',
+        'requires target' => TRUE,
+        'sort' => TRUE,
+        'display' => TRUE,
+        'filter' => TRUE,
+      ),
+      'equals' => array(
+        'label' => t('Equals'),
+        'returns' => 'boolean',
+        'requires target' => TRUE,
+        'filter' => TRUE,
+      ),
+      'touches' => array(
+        'label' => t('Touches'),
+        'returns' => 'boolean',
+        'requires target' => TRUE,
+        'filter' => TRUE,
+      ),
+      'within' => array(
+        'label' => t('Within'),
+        'returns' => 'boolean',
+        'requires target' => TRUE,
+        'filter' => TRUE,
+      ),
+      'intersects' => array(
+        'label' => t('Intersects'),
+        'returns' => 'boolean',
+        'requires target' => TRUE,
+        'filter' => TRUE,
+      ),
+      'contains' => array(
+        'label' => t('Contains'),
+        'returns' => 'boolean',
+        'requires target' => TRUE,
+        'filter' => TRUE,
+      ),
+    );
+  }
+
+  /**
+   * Returns information about a specific function.
+   */
+  function functionInfo($function) {
+    $functions = $this->supportedFunctions();
+    return $functions[$function];
+  }
+
+  /**
+   * Return a list of supported functions in a name => value array.
+   */
+  function functionNames($callback) {
+    $return = array();
+
+    $callback .= 'Functions';
+    foreach ($this->$callback() as $name => $info) {
+      $return[$name] = $info['label'];
+    }
+
+    return $return;
+  }
+
+  /**
+   * Return a list of functions that can be used for sorting values.  This
+   * is based on a flag set in the supportedFunctions elements.
+   */
+  function displayFunctions() {
+    static $functions;
+    if (!isset($functions)) {
+      $functions = $this->supportedFunctions();
+      foreach ($functions as $key => $info) {
+        if (!isset($info['display']) || !$info['display']) {
+          unset($functions[$key]);
+        }
+        if (isset($info['geo types'])) {
+          if (!in_array($this->geo_type, $info['geo types'])) {
+            unset($functions[$key]);
+          }
+        }
+      }
+    }
+    return $functions;
+  }
+
+  /**
+   * Return a list of functions that can be used for filtering values.  This
+   * is based on a flag set in the supportedFunctions elements.
+   */
+  function filterFunctions() {
+    static $functions;
+    if (!isset($functions)) {
+      $functions = $this->supportedFunctions();
+      foreach ($functions as $key => $info) {
+        if (!isset($info['filter']) || !$info['filter']) {
+          unset($functions[$key]);
+        }
+        if (isset($info['geo types'])) {
+          if (!in_array($this->geo_type, $info['geo types'])) {
+            unset($functions[$key]);
+          }
+        }
+      }
+    }
+    return $functions;
+  }
+
+  /**
+   * Return a list of functions that can be used for sorting values.  This
+   * is based on a flag set in the supportedFunctions elements.
+   */
+  function sortFunctions() {
+    static $functions;
+    if (!isset($functions)) {
+      $functions = $this->supportedFunctions();
+      foreach ($functions as $key => $info) {
+        if (!isset($info['sort']) || !$info['sort']) {
+          unset($functions[$key]);
+        }
+        if (isset($info['geo types'])) {
+          if (!in_array($this->geo_type, $info['geo types'])) {
+            unset($functions[$key]);
+          }
+        }
+      }
+    }
+    return $functions;
   }
 
   function geoCompatible($g) {

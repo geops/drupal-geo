@@ -19,7 +19,7 @@ class GeoSimple implements GeoInterface {
   protected $srid = GEO_UNKNOWN;
   protected $geo_type;
 
-  private function geometryTypes() {
+  public function geometryTypes() {
     return array(
       GEO_TYPE_POINT => 'point',
       GEO_TYPE_CURVE => 'curve',
@@ -219,7 +219,7 @@ class GeoSimple implements GeoInterface {
 
   public function geometryType($g = NULL) {
     $types = $this->geometryTypes();
-    return $types[$g->geo_type];
+    return $types[$g->geoType()];
   }
 
   public function SRID($g = NULL) {
