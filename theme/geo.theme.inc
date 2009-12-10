@@ -26,7 +26,7 @@ function geo_theme_theme() {
       'arguments' => array('element' => NULL),
       'file' => 'geo.theme.inc',
       'path' => $path,
-      'gis input' => 'array',
+      'gis input' => 'text',
     ),
     'geo_formatter_svg' => array(
       'arguments' => array('element' => NULL),
@@ -66,11 +66,11 @@ function theme_geo_formatter_georss($element) {
 
   if (in_array($item['gis type'], array('point', 'line', 'polygon'))) {
     $tag = 'georss:'. $item['gis type'];
-    $value = $item['geo'];
+    $value = $item['text'];
   }
   elseif($item['bbox']) {
     $tag = 'georss:bbox';
-    $value = $item['geo'];
+    $value = $item['text'];
   }
   if (isset($tag)) {
     return '<'. $tag .'>' . $value .'</'. $tag .'>';
