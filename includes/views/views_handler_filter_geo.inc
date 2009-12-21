@@ -52,7 +52,6 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
       '#title' => t($group .' function to use'),
       '#default_value' => $this->options['function'],
       '#options' => $functions,
-      '#pre_render' => array('showmyparents'),
     );
 
     // Ensure that these inputs get appropriate weights.
@@ -162,7 +161,9 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $form['expose']['value_options'] = array(
       '#type' => 'textfield',
       '#title' => t('Value options'),
-      '#description' => t('The list of values a user can select from'),
+      '#description' => t('The list of values a user can select from, separated by commas.'),
+      '#process' => array('views_process_dependency'),
+      '#dependency' => array('edit-options-expose-show-value' => array('select')),
       '#default_value' => $this->options['expose']['value_options'],
     );
 
@@ -201,15 +202,15 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
         }
 
         foreach (element_children($value) as $item) {
-          $default = $this->value[$item];
-          if (!isset($options[$default])) {
-            unset($form_state['input'][$key][$item]);
+          $current = $form_state['input'][$key][$item];
+          if (!isset($options[$current])) {
+            $form_state['input'][$key][$item] = NULL;
           }
           $form[$key][$item] = array(
             '#type' => 'select',
             '#multiple' => FALSE,
             '#options' => $options,
-            '#default_value' => isset($options[$default]) ? $default : NULL,
+            '#default_value' => isset($options[$current]) ? $current : NULL,
           );
           // TODO default value.
         }
@@ -250,6 +251,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $target = NULL;
 
     $info = $this->geo->functionInfo($function);
+
     if ($info['requires target']) {
       $input = geo_input_info($this->options['input']);
       $value = $this->value['target'];
