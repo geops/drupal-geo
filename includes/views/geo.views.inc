@@ -339,7 +339,6 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#title' => t($group .' function to use'),
     '#default_value' => $handler->options['function'],
     '#options' => $functions,
-    '#pre_render' => array('showmyparents'),
   );
 
   // Some of these functions require a relationship to another value.
@@ -369,8 +368,6 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
   $input_options = array();
   foreach (geo_inputs() as $name => $info) {
-//    drupal_set_message(print_r($name, 1));
- //   drupal_set_message(print_r($handler->value['target'][$name], 1));
     $element = $info['element'];
 
     $input_options[$name] = $info['label'];
@@ -399,9 +396,4 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#value' => '</fieldset></div>',
     '#weight' => 12,
   );
-}
-
-function showmyparents($element) {
-  drupal_set_message(print_r($element['#parents'], 1));
-  return $element;
 }
