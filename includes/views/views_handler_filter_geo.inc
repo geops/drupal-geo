@@ -193,7 +193,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     }
     else {
       // Use the default value_form from the numeric handler.
-      parent::value_form($value, $form_state);
+      parent::value_form($form[$key], $form_state);
 
       if ($this->options['expose']['show_value'] == 'select') {
         $options = array();
