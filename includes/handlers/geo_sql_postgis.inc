@@ -396,7 +396,11 @@ class GeoSQLPostGIS extends GeoSQL {
   }
 
   public function distance($g1, $g2) {
-    return $this->sql("ST_Distance(%g, %g)", array($g1, $g2));
+    return $this->sql("ST_Distance_Sphere(%g, %g)", array($g1, $g2));
+  }
+
+  public function distanceSpheroid($g1, $g2) {
+    return $this->sql("ST_Distance_Spheroid(%g, %g)", array($g1, $g2));
   }
 
   public function intersection($g1, $g2) {

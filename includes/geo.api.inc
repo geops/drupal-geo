@@ -417,12 +417,19 @@ function geo_inputs() {
       // Build out the element from its system defaults and from the hook.
       $element = array_merge($element, $info['element']);
       $element['#gis_input'] = $info['gis input'];
+
       unset($element['#parents']);
+      if (!$element['#tree']) unset($element['#tree']);
 
       $inputs[$name]['element'] = $element;
     }
   }
   return $inputs;
+}
+
+function geo_input_info($name) {
+  $inputs = geo_inputs();
+  return $inputs[$name];
 }
 
 function geo_input_element_info($name) {
