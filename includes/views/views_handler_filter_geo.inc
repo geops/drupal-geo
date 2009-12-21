@@ -198,10 +198,11 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
       if ($this->options['expose']['show_value'] == 'select') {
         $options = array();
         foreach (explode(',', $this->options['expose']['value_options']) as $op) {
+          $op = trim($op);
           $options[$op] = $op;
         }
 
-        foreach (element_children($value) as $item) {
+        foreach (element_children($form[$key]) as $item) {
           $current = $form_state['input'][$key][$item];
           if (!isset($options[$current])) {
             $form_state['input'][$key][$item] = NULL;
