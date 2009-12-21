@@ -339,6 +339,7 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#title' => t($group .' function to use'),
     '#default_value' => $handler->options['function'],
     '#options' => $functions,
+    '#pre_render' => array('showmyparents'),
   );
 
   // Some of these functions require a relationship to another value.
@@ -352,8 +353,9 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
   $form['value']['input'] = array(
     '#type' => 'select',
     '#title' => 'Widget',
-    '#default_value' => $handler->value['input'],
+    '#default_value' => $handler->options['input'],
     '#weight' => 10,
+    '#parents' => array('options', 'input'),
   );
 
   $form['value']['target_div_prefix'] = array(
@@ -367,24 +369,27 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
   $input_options = array();
   foreach (geo_inputs() as $name => $info) {
+//    drupal_set_message(print_r($name, 1));
+ //   drupal_set_message(print_r($handler->value['target'][$name], 1));
     $element = $info['element'];
 
     $input_options[$name] = $info['label'];
 
     $element = array_merge($element, array(
       '#title' => $handler->options['label'],
-      '#default_value' => $handler->options['target']['value'][$name],
+      '#default_value' => $handler->value['target'][$name],
       '#gis_type' => $handler->geo->geometryType(),
       '#gis_output' => 'wkt', // The format expected by this handler.
-      '#tree' => TRUE,
+      //'#tree' => TRUE,
     ));
 
     $element['#process'][] = 'views_process_dependency';
-    $element['#dependency'] = array('edit-options-value-input' => array($name));
+    $element['#dependency'] = array('edit-options-input' => array($name));
     $element['#weight'] = 11;
 
     $form['value']['target'][$name] = $element;
     $form['value']['target']['#weight'] = 11;
+    $form['value']['target']['#tree'] = TRUE;
   }
 
   // Set the list of elements back to the target options.
@@ -394,4 +399,9 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#value' => '</fieldset></div>',
     '#weight' => 12,
   );
+}
+
+function showmyparents($element) {
+  drupal_set_message(print_r($element['#parents'], 1));
+  return $element;
 }

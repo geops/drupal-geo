@@ -200,7 +200,7 @@ class GeoSimple implements GeoInterface {
   public function asText($g) {
     if (isset($g->wkt)) return $g->wkt;
     // TODO make the WKT
-    switch ($this->geometryType($g)) {
+    switch (GeoSimple::geometryType($g)) {
       case 'point':
     }
     return $this->unimplemented();
@@ -218,7 +218,7 @@ class GeoSimple implements GeoInterface {
   }
 
   public function geometryType($g = NULL) {
-    $types = $this->geometryTypes();
+    $types = GeoSimple::geometryTypes();
     return $types[$g->geoType()];
   }
 
