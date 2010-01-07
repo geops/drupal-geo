@@ -44,18 +44,8 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
   }
 
   function options_form(&$form, &$form_state) {
-    $group = 'filter';
-
-    $functions = $this->geo->functionNames($group);
-    $form['function'] = array(
-      '#type' => 'radios',
-      '#title' => t($group .' function to use'),
-      '#default_value' => $this->options['function'],
-      '#options' => $functions,
-    );
-
     // Ensure that these inputs get appropriate weights.
-
+    $form['function'] = array();
     $form['op_val_start'] = array();
     $form['operator'] = array();
     $form['value'] = array();
@@ -65,74 +55,11 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $form['target'] = array();
     $form['target_suffix'] = array();
 
+    // Call my parent's options_form method.
     parent::options_form($form, $form_state);
 
-    // Special-case distance filters, which have additional inputs.
-    $dst_functions = $num_functions = $target_functions = array();
-    foreach ($this->geo->functionNames('filter') as $name => $info) {
-      $info = $this->geo->functionInfo($name);
-      if (substr($name, 0, 8) == 'distance') {
-        $dst_functions[] = $name;
-      }
-      if ($info['returns'] == 'float') {
-        $num_functions[] = $name;
-      }
-      if ($info['requires target']) {
-        $target_functions[] = $name;
-      }
-    }
-
-    // Hide the value form if
-    $form['op_val_start']['#type'] = 'hidden';
-    $form['op_val_start']['#prefix'] = '<div>';
-    $form['op_val_start']['#process'] = array('views_process_dependency');
-    $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions );
-    $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
-
-    // The value form contained units.  Hide these if N/A.
-    $form['value']['units']['#process'] = array('views_process_dependency');
-    $form['value']['units']['#dependency'] = array('radio:options[function]' => $dst_functions );
-
-    $form['target_prefix'] = array(
-      '#type' => 'hidden',
-      '#id' => 'geo-target-options',
-      '#prefix' => '<div><fieldset id="geo-target-options"><legend>' . t('Provide a target for this function') . '</legend>',
-      '#process' => array('views_process_dependency'),
-      '#dependency' => array('radio:options[function]' => $target_functions),
-    );
-
-    // If applicable, add the target value.
-    $form['input'] = array(
-      '#type' => 'select',
-      '#title' => 'Widget',
-      '#default_value' => $this->options['input'],
-      '#process' => array('views_process_dependency'),
-      '#dependency' => array('radio:options[function]' => $target_functions),
-    );
-
-    $form['target'] = array('#tree' => TRUE);
-
-    foreach (geo_inputs() as $name => $info) {
-      $element = $info['element'];
-
-      $form['input']['#options'][$name] = $info['label'];
-
-      $element = array_merge($element, array(
-        '#title' => $this->options['label'],
-        '#default_value' => $this->options['target'][$name],
-        '#gis_type' => $this->geo->geometryType(),
-        '#gis_output' => 'wkt', // The format expected by this handler.
-      ));
-
-      $element['#process'][] = 'views_process_dependency';
-      $element['#dependency'] = array('edit-options-input' => array($name));
-
-      $form['target'][$name] = $element;
-    }
-    $form['target_suffix'] = array(
-      '#type' => 'markup',
-      '#value' => '</fieldset></div>',
-    );
+    // Use the geo_views helper function to display the target settings.
+    geo_views_target_form($form, $form_state, $this, 'filter');
   }
 
   function options_submit(&$form, &$form_state) {
