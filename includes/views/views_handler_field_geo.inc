@@ -55,10 +55,12 @@ class views_handler_field_geo extends views_handler_field {
     $this->geo->setTableName($table);
     $this->geo->setColumnName($this->field);
 
-    $this->field_alias .= '_'. strtolower($function);
+ //   $this->field_alias .= '_'. strtolower($function);
 
     // Add the field, using the Geo API method for getting it.
     $field = $this->geo->$function($this->geo, $target);
-    $this->query->add_field(NULL, $field, $this->field_alias);
+    $alias = $this->real_field .'_'. strtolower($function);
+    $this->field_alias = $this->query->add_field(NULL, $field, $alias);
+//    $this->query->add_field(NULL, $field, $this->field_alias);
   }
 }
