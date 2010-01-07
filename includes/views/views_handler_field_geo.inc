@@ -2,51 +2,63 @@
 
 class views_handler_field_geo extends views_handler_field {
 
+  function init(&$view, $options) {
+    parent::init($view, $options);
+    $this->geo = geo_load(array('gid' => $this->definition['geo_gid']));
+  }
+
   function options_definition() {
     $options = parent::option_definition();
     $options['function'] = array('default' => 'AsText');
     $options['target'] = array(
-      'input' => array('default' => 'geo_latlon'),
       'value' => array('default' => array()),
     );
+    $options['input'] = array('default' => '');
     return $options;
   }
 
   function options_form(&$form, &$form_state) {
+    // Call my parent's options_form method.
     parent::options_form($form, $form_state);
 
-    $geo = geo_load(array('gid' => $this->definition['geo_gid']));
-
-    // Select which function to use for display.
-    $options = $geo->functionNames('display');
-
-    // TODO add functions that are formatters for geo fields (e.g maps!)
-
-    $form['function'] = array(
-      '#type' => 'radios',
-      '#title' => t('Display format'),
-      '#default_value' => $this->options['function'],
-      '#options' => $options,
-    );
-
-    // TODO some of these might have a target (e.g. distance) add target stuff here.
+    // Use the geo_views helper function to display the target settings.
+    geo_views_target_form($form, $form_state, $this, 'display');
   }
 
   function query() {
-    $this->geo = geo_load(array('gid' => $this->definition['geo_gid']));
+
+    // The GIS Function we'll be using to query the database.
+    $function = $this->options['function'];
+    if (!$function) return;
+
+    // Figure out whether or not we need a target value to compare against.
+    $target = NULL;
+
+    $info = $this->geo->functionInfo($function);
+    if ($info['requires target']) {
+      $input = geo_input_info($this->options['input']);
+      $value = $this->options['target'][$this->options['input']];
+
+      // TODO this is not how we should be handling this.
+      if ($func = $input['gis callback']) {
+        $target = $func($input, $value, 'wkt:'. $this->geo->geometryType());
+      }
+      else {
+        $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
+      }
+
+      // Prevent an erroneous query if there's no target to
+      if (!$target) return;
+    }
 
     $table = $this->ensure_my_table();
     $this->geo->setTableName($table);
     $this->geo->setColumnName($this->field);
 
-    // For now, we fetch the result as text data.
-    $function = $this->options['function'];
-    if (!$function) return;
-
     $this->field_alias .= '_'. strtolower($function);
 
     // Add the field, using the Geo API method for getting it.
-    $field = $this->geo->$function($this->geo);
+    $field = $this->geo->$function($this->geo, $target);
     $this->query->add_field(NULL, $field, $this->field_alias);
   }
 }

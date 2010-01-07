@@ -327,13 +327,7 @@ function geo_views_plugins() {
  */
 function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
-  if (!isset($handler->geo)) {
-    $handler->geo = geo_load(array('gid' => $handler->definition['geo_gid']));
-  }
-
   $functions = $handler->geo->functionNames($group);
-
-  // Select which function to use.
   $form['function'] = array(
     '#type' => 'radios',
     '#title' => t($group .' function to use'),
@@ -341,59 +335,70 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#options' => $functions,
   );
 
-  // Some of these functions require a relationship to another value.
-  // If so, show the target handling functionality here.
-  $deps = array();
-  foreach ($functions as $function => $label) {
-    $info = $handler->geo->functionInfo($function);
-    if ($info['requires target']) $deps[] = $function;
+  // Special-case distance filters, which have additional inputs.
+  $dst_functions = $num_functions = $target_functions = array();
+  foreach ($handler->geo->functionNames($group) as $name => $info) {
+    $info = $handler->geo->functionInfo($name);
+    if (substr($name, 0, 8) == 'distance') {
+      $dst_functions[] = $name;
+    }
+    if ($info['returns'] == 'float') {
+      $num_functions[] = $name;
+    }
+    if ($info['requires target']) {
+      $target_functions[] = $name;
+    }
   }
 
-  $form['value']['input'] = array(
-    '#type' => 'select',
-    '#title' => 'Widget',
-    '#default_value' => $handler->options['input'],
-    '#weight' => 10,
-    '#parents' => array('options', 'input'),
-  );
+    // Hide the value form if
+  $form['op_val_start']['#type'] = 'hidden';
+  $form['op_val_start']['#prefix'] = '<div>';
+  $form['op_val_start']['#process'] = array('views_process_dependency');
+  $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions );
+  $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
 
-  $form['value']['target_div_prefix'] = array(
+    // The value form contained units.  Hide these if N/A.
+  $form['value']['units']['#process'] = array('views_process_dependency');
+  $form['value']['units']['#dependency'] = array('radio:options[function]' => $dst_functions );
+
+  $form['target_prefix'] = array(
     '#type' => 'hidden',
     '#id' => 'geo-target-options',
     '#prefix' => '<div><fieldset id="geo-target-options"><legend>' . t('Provide a target for this function') . '</legend>',
     '#process' => array('views_process_dependency'),
-    '#dependency' => array('radio:options[function]' => $deps),
-    '#weight' => 9,
+    '#dependency' => array('radio:options[function]' => $target_functions),
   );
 
-  $input_options = array();
+  // If applicable, add the target value.
+  $form['input'] = array(
+    '#type' => 'select',
+    '#title' => 'Widget',
+    '#default_value' => $handler->options['input'],
+    '#process' => array('views_process_dependency'),
+    '#dependency' => array('radio:options[function]' => $target_functions),
+  );
+
+  $form['target'] = array('#tree' => TRUE);
+
   foreach (geo_inputs() as $name => $info) {
     $element = $info['element'];
 
-    $input_options[$name] = $info['label'];
+    $form['input']['#options'][$name] = $info['label'];
 
     $element = array_merge($element, array(
       '#title' => $handler->options['label'],
-      '#default_value' => $handler->value['target'][$name],
+      '#default_value' => $handler->options['target'][$name],
       '#gis_type' => $handler->geo->geometryType(),
       '#gis_output' => 'wkt', // The format expected by this handler.
-      //'#tree' => TRUE,
     ));
 
     $element['#process'][] = 'views_process_dependency';
     $element['#dependency'] = array('edit-options-input' => array($name));
-    $element['#weight'] = 11;
 
-    $form['value']['target'][$name] = $element;
-    $form['value']['target']['#weight'] = 11;
-    $form['value']['target']['#tree'] = TRUE;
+    $form['target'][$name] = $element;
   }
-
-  // Set the list of elements back to the target options.
-  $form['value']['input']['#options'] = $input_options;
-
-  $form['value']['target_div_suffix'] = array(
+  $form['target_suffix'] = array(
+    '#type' => 'markup',
     '#value' => '</fieldset></div>',
-    '#weight' => 12,
   );
 }

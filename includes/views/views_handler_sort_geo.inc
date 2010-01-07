@@ -2,6 +2,11 @@
 
 class views_handler_sort_geo extends views_handler_sort {
 
+  function init(&$view, $options) {
+    parent::init($view, $options);
+    $this->geo = geo_load(array('gid' => $this->definition['geo_gid']));
+  }
+
   function option_definition() {
     $options = parent::option_definition();
     $options['function'] = array('default' => 'distance');
@@ -13,13 +18,11 @@ class views_handler_sort_geo extends views_handler_sort {
   }
 
   function options_form(&$form, &$form_state) {
+    // Call my parent's options_form method.
     parent::options_form($form, $form_state);
 
-    // This helper function provides a function chooser and sets up targets.
+    // Use the geo_views helper function to display the target settings.
     geo_views_target_form($form, $form_state, $this, 'sort');
-
-    // Move the sort order input to the bottom.
-    $form['order']['#weight'] = 10;
   }
 
   function query() {
@@ -33,9 +36,19 @@ class views_handler_sort_geo extends views_handler_sort {
 
     $info = $this->geo->functionInfo($function);
     if ($info['requires target']) {
-      $input = $this->options['target']['input'];
-      $value = $this->options['target']['value'][$input];
-      $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
+      $input = geo_input_info($this->options['input']);
+      $value = $this->options['target'][$this->options['input']];
+
+      // TODO this is not how we should be handling this.
+      if ($func = $input['gis callback']) {
+        $target = $func($input, $value, 'wkt:'. $this->geo->geometryType());
+      }
+      else {
+        $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
+      }
+
+      // Prevent an erroneous query if there's no target to
+      if (!$target) return;
     }
 
     $table = $this->ensure_my_table();
