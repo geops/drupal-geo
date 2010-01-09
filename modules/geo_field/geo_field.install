@@ -4,6 +4,7 @@
  * Implementation of hook_install().
  */
 function geo_field_install() {
+  drupal_load('module', 'content');
   content_notify('install', 'geo');
 }
 
@@ -11,6 +12,7 @@ function geo_field_install() {
  * Implementation of hook_uninstall().
  */
 function geo_field_uninstall() {
+  drupal_load('module', 'content');
   content_notify('uninstall', 'geo');
 }
 
