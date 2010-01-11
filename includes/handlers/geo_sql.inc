@@ -85,7 +85,7 @@ class GeoSQL implements GeoInterface {
 
   function sqlTableAlias() {
     if (($table = $this->tableName()) && ($column = $this->columnName())) {
-      return $table .'.'. $column;
+      return '{'. $table .'}.'. $column;
     }
   }
 
