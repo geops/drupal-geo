@@ -32,36 +32,31 @@ class views_handler_sort_geo extends views_handler_sort {
     $function = $this->options['function'];
 
     // Figure out whether or not we need a target value to compare against.
-    $target = NULL;
-
-    $info = $this->geo->functionInfo($function);
-    if ($info['requires target']) {
-      $input = geo_input_info($this->options['input']);
-      $value = $this->options['target'][$this->options['input']];
-
-      // TODO this is not how we should be handling this.
-      if ($func = $input['gis callback']) {
-        $target = $func($input, $value, 'wkt:'. $this->geo->geometryType());
-      }
-      else {
-        $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
-      }
-
-      // Prevent an erroneous query if there's no target to
-      if (!$target) return;
+    if (FALSE === ($target = geo_views_set_target($this, $this->value))) {
+      // Return if target = FALSE to prevent an erroneous query.
+      return;
     }
 
-    $table = $this->ensure_my_table();
-    $this->field_alias = $this->field .'_'. $function;
+    // If the field was already added by another equation, use its value.
+    if (is_object($target)) {
+      $orderby = $target->columnName();
+    }
+   
+    // Otherwise, add and use the sort value.
+    else {
+      $table = $this->ensure_my_table();
+      $this->field_alias = $this->field .'_'. $function;
 
-    // Ensure that the query acts on the table and column aliases defined here.
-    $this->geo->setTableName($table);
-    $this->geo->setColumnName($this->field);
+      // Ensure that the query acts on the table and column aliases defined here.
+      $this->geo->setTableName($table);
+      $this->geo->setColumnName($this->field);
 
-    // Add the field, using the Geo API method for getting it.
-    $field = $this->geo->$function($this->geo, $target);
-    $this->query->add_field(NULL, $field, $this->field_alias);
+      // Add the field, using the Geo API method for getting it.
+      $field = $this->geo->$function($this->geo, $target);
+      $this->query->add_field(NULL, $field, $this->field_alias);
+      $orderby = $this->field_alias;
+    }
 
-    $this->query->add_orderby(NULL, NULL, $this->options['order'], $this->field_alias);
+    $this->query->add_orderby(NULL, NULL, $this->options['order'], $orderby);
   }
 }
