@@ -124,11 +124,11 @@ function geo_data_field_settings($op, $field) {
       $key = $field['field_name'] .'_value';
 
       // Add the referenced table to the joins.
-      $data[$geo_alias]['table'] = array(
-        'group' => t('Geospatial Data'),
-        'base' => array(
-          'field' => $field['geo_data_key'],
-        ),
+      $data[$table_alias]['table'] = array(
+       // 'group' => t('Geospatial Data'),
+        //'base' => array(
+          //'field' => $field['geo_data_key'],
+        //),
         'join' => array(
           'node' => array(
             'table' => $field['geo_data_table'],
@@ -138,6 +138,7 @@ function geo_data_field_settings($op, $field) {
           ),
         ),
       );
+      /*
 
       // Switch the field handler to geo_data.
       $data[$table_alias][$key]['field']['field'] = 'geo';
@@ -148,6 +149,7 @@ function geo_data_field_settings($op, $field) {
       $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo';
       $data[$table_alias][$key]['filter']['geo_type'] = $field['geo_type'];
       $data[$table_alias][$key]['filter']['geo_table'] = $geo_alias;
+      */
 
       return $data;
   }
@@ -161,41 +163,29 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
   switch ($op) {
 
     case 'load':
-      $table = $field['geo_data_table'];
-      $select = array();
-      $select[] = geo('field_select', 'geo');
-      $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
+      $geo = geo_load(array('table_name' => $field['geo_data_table']));
 
+      $select = array();
+
+      // Add the key and value columns to the table query.
+      $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
       if (is_array($field['geo_data_value'])) {
         foreach ($field['geo_data_value'] as $val) {
           $select[] = db_escape_string(check_plain($val));
+          $label = current($field['geo_data_value']);
         }
       }
+      if ($select = join(',', $select)) $select = ', '. $select;
 
       foreach ($items as $delta => $item) {
-        $ret[$delta] = $item;
-        $ret[$delta]['gis type'] = $field['geo_type'];
-
-        $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
-        $sql .= " WHERE $key = '%s'";
-//        $res = db_query(db_distinct_field($table, $key, $sql), $item['value']);
-        $res = db_query($sql, $item['value']);
-        while ($row = db_fetch_array($res)) {
-          foreach ($row as $k => $v) {
-            $key = 'geo_data_'. $k;
-
-            // Simply use the Geo values instead.
-            if (substr($k, 0, 4) == 'geo_') $key = substr($k, 4);
-
-            $ret[$delta][$key] = $v;
-            if (!isset($ret[$delta]['label']) && in_array($k, $field['geo_data_value'])) {
-              $ret[$delta]['label'] = $v;
-            }
-          }
-        }
+        $res = db_query("SELECT ". $geo->AsBinary($geo) ." AS geo $select
+          FROM {". $geo->tableName() ."} WHERE $key = '%s'", $item['value']);
+        $item = array_merge(db_fetch_array($res), $item);
+        if ($label) $item['label'] = $item[$label];
+        $item['geo'] = $item['wkb'] = db_decode_blob($item['geo']);
+        $items[$delta] = $item;
       }
-
-      return array($field['field_name'] => $ret);
+      return array($field['field_name'] => $items);
 
     case 'validate':
       return;
