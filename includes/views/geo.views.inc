@@ -324,6 +324,7 @@ function geo_views_plugins() {
 
 /**
  * A helper function used across views handlers to select a target geometry.
+ * Used by the filter, field and sort functions.
  */
 function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
@@ -335,10 +336,11 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#options' => $functions,
   );
 
-  // Special-case distance filters, which have additional inputs.
   $dst_functions = $num_functions = $target_functions = array();
   foreach ($handler->geo->functionNames($group) as $name => $info) {
     $info = $handler->geo->functionInfo($name);
+
+    // Special-case distance filters, which have additional inputs.
     if (substr($name, 0, 8) == 'distance') {
       $dst_functions[] = $name;
     }
@@ -380,6 +382,27 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 
   $form['target'] = array('#tree' => TRUE);
 
+  // The current display handler.
+  $display = $handler->view->display[$handler->view->current_display]->handler;
+
+  // Determine what type of views handler this is and find related fields.
+  // For now, we'll allow users to display and/or sort on filter target values.
+  // there may be call for additional flexibility here later...
+  switch ($group) {
+    case 'display':
+    case 'sort':
+      foreach ($display->get_handlers('filter') as $name => $filter) {
+        // An existing filter is a geo filter handler that contains a target.
+        if (isset($filter->geo)) {
+          $func = $handler->geo->functionInfo($filter->options['function']);
+          if ($func['requires target']) {
+            $form['input']['#options']['geo_filter:'.$name] = $filter->ui_name(TRUE);
+          }
+        }
+      }
+      break;
+  }
+
   foreach (geo_inputs() as $name => $info) {
     $element = $info['element'];
 
@@ -401,4 +424,46 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     '#type' => 'markup',
     '#value' => '</fieldset></div>',
   );
+}
+
+/**
+ * A helper function used across views handlers to select a target geometry.
+ * Used by the filter, field and sort functions.
+ */
+function geo_views_set_target(&$handler, $value = NULL) {
+  $target = NULL;
+
+  if (!$value) $value = $handler->options['target'][$handler->options['input']];
+
+  $info = $handler->geo->functionInfo($handler->options['function']);
+
+  if ($info['requires target']) {
+    $input = $handler->options['input'];
+
+    if (substr($input, 0, 11) == 'geo_filter:') {
+      // This is a value from another column that has been added to the view.
+      $name = substr($input, 11);
+
+      // The current display handler.
+      $display = $handler->view->display[$handler->view->current_display]->handler;
+      $filters = $display->get_handlers('filter');
+
+      // The geo object for the filter.
+      $target = $filters[$name]->geo;
+    }
+    else {
+      $input = geo_input_info($input);
+
+      // TODO this is not how we should be handling this.
+      if ($func = $input['gis callback']) {
+        $target = $func($input, $value, 'wkt:'. $handler->geo->geometryType());
+      }
+      else {
+        $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
+      }
+      if (!$target) $target = FALSE;
+    }
+  }
+
+  return $target;
 }
