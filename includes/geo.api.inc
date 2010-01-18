@@ -57,7 +57,7 @@ function geo($op = NULL) {
 }
 
 /**
- * API Function: Return a type constant for named
+ * API Function: Return a type constant for named geo type.
  */
 function geo_type($name) {
   $name = strtoupper($name);
@@ -67,12 +67,28 @@ function geo_type($name) {
 }
 
 /**
+ * API Function: Return a named type for a geo constant.
+ */
+function geo_gis_type($type) {
+  foreach (GeoSimple::geometryTypes() as $constant => $name) {
+    if ($constant == $type) return $name;
+  }
+}
+
+/**
  * API Function: Return any field types that may contain geospatial data.
  */
 function geo_field_types() {
   static $field_types;
   if (!isset($field_types)) {
-    $field_types = array('geo' => array(), 'geo_data' => array());
+    // TODO move this to geo_field and geo_data proper.
+    $field_types = array(
+      'geo' => array(
+
+      ),
+      'geo_data' => array(
+      ),
+    );
     drupal_alter('geo_field_types', $field_types);
   }
   return $field_types;
@@ -168,7 +184,14 @@ function geo_load($values) {
           FROM {geo} WHERE name = '%s'", $values['name']))) {
 
           $values = array_merge($values, $handler_values);
-          }
+        }
+      }
+      elseif (isset($values['table_name'])) {
+        if ($handler_values = db_fetch_array(db_query("SELECT *
+          FROM {geo} WHERE table_name = '%s'", $values['table_name']))) {
+
+          $values = array_merge($values, $handler_values);
+        }
       }
     }
     $handler = $values['handler'];
@@ -242,8 +265,8 @@ function geo_delete($geo) {
   if (method_exists($geo, 'delete')) {
     $geo->delete();
   }
-  if (isset($geo->gid)) {
-    db_query("DELETE FROM {geo} WHERE gid = %d", $geo->gid);
+  if ($gid = $geo->gid()) {
+    db_query("DELETE FROM {geo} WHERE gid = %d", $gid);
   }
 }
 

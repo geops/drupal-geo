@@ -89,6 +89,22 @@ class GeoSQL implements GeoInterface {
     }
   }
 
+  function sqlFieldDefinition($column_name = NULL, $geo_type = GEO_UNKNOWN) {
+    if (is_null($column_name)) $column_name = $this->columnName();
+    if (is_null($geo_type)) $geo_type = $this->geoType();
+
+    return array(
+      $column_name => array(
+        'type' => 'blob',
+        'mysql_type' => 'geometry',
+        'pgsql_type' => 'geometry',
+        'geo_type' => $geo_type,
+        'gis type' => geo_gis_type($geo_type),
+        'description' => t('Geometry field'),
+      ),
+    );
+  }
+
   /**
    * Return a list of functions supported by this backend.
    *
@@ -331,7 +347,7 @@ class GeoSQL implements GeoInterface {
   }
 
   function columnName() {
-    if (isset($this->table_name)) {
+    if (isset($this->column_name)) {
       return check_plain($this->column_name);
     }
   }

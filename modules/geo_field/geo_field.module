@@ -21,6 +21,8 @@ function geo_field_info() {
  * Implementation of hook_field_settings().
  */
 function geo_field_settings($op, $field) {
+  $geo = geo_load(array('name' => $field['field_name']));
+
   switch ($op) {
     case 'form':
       $form = array();
@@ -45,10 +47,8 @@ function geo_field_settings($op, $field) {
       return array('srid', 'geo_type');
 
     case 'database columns':
-      if (!empty($field['geo_type'])) {
-        return geo('schema_field', $field['geo_type']);
-      }
-      break;
+      $geo_type = isset($field['geo_type']) ? geo_type($field['geo_type']) : GEO_UNKNOWN;
+      return GeoSQL::sqlFieldDefinition('geo', $geo_type);
   }
 }
 
