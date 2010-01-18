@@ -172,16 +172,14 @@ function geo_content_fieldapi($op, $field) {
 
     $db_info = content_database_info($field);
     foreach ($db_info['columns'] as $column => $info) {
-      if ($info['gis type']) {
-        if (!is_null($geo_type = geo_type($info['gis type']))) {
-          $geo_column = $info['column'];
-        }
+      if (isset($info['geo_type'])) {
+        $geo_column = $info['column'];
       }
     }
 
-    // It's possible that a geo field doesn't actually store data.  For now,
-    // we just don't care about tracking these.
-    if (!isset($geo_column)) return;
+    if (is_null($geo_type = geo_type($field['geo_type']))) {
+      $geo_type = GEO_UNKNOWN;
+    }
 
     $title = $field['widget']['label'];
 
@@ -202,8 +200,11 @@ function geo_content_fieldapi($op, $field) {
         $geo->setSRID($field['srid']);
         $geo->setGeoType($geo_type);
 
-        $geo->setTableName($db_info['table']);
-        $geo->setColumnName($geo_column);
+        if (isset($geo_column)) {
+          $geo->setTableName($db_info['table']);
+          $geo->setColumnName($geo_column);
+        }
+
         geo_save($geo);
         break;
 
