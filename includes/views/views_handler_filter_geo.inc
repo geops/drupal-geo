@@ -181,6 +181,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
       // Return if target = FALSE to prevent an erroneous query.
       return;
     }
+    $this->geo_target = $target;
 
     $table = $this->ensure_my_table();
     $this->field_alias = $this->field .'_'. $function;
@@ -189,7 +190,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $this->geo->setTableName($table);
     $this->geo->setColumnName($this->field);
 
-    // Add the field, using the Geo API method for getting it.
+    // Get the Geo API method for adding a field.
     $query = $this->geo->$function($this->geo, $target);
 
     if ($info['returns'] == 'boolean') {
