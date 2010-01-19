@@ -37,18 +37,14 @@ class views_handler_field_geo extends views_handler_field {
       return;
     }
 
-    // We are deriving the target from a filter value.
-    if (is_object($target)) {
-      drupal_set_message(print_r($target, 1));
-    }
-
     $table = $this->ensure_my_table();
     $this->geo->setTableName($table);
     $this->geo->setColumnName($this->field);
 
+    $alias = $this->real_field .'_'. strtolower($function);
+
     // Add the field, using the Geo API method for getting it.
     $field = $this->geo->$function($this->geo, $target);
-    $alias = $this->real_field .'_'. strtolower($function);
     $this->field_alias = $this->query->add_field(NULL, $field, $alias);
   }
 }

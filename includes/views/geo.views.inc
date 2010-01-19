@@ -448,8 +448,9 @@ function geo_views_set_target(&$handler, $value = NULL) {
       $display = $handler->view->display[$handler->view->current_display]->handler;
       $filters = $display->get_handlers('filter');
 
-      // The geo object for the filter.
-      $target = $filters[$name]->geo;
+      // Copy the target from the filter.
+      $target = $filters[$name]->geo_target;
+      $handler->options['units'] = $filters[$name]->value['units'];
     }
     else {
       $input = geo_input_info($input);
