@@ -357,6 +357,7 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
   $form['op_val_start']['#prefix'] = '<div>';
   $form['op_val_start']['#process'] = array('views_process_dependency');
   $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions );
+  $form['op_val_end']['#type'] = 'hidden';
   $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
 
     // The value form contained units.  Hide these if N/A.
