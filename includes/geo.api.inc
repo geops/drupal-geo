@@ -202,6 +202,20 @@ function geo_load($values) {
 }
 
 /**
+ * API function: Load a Geo object that uses the database handler for the
+ * currently-active database.
+ */
+function geo_sql_load() {
+  global $db_type;
+
+  $values = array(
+    'handler' => ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL',
+  );
+
+  return geo_load($values);
+}
+
+/**
  * API function: Create a new dataset using the default SQL handler.
  */
 function geo_create_dataset($values = array(), $create = TRUE) {
@@ -459,3 +473,4 @@ function geo_input_element_info($name) {
   $inputs = geo_inputs();
   return $inputs[$name]['element'];
 }
+

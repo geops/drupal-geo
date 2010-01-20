@@ -21,7 +21,9 @@ function geo_field_info() {
  * Implementation of hook_field_settings().
  */
 function geo_field_settings($op, $field) {
-  $geo = geo_load(array('name' => $field['field_name']));
+  if (!$geo = geo_load(array('name' => $field['field_name']))) {
+    $geo = geo_sql_load();
+  }
 
   switch ($op) {
     case 'form':
@@ -48,7 +50,7 @@ function geo_field_settings($op, $field) {
 
     case 'database columns':
       $geo_type = isset($field['geo_type']) ? geo_type($field['geo_type']) : GEO_UNKNOWN;
-      return GeoSQL::sqlFieldDefinition('geo', $geo_type);
+      return $geo->sqlFieldDefinition('geo', $geo_type);
   }
 }
 
