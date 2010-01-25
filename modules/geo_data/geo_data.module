@@ -183,7 +183,7 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
         $res = db_query("SELECT ". $geo->AsBinary($geo) ." AS geo $select
           FROM {". $geo->tableName() ."} WHERE $key = '%s'", $item['value']);
         if ($row = db_fetch_array($res)) {
-          $item = array_merge(db_fetch_array($res), $item);
+          $item = array_merge($row, $item);
           if ($label) $item['label'] = $item[$label];
           $item['geo'] = $item['wkb'] = db_decode_blob($item['geo']);
           $items[$delta] = $item;
