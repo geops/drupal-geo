@@ -14,6 +14,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $options['operator'] = array('default' => '<=');
     $options['function'] = array('default' => 'distance');
     $options['input'] = array('default' => 'geo_latlon');
+    $options['group'] = array('default' => 'geo');
 
     $options['value'] = array(
       'contains' => array(
@@ -194,7 +195,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $query = $this->geo->$function($this->geo, $target);
 
     if ($info['returns'] == 'boolean') {
-      $this->query->add_where(0, $query);
+      $this->query->add_where($this->options['group'], $query);
     }
 
     // Adopt the behavior of the views_filter_numeric parent class.

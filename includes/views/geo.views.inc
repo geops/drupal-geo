@@ -114,10 +114,10 @@ function geo_views_data() {
                       'handler' => 'views_handler_sort',
                     ),
                     'filter' => array(
-                      'handler' => 'views_handler_filter_numeric',
+                      'handler' => 'views_handler_filter_numeric_geo',
                     ),
                     'argument' => array(
-                      'handler' => 'views_handler_argument_numeric',
+                      'handler' => 'views_handler_argument_numeric_geo',
                       'click sortable' => TRUE,
                     ),
                   );
@@ -133,10 +133,11 @@ function geo_views_data() {
                       'handler' => 'views_handler_sort',
                     ),
                     'filter' => array(
-                      'handler' => 'views_handler_filter_string',
+                      'handler' => 'views_handler_filter_string_geo',
                     ),
                     'argument' => array(
-                      'handler' => 'views_handler_argument_string',
+                      'handler' => 'views_handler_argument_string_geo',
+                      'many to one' => TRUE,
                     ),
                   );
                   break;
@@ -259,6 +260,19 @@ function geo_views_handlers() {
       ),
       'views_handler_sort_geo' => array(
        'parent' => 'views_handler_sort',
+      ),
+
+      'views_handler_filter_string_geo' => array(
+       'parent' => 'views_handler_filter_string',
+      ),
+      'views_handler_filter_numeric_geo' => array(
+       'parent' => 'views_handler_filter_numeric',
+      ),
+      'views_handler_argument_string_geo' => array(
+       'parent' => 'views_handler_argument_string',
+      ),
+      'views_handler_argument_numeric_geo' => array(
+       'parent' => 'views_handler_argument_numeric',
       ),
     ),
   );
