@@ -276,13 +276,3 @@ function geo_data_theme() {
   module_load_include('theme.inc', 'geo_data', 'theme/geo_data');
   return geo_data_theme_theme();
 }
-
-/**
- * Implementation of hook_geo_views_api().
- */
-function geo_data_views_api() {
-  return array(
-    'api' => 2,
-    'path' => drupal_get_path('module', 'geo_data') .'/includes/views',
-  );
-}
