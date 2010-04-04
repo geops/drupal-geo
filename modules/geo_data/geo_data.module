@@ -118,38 +118,22 @@ function geo_data_field_settings($op, $field) {
 
     case 'views data':
       $data = content_views_field_views_data($field);
-      $table_alias = content_views_tablename($field);
       $db_info = content_database_info($field);
-      $geo_alias = $table_alias .'_geo';
-      $key = $field['field_name'] .'_value';
+      $table_alias = content_views_tablename($field);
+      $key = $db_info['columns']['value']['column'];
 
-      // Add the referenced table to the joins.
-      $data[$table_alias]['table'] = array(
-       // 'group' => t('Geospatial Data'),
-        //'base' => array(
-          //'field' => $field['geo_data_key'],
-        //),
-        'join' => array(
-          'node' => array(
-            'table' => $field['geo_data_table'],
-            'field' => $field['geo_data_key'],
-            'left_table' => $table_alias,
-            'left_field' => $key,
-          ),
-        ),
+      // Add a join from the geo table to this field's table.
+      $data[$field['geo_data_table']]['table']['join'][$table_alias] = array(
+        'left_field' => $key,
+        'field' => $field['geo_data_key'],
       );
-      /*
 
-      // Switch the field handler to geo_data.
-      $data[$table_alias][$key]['field']['field'] = 'geo';
-      $data[$table_alias][$key]['field']['geo_table'] = $geo_alias;
-      $data[$table_alias][$key]['field']['handler'] = 'views_handler_field_geo_data';
-
-      // Switch the filter handler to geo
-      $data[$table_alias][$key]['filter']['handler'] = 'views_handler_filter_geo';
-      $data[$table_alias][$key]['filter']['geo_type'] = $field['geo_type'];
-      $data[$table_alias][$key]['filter']['geo_table'] = $geo_alias;
-      */
+      // Add a join from the geo table to the node table by way of this field.
+      $data[$field['geo_data_table']]['table']['join']['node'] = array(
+        'left_table' => $table_alias,
+        'left_field' => $key,
+        'field' => $field['geo_data_key'],
+      );
 
       return $data;
   }
