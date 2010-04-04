@@ -136,7 +136,7 @@ function _dbf_headers(&$fp, &$schema) {
     'C' => 'char',
     'N' => 'int',
     'L' => 'int',
-    'D' => 'date',
+    //'D' => 'date',
     'M' => 'text',
     'F' => 'float',
     'B' => 'blob',
@@ -240,6 +240,7 @@ function _shp_get_record(&$fp) {
 
 function _shp_get_point_data(&$fp) {
   $data = unpack('dx/dy', zip_entry_read($fp, 16));
+  return (float) $data['x'] .' '. (float) $data['y'];
   return join(' ', $data);
 }
 
@@ -250,14 +251,19 @@ function _shp_get_point(&$fp) {
 function _shp_get_linestring(&$fp) {
   $data = array(
     'bbox'  => unpack('dmin_x/dmin_y/dmax_x/dmax_y', zip_entry_read($fp, 32)),
+    'part_count' => current(unpack('i', zip_entry_read($fp, 4))),
     'point_count' => current(unpack('i', zip_entry_read($fp, 4))),
   );
 
-  $wkt = 'LINESTRING(';
+  $data['wkt'] = 'LINESTRING(';
+  // Seek to the next index point.
+  $part_start = current(unpack('i', zip_entry_read($fp, 4)));
+
+  // Go through all of the points and collect them.
   for ($i = 1; $i <= $data['point_count']; $i++) {
-    $wkt .= _shp_get_point_data($fp) .',';
+    $data['wkt'] .= _shp_get_point_data($fp) .',';
   }
-  $wkt = substr($wkt, 0, -1) . ')';
+  $data['wkt'] = substr($data['wkt'], 0, -1) . ')';
 
   return $data;
 }
