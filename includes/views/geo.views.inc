@@ -128,6 +128,7 @@ function geo_views_data() {
                   $views_field = array(
                     'field' => array(
                       'handler' => 'views_handler_field',
+                      'click sortable' => TRUE,
                     ),
                     'sort' => array(
                       'handler' => 'views_handler_sort',
