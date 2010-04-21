@@ -199,12 +199,10 @@ function geo_load($values) {
  * API function: Load a Geo object that uses the database handler for the
  * currently-active database.
  */
-function geo_sql_load() {
+function geo_sql_load($values = array()) {
   global $db_type;
 
-  $values = array(
-    'handler' => ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL',
-  );
+  $values['handler'] => ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
 
   return geo_load($values);
 }
