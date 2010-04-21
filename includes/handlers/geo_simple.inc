@@ -421,6 +421,10 @@ class GeoSimple implements GeoInterface {
     return $this->unimplemented();
   }
 
+  // Not part of the spec, but too handy to pass up.
+  function simplify($g, $tolerance = 10) {
+  }
+
   // Implementation-specfic functions: useful primarily to this application.
   function setGID($value = NULL) {
     $this->gid = (int) $value;

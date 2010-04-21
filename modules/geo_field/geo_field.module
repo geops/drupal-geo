@@ -29,11 +29,17 @@ function geo_field_settings($op, $field) {
     case 'form':
       $form = array();
 
+      // For legacy reasons, we're storing the name of the type ('point') rather
+      // than the GEO_TYPE_* values that are returned.
+      foreach ($geo->geometryTypes() as $geo_type => $name) {
+        $types[$name] = ucwords($name);
+      }
+
       // Store the geometry type for this field.
       $form['geo_type'] = array(
         '#type' => 'select',
         '#title' => t('Data type'),
-        '#options' => geo('supported_types'),
+        '#options' => $types,
         '#default_value' => $field['geo_type'],
         '#description' => t('Choose the datatype that best describes the information you are storing.  "Point" is suitable for addresses and other fixed points, but you may also choose "Linestring" for lines or tracks, and "Polygon" for shapes and areas.'),
         '#disabled' => !empty($field['geo_type']),
