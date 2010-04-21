@@ -2,6 +2,14 @@
 
 class GeoSQLMySQL extends GeoSQL {
 
+  public function geometryTypes() {
+    return array(
+      GEO_TYPE_POINT => 'point',
+      GEO_TYPE_LINESTRING => 'linestring',
+      GEO_TYPE_POLYGON => 'polygon',
+    );
+  }
+
   public function point($x, $y) {
     return $this->sql("Point(%f, %f)", array($x, $y));
   }

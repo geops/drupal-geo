@@ -46,6 +46,22 @@ class GeoSQL implements GeoInterface {
     }
   }
 
+  public function geometryTypes() {
+    return array(
+      GEO_TYPE_POINT => 'point',
+      GEO_TYPE_CURVE => 'curve',
+      GEO_TYPE_LINESTRING => 'linestring',
+      GEO_TYPE_SURFACE => 'surface',
+      GEO_TYPE_POLYGON => 'polygon',
+      GEO_TYPE_COLLECTION => 'collection',
+      GEO_TYPE_MULTIPOINT => 'multipoint',
+      GEO_TYPE_MULTICURVE => 'multicurve',
+      GEO_TYPE_MULTILINESTRING => 'multilinestring',
+      GEO_TYPE_MULTISURFACE => 'multisurface',
+      GEO_TYPE_MULTIPOLYGON => 'multipolygon',
+    );
+  }
+ 
   function unimplemented() {
     drupal_set_message(t('Attempt to call an unimplemented function'));
     return FALSE;
