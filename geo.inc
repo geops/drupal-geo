@@ -1,45 +1,5 @@
 <?php // $Id$
 
-/**
- * Return the geo backend database type.
- *
- * @return string
- *  The name of the backend: postgis, cck, mysql_spatial
- */
-function geo_backend_type() {
-  static $backend;
-
-  if (!isset($backend)) {
-    switch ($GLOBALS['db_type']) {
-      case 'pgsql':
-        // use the postgis backend if installed
-        if (db_result(db_query("SELECT 1 FROM pg_catalog.pg_proc
-          WHERE proname = 'postgis_version'"))) {
-          $backend = 'postgis';
-        }
-        break;
-
-      case 'mysql':
-      case 'mysqli':
-        // Capabilities check.
-        // If it can convert between native and wkt, assume it's working.
-        if (db_result(@db_query("SELECT AsText(GeomFromText('POINT(1 1)'))")) == 'POINT(1 1)') {
-          $backend = 'mysql_spatial';
-        }
-    }
-  }
-
-  return $backend;
-}
-
-function geo_supported_types() {
-  return array(
-    'point' => t('Point'),
-    'linestring' => t('Linestring'),
-    'polygon' => t('Polygon'),
-  );
-}
-
 // TODO seriously clean this up! And add data types!
 function geo_wkt($data) {
   if (!is_scalar($data)) {
