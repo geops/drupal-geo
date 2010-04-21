@@ -187,6 +187,7 @@ function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
     '#title' => t($field['widget']['label']),
     '#required' => $field['required'],
     '#description' => $field['widget']['description'],
+    '#maxlength' => 10148576,
   ));
 
   return $element;
