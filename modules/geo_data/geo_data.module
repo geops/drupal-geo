@@ -44,68 +44,83 @@ function geo_data_field_info() {
  * Implementation of hook_field_settings().
  */
 function geo_data_field_settings($op, $field) {
-  $field_name = $field['field_name'];
 
+// TODO upgrade path for geo_data_table.
   switch ($op) {
     case 'form':
       $form = array();
 
-      $geo_tables = geo('tables', '/^content_field/');
-      $options = array();
-      foreach ($geo_tables as $table => $geo_field) $options[$table] = $table;
-      $form['geo_data_table'] = array(
-        '#type' => 'select',
-        '#title' => t('Table name'),
-        '#multiple' => FALSE,
-        '#options' => $options,
-        '#default_value' => $field['geo_data_table'],
-        '#required' => TRUE,
+      $form['geo_data'] = array(
+        '#tree' => TRUE,
+        '#theme' => 'geo_data_field_settings',
       );
 
-      if ($table = $field['geo_data_table']) {
-        $columns = array();
-        foreach (geo('table_desc', $table) as $col => $desc) {
-          if (in_array($desc['type'], array_keys(geo('supported_types')))) {
-            $geo_type = $desc['type'];
+      foreach (geo_list() as $geo) {
+        if ($table = $geo->tableName()) {
+
+          // For now, let's not use data from existing fields.
+          if (substr($geo->name(), 0, 6) == 'field_') continue;
+
+          $schema = drupal_get_schema($table);
+          $columns = array('' => t('Select a column'));
+          foreach ($schema['fields'] as $name => $info) {
+            // Add anything that's not a geo field to the list of possible keys.
+            if (!in_array($info['type'], array('blob', 'text', 'geometry'))) {
+              $columns[$name] = isset($info['title']) ? $info['title'] : $name;
+            }
           }
-          $columns[$col] = $desc['description'] ? $desc['description'] : $col;
+
+          $name = $geo->name();
+          $form['geo_data'][$name] = array();
+          $form['geo_data'][$name]['status'] = array(
+            '#type' => 'checkbox',
+            '#title' => $geo->title(),
+            '#default_value' => $field['geo_data'][$name]['status'],
+          );
+
+          $form['geo_data'][$name]['label'] = array(
+            '#type' => 'select',
+            '#title' => t('Label column'),
+            '#options' => $columns,
+            '#default_value' => $field['geo_data'][$name]['label'],
+          );
+          $form['geo_data'][$name]['key1'] = array(
+            '#type' => 'select',
+            '#options' => $columns,
+            '#default_value' => $field['geo_data'][$name]['key1'],
+          );
+          $form['geo_data'][$name]['key2'] = array(
+            '#type' => 'select',
+            '#options' => $columns,
+            '#default_value' => $field['geo_data'][$name]['key2'],
+          );
+          $form['geo_data'][$name]['key3'] = array(
+            '#type' => 'select',
+            '#options' => $columns,
+            '#default_value' => $field['geo_data'][$name]['key3'],
+          );
+
+          $form['geo_data'][$name]['options'] = array(
+            '#type' => 'fieldset',
+            '#title' => t('Settings for %title', array('%title' => $geo->title())),
+            '#attributes' => array('class' => 'geo-data-'. $name),
+          );
+          $form['geo_data'][$name]['options']['required'] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Required'),
+            '#default_value' => $field['geo_data'][$name]['required'],
+          );
+          $form['geo_data'][$name]['options']['depth'] = array(
+            '#type' => 'checkbox',
+            '#title' => t('Require depth'),
+            '#default_value' => $field['geo_data'][$name]['depth'],
+          );
         }
-
-        $form['geo_data_key'] = array(
-          '#type' => 'select',
-          '#multiple' => FALSE,
-          '#title' => t('Key column'),
-          '#options' => $columns,
-          '#default_value' => $field['geo_data_key'],
-          '#required' => TRUE,
-        );
-
-        $form['geo_data_value'] = array(
-          '#type' => 'select',
-          '#multiple' => TRUE,
-          '#title' => t('Value column'),
-          '#options' => $columns,
-          '#default_value' => $field['geo_data_value'],
-          '#required' => TRUE,
-        );
-
-        $form['geo_data_fields'] = array(
-          '#type' => 'select',
-          '#multiple' => TRUE,
-          '#title' => t('Additional fields'),
-          '#options' => $columns,
-          '#default_value' => $field['geo_data_fields'],
-          '#required' => FALSE,
-        );
-
-        // TODO Store the geometry type for this field, based on table type.
-        $form['geo_type'] = array('#type' => 'value', '#value' => $geo_type);
       }
-
       return $form;
 
     case 'save':
-      return array('geo_data_table', 'geo_data_key', 'geo_data_value', 'geo_data_fields', 'geo_type');
+      return array('geo_data_table', 'geo_data_key', 'geo_data_value', 'geo_type');
 
     case 'database columns':
       return array(
