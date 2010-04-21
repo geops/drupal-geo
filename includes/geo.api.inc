@@ -34,12 +34,6 @@ function geo($op = NULL) {
   // Load common functions.
   module_load_include('inc', 'geo');
 
-  // Load database-specific functions.
-  if (!isset($backend)) {
-    $backend = geo_backend_type();
-    module_load_include('inc', 'geo', 'db/'. $backend);
-  }
-
   // Call the appropriate API function: If geo_$backend_$op exists, call that.
   // Otherwise, resort to geo_$op.  This creates a sort of inheritence system.
   $args = func_get_args();
