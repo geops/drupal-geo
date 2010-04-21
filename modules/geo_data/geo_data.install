@@ -95,6 +95,7 @@ function geo_data_update_2() {
         break;
 
       case 'pgsql':
+        $geo = geo_sql_load();
         $map = array(
           'character' => array('type' => 'char', 'length' => NULL),
           'character varying' => array('type' => 'varchar', 'length' => NULL),
@@ -110,7 +111,7 @@ function geo_data_update_2() {
           'numeric' => array('type' => 'numeric'),
           'real' => array('type' => 'float'),
           'double precision' => array('type' => 'float', 'size' => 'big'),
-          'geometry' => current(geo('schema_field', 'polygon')),
+          'geometry' => current($geo->sqlFieldDefinition('geo', 'polygon')),
         );
 
         $res = db_query("SELECT
