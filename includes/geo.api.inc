@@ -190,6 +190,12 @@ function geo_load($values) {
     }
     $handler = $values['handler'];
   }
+
+  // Use the default non-database handler, which is GeoSimple by default.
+  if (!isset($handler)) {
+    $handler = variable_get('geo_simple_handler', 'GeoSimple');
+  }
+
   if (geo_handler_load($handler)) {
     return New $handler($values);
   }
@@ -202,7 +208,7 @@ function geo_load($values) {
 function geo_sql_load($values = array()) {
   global $db_type;
 
-  $values['handler'] => ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
+  $values['handler'] = ($db_type == 'pgsql') ? 'GeoSQLPostGIS' : 'GeoSQLMySQL';
 
   return geo_load($values);
 }
