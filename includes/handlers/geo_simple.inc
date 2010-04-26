@@ -19,38 +19,45 @@ class GeoSimple implements GeoInterface {
   protected $srid = GEO_UNKNOWN;
   protected $geo_type;
 
-  public function geometryTypes() {
-    return array(
+  public function geometryTypes($value = NULL) {
+    $types = array(
       GEO_TYPE_POINT => 'point',
-      GEO_TYPE_CURVE => 'curve',
       GEO_TYPE_LINESTRING => 'linestring',
-      GEO_TYPE_SURFACE => 'surface',
       GEO_TYPE_POLYGON => 'polygon',
       GEO_TYPE_COLLECTION => 'collection',
       GEO_TYPE_MULTIPOINT => 'multipoint',
-      GEO_TYPE_MULTICURVE => 'multicurve',
       GEO_TYPE_MULTILINESTRING => 'multilinestring',
-      GEO_TYPE_MULTISURFACE => 'multisurface',
       GEO_TYPE_MULTIPOLYGON => 'multipolygon',
     );
+    if (!is_null($value)) {
+      if (is_numeric($value)) return $types[$value];
+      return array_search($value, $types);
+    }
+    return $types;
   }
 
   function geoCompatible($g) {
     return (get_class($g) == get_class($this));
   }
 
-  private function unimplemented() {
-    drupal_set_message(t('Attempt to call an unimplemented function'));
+  private function error($message) {
+    drupal_set_message($message);
     return FALSE;
   }
 
-  public function point($x, $y) {
-    return new GeometryPoint($x, $y);
+  private function unimplemented() {
+    return $this->error(t('Attempt to call an unimplemented function'));
+  }
+
+  public function point($x = NULL, $y = NULL) {
+    $g = new GeometryPoint($x, $y);
+    $g->setHandler($this);
+    return $g;
   }
 
   public function linestring() {
     $g = New GeometryLinestring();
-    $g->handler = $this;
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $point) {
       $g->addPoint($point);
@@ -60,92 +67,117 @@ class GeoSimple implements GeoInterface {
 
   public function polygon() {
     $g = New GeometryPolygon();
-    $g->handler = $this;
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $linestring) {
-      $g->addLine($point); // TODO This won't exist.
+      $g->addGeometry($linestring);
     }
     return $g;
   }
 
   public function multiPoint() {
     $g = New GeometryLinestring();
-    $g->handler = $this;
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $point) {
-      $g->addPoint($point); // TODO This won't exist.
+      $g->addPoint($point);
     }
     return $g;
   }
 
   public function multiLinestring() {
-    $g = New GeometryLinestring();
-    $g->handler = $this;
+    $g = New GeometryMultiLinestring();
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $linestring) {
-      $g->addLinestring($point); // TODO This won't exist.
+      $g->addGeometry($linestring);
     }
     return $g;
   }
 
   public function multiPolygon() {
-    $g = New GeometryLinestring();
-    $g->handler = $this;
+    $g = New GeometryMultiPolygon();
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $polygon) {
-      $g->addPolygon($polygon); // TODO This won't exist.
+      $g->addGeometry($polygon);
     }
     return $g;
   }
 
   public function geometryCollection() {
-    $g = New GeometryLinestring();
-    $g->handler = $this;
+    $g = New GeometryCollection();
+    $g->setHandler($this);
     $geometries = func_get_args();
     foreach ($geometries as $geom) {
-      $g->addGeometry($geom); // TODO This won't exist.
+      $g->addGeometry($geom);
     }
     return $g;
   }
 
   // Implementation-specfic functions.
   public function addPoint($g, $point, $position = NULL) {
-    if (isset($g->points)) {
-      $g->points[] = $point;
-    }
+    $g->points[] = $point;
   }
 
   public function geomFromText($wkt, $srid = GEO_SRID_DEFAULT, $type = NULL) {
-    // TODO NEED THIS
-    return $this->unimplemented();
+    preg_match('/^\s*(\D+)\W/Ui', $wkt, $m);
+    if (defined('GEO_TYPE_'. ($name = strtoupper($m[1])))) {
+      $geo_type = constant('GEO_TYPE_'. $name);
+    }
+
+    // Can't determine the geo_type from this WKT string.
+    else {
+      return $this->error(t('Invalid text'));
+    }
+
+    // A specific geometry type is being requested, but it's not in the WKT.
+    if (isset($type) && $type != $geo_type) {
+      return $this->error(t('Incompatible geometry.'));
+    }
+
+    // By default, we're assuming that we'll get a 2D object.
+    $dimensions = 2;
+
+    // TODO If there's a Z or an M modifier, we have a 3D or a 4D object.
+
+    // Create an appropriate geometry instance and set its WKT.
+    if ($class = GeoSimple::GeometryTypes($geo_type)) {
+      $g = $this->$class();
+      $g->setWKT($wkt);
+      return $g;
+    }
+    else {
+      return $this->error(t('Incompatible geometry'));
+    }
   }
 
   public function pointFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_POINT);
   }
 
   public function lineFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_LINESTRING);
   }
 
   public function polyfromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_POLYGON);
   }
 
   public function mPointFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_MULTIPOINT);
   }
 
   public function mLineFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_MULTILINESTRING);
   }
 
   public function mPolyFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_MULTIPOLYGON);
   }
 
   public function geomCollFromText($wkt, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromText($wkt, $srid);
+    return $this->geomFromText($wkt, $srid, GEO_TYPE_COLLECTION);
   }
 
   public function bdPolyFromText($wkt, $srid = GEO_SRID_DEFAULT) {
@@ -157,36 +189,58 @@ class GeoSimple implements GeoInterface {
   }
 
   public function geomFromWKB($wkb, $srid = GEO_SRID_DEFAULT, $type = NULL) {
-    // TODO NEED THIS
-    return $this->unimplemented();
+    // Fetch the byte order (0 = Big Endian, 1 = Little Endian) and geo type.
+    $order = current(unpack('c', substr($wkb, 0, 1)));
+    $geo_type = current(unpack(($order ? 'V' : 'N'), substr($wkb, 1, 4)));
+    $geo_type = array_search($geo_type, GeoSimple::wkbTypes());
+
+    // A specific geometry type is being requested, but it's not in the WKT.
+    if (isset($type) && $type != $geo_type) {
+      return $this->error(t('Incompatible geometry.'));
+    }
+
+    // By default, we're assuming that we'll get a 2D object.
+    $dimensions = 2;
+
+    // TODO If there's a Z or an M modifier, we have a 3D or a 4D object.
+
+    // Create an appropriate geometry instance and set its WKT.
+    if ($method = GeoSimple::GeometryTypes($geo_type)) {
+      $g = GeoSimple::$method();
+      $g->setWKB($wkb);
+      return $g;
+    }
+    else {
+      return $this->error(t('Incompatible geometry'));
+    }
   }
 
   public function pointFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_POINT);
   }
 
   public function lineFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_LINESTRING);
   }
 
   public function polyFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_POLYGON);
   }
 
   public function mPointFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_MULTIPOINT);
   }
 
   public function mLineFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_MULTILINESTRING);
   }
 
   public function mPolyFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_MULTIPOLYGON);
   }
 
   public function geomCollFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
-    return $this->geomFromWKB($wkb, $srid);
+    return $this->geomFromWKB($wkb, $srid, GEO_TYPE_COLLECTION);
   }
 
   public function bdPolyFromWKB($wkb, $srid = GEO_SRID_DEFAULT) {
@@ -198,19 +252,55 @@ class GeoSimple implements GeoInterface {
   }
 
   public function asText($g) {
-    if (isset($g->wkt)) return $g->wkt;
-    // TODO make the WKT
-    switch (GeoSimple::geometryType($g)) {
-      case 'point':
-    }
-    return $this->unimplemented();
+    return GeoSimple::parseWKB($g, 'wkt');
   }
 
   public function asBinary($g) {
     if (isset($g->wkb)) return $g->wkb;
-    // TODO make the WKB
 
-    return $this->unimplemented();
+    // Make sure the geometry is fully-formed.
+    GeoSimple::parseWKT($g);
+
+    // Some common header values for WKB.
+    $wkb_types = GeoSimple::wkbTypes();
+    $g->wkb = pack('cL', GeoSimple::byteOrder(), $wkb_types[$g->geoType()]);
+
+    // Recursively call the binaryData function to build out the rest.
+    $g->wkb .= GeoSimple::binaryData($g);
+
+    return $g->wkb;
+  }
+
+  private function binaryData($g) {
+    switch ($g->geometryType()) {
+
+      case 'point':
+        return pack('dd', $g->X(), $g->Y());
+
+      case 'linestring':
+      case 'multipoint':
+        $wkb = pack('L', $g->numPoints());
+        foreach ($g->points as $point) {
+          $wkb .= GeoSimple::binaryData($point);
+        }
+        return $wkb;
+
+      case 'polygon':
+      case 'multilinestring':
+        $wkb = pack('L', count($g->rings));
+        foreach ($g->rings as $line) {
+          $wkb .= GeoSimple::binaryData($line);
+        }
+        return $wkb;
+
+      case 'multipolygon':
+      case 'collection':
+        $wkb = pack('L', count($g->geometries));
+        foreach ($g->geometries as $g) {
+          $wkb .= GeoSimple::binaryData($g);
+        }
+        return $wkb;
+    }
   }
 
   public function dimension($g) {
@@ -218,8 +308,8 @@ class GeoSimple implements GeoInterface {
   }
 
   public function geometryType($g = NULL) {
-    $types = GeoSimple::geometryTypes();
-    return $types[$g->geoType()];
+    if (is_null($g)) $g = $this;
+    return GeoSimple::geometryTypes($g->geoType());
   }
 
   public function SRID($g = NULL) {
@@ -285,34 +375,40 @@ class GeoSimple implements GeoInterface {
   }
 
   public function x($point) {
+    GeoSimple::parseGeometry($point);
     return (float) $point->x;
   }
 
   public function y($point) {
+    GeoSimple::parseGeometry($point);
     return (float) $point->y;
   }
 
   public function startPoint($curve) {
-    return $this->unimplemented();
+    GeoSimple::parseGeometry($curve);
+    return $curve->points[0];
   }
 
   public function endPoint($curve) {
-    return $this->unimplemented();
+    GeoSimple::parseGeometry($curve);
+    return end($curve->points);
   }
 
   public function isClosed($curve) {
-    return $this->unimplemented();
+    return ($this->startPoint($curve) == $this->endPoint($curve));
   }
 
   public function isRing($curve) {
-    return $this->unimplemented();
+    return ($this->isClosed($curve) && $this->isSimple($curve));
   }
 
   public function length($curve) {
+    GeoSimple::parseGeometry($curve);
     return $this->unimplemented();
   }
 
   public function numPoints($linestring) {
+    GeoSimple::parseGeometry($linestring);
     if (isset($linestring->points)) {
       return count($linestring->points);
     }
@@ -320,6 +416,7 @@ class GeoSimple implements GeoInterface {
   }
 
   public function pointN($linestring, $n) {
+    GeoSimple::parseGeometry($linestring);
     if (isset($linestring->points)) {
       return $linestring->points[$n - 1];
     }
@@ -349,12 +446,16 @@ class GeoSimple implements GeoInterface {
     return $this->unimplemented();
   }
 
-  public function numGeometries($geomcollection) {
-    return $this->unimplemented();
+  public function numGeometries($collection) {
+    GeoSimple::parseGeometry($collection);
+    return count($collection->geometries);
   }
 
-  public function geometryN($geomCollection, $n) {
-    return $this->unimplemented();
+  public function geometryN($collection, $n) {
+    GeoSimple::parseGeometry($collection);
+    if (isset($collection->geometries)) {
+      return $collection->geometries[$n - 1];
+    }
   }
 
   public function equals($g1, $g2) {
@@ -474,5 +575,150 @@ class GeoSimple implements GeoInterface {
 
   public function vars() {
     return get_object_vars($this);
+  }
+
+  /*
+   * A helper function that parses WKT or WKB into valid members of a geometry
+   * instance.  For performance reasons, a geometry can be instantiated but not
+   * parsed or expanded into its component parts.  This function is invoked
+   * by accessor functions to ensure that the requested information is there
+   * when you need it.
+   */
+  public function parseGeometry($g) {
+    // Already done.
+    if ($g->parsed) return $g;
+
+    if (!isset($g->wkb)) {
+      if (isset($g->wkt)) {
+       // Convert the well-known text to an object.
+       GeoSimple::parseWKT($g);
+      }
+
+      // Convert the object to WKB.
+      $g->asBinary();
+    }
+    if (isset($g->wkb)) {
+      return GeoSimple::parseWKB($g);
+    }
+    return GeoSimple::error(t('Unable to parse geometry'));
+  }
+
+  private function wkbTypes() {
+    return array(
+      GEO_TYPE_POINT => 1,
+      GEO_TYPE_LINESTRING => 2,
+      GEO_TYPE_POLYGON => 3,
+      GEO_TYPE_MULTIPOINT => 4,
+      GEO_TYPE_MULTILINESTRING => 5,
+      GEO_TYPE_MULTIPOLYGON => 6,
+      GEO_TYPE_COLLECTION => 7,
+    );
+  }
+
+  public function byteOrder() {
+    return current(unpack('c', pack('S', 1)));
+  }
+
+  public function parseWKT($g, $wkt = NULL) {
+    if (!isset($wkt)) $wkt = $g->wkt;
+
+    // Already done.
+    if ($g->parsed) return;
+
+    // The WKT for a point will be short and sweet.  Parse it and quit.
+    if ($g->geometryType() == 'point') {
+      GeoSimple::parseWKTPointData($wkt, $g);
+      $g->parsed = TRUE;
+      return $g;
+    }
+
+    else {
+      // Put our WKT data into memory so we can cruise around with fread.
+      $fp = fopen("php://memory", 'r+');
+      $length = strlen($wkt);
+      fwrite($fp, $wkt);
+
+      // Seek to the initial '('.
+      fseek($fp, strlen($g->geometryType()) + 1);
+
+      $text = '';
+      while (!$done && (ftell($fp) < $length)) {
+        $c = fread($fp, 1);
+        $text .= $c;
+
+        if ($c == ',' || $c == ')' || $c == '(') {
+          switch ($g->geometryType()) {
+
+            // A simple collection of points, e.g. LINESTRING(1 2, 3 4).
+            case 'linestring':
+            case 'multipoint':
+              $g->addPoint(GeoSimple::parseWKTPointData($text));
+              $text = '';
+
+              if ($c == ')') $done = TRUE;
+              break;
+
+            // A nested collection of points, e.g. POLYGON((1 2, 3 4)).
+            case 'polygon':
+            case 'multilinestring':
+              if (strlen($text) > 1 && isset($line)) {
+                $line->addPoint(GeoSimple::parseWKTPointData($text));
+                $text = '';
+              }
+              if ($c == ')' || $c == '(') {
+                if ($c == ')' && isset($line) && count($line->points)) {
+                  $g->addGeometry($line);
+                }
+                $line = GeoSimple::linestring();
+              }
+              if ($text == ')') $done = TRUE;
+
+              break;
+
+            // A nested collection of complex, e.g. MULTIPOLYGON(((1 2, 3 4))).
+            case 'multipolygon': // TODO
+              break;
+
+            // A nested collection of WKT strings, e.g.
+            // GEOMETRYCOLLECTION(POINT(4 6),LINESTRING(4 6,7 10))
+            case 'collection': // TODO
+              break;
+          }
+        }
+      }
+      fclose($fp);
+
+      $g->parsed = TRUE;
+      return $g;
+    }
+  }
+
+  private function parseWKTPointData($text, $point = NULL) {
+    if (preg_match_all('/[0-9.]+/', $text, $matches)) {
+      list($x, $y, $z) = $matches[0];
+      if ($point) {
+        $point->setX($x);
+        $point->setY($y);
+        $point->setZ($z);
+      }
+      else {
+        $point = GeoSimple::point($x, $y, $z);
+      }
+      $point->parsed = TRUE;
+      return $point;
+    }
+  }
+
+  /**
+   * Use our WKB parser to return WKT, Arrays, etc.
+   * See geo.wkb.inc for more details.
+   * TODO it's likely that geo.wkb.inc will be deprecated and its functionality
+   * moved here.
+   */
+  public function parseWKB($g, $format = NULL) {
+    $format = strtolower($format);
+    if (isset($g->$format)) return $g->$format;
+    $result = geo_wkb_get_data($g->asBinary(), $format);
+    return $g->$format = $result['value'];
   }
 }

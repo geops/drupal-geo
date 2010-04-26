@@ -28,7 +28,12 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         if (!isset($node->$field_name)) continue;
 
         foreach ($node->$field_name as $item) {
-          $rss[] = geo('rss_item', $item['wkb']);
+          $data = geo_wkb_get_data($item['wkb'], 'text');
+          $rss[] = array(
+            'key' => 'georss:'. strtolower($data['type']),
+            'value' => $data['value'],
+            'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
+          );
         }
       }
       return $rss;

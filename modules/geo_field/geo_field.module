@@ -107,13 +107,12 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
         // Nothing to see here.
         if(geo_content_is_empty($item, $field)) return;
 
-        // Convert to $wkt and validate it.
-        $wkt = $item['geo'];
-        if ($gis_input) {
-          $wkt = geo_value($wkt, 'wkt', $gis_input);
-        }
+        // Convert to a geometry and validate it.
+        $input_format = $gis_input ? $gis_input : 'wkt';
+        $g = geo_value($item['geo'], 'geo', $gis_input);
 
-        if ($wkt && ($error = geo('wkt_validate', $wkt, $field['geo_type'])) !== TRUE) {
+        if ($g->geometryType() != $field['geo_type']) {
+          $error = t('Wrong geometry type. Got %result, was expecting %type.', array('%result' => $g->geometryType(), '%type' => $field['geo_type']));
           $error_field = $field['field_name'];
           form_set_error($error_field, $error);
         }

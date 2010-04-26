@@ -14,6 +14,7 @@ class views_handler_field_geo extends views_handler_field {
       'value' => array('default' => array()),
     );
     $options['input'] = array('default' => '');
+    $options['simplify'] = array('default' => '0');
     return $options;
   }
 
@@ -23,6 +24,13 @@ class views_handler_field_geo extends views_handler_field {
 
     // Use the geo_views helper function to display the target settings.
     geo_views_target_form($form, $form_state, $this, 'display');
+
+    // Add a "simplify" option, which will reduce the number of data points.
+    $form['simplify'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Simplify results'),
+      '#default_value' => $this->options['simplify'],
+    );
   }
 
   function query() {
@@ -39,7 +47,7 @@ class views_handler_field_geo extends views_handler_field {
 
     $table = $this->ensure_my_table();
     $this->geo->setTableName($table);
-    $this->geo->setColumnName($this->field);
+    $this->geo->setColumnName($this->real_field);
 
     $alias = $this->real_field .'_'. strtolower($function);
 

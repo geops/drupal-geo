@@ -10,7 +10,7 @@ class GeoSQLMySQL extends GeoSQL {
     );
   }
 
-  public function point($x, $y) {
+  public function point($x = NULL, $y = NULL) {
     return $this->sql("Point(%f, %f)", array($x, $y));
   }
 
