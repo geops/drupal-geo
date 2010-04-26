@@ -5,7 +5,7 @@ interface GeoInterface {
   /**
    * Factory methods for different geometries.
    */
-  public function point($x, $y);
+  public function point();
 
   public function linestring();
 
@@ -33,18 +33,21 @@ interface GeoInterface {
    *  @param $type
    *  @return GeoGeometry
    *
-   *  This function differs from the OGC specification by specifying an additional
-   *  parameter for $type.
+   *  This function differs from the OGC specification by specifying an 
+   *  additional parameter for $type.
    *
+   * @ingroup ogc-sfs
    */
   public function geomFromText($wkt, $srid = GEO_SRID_DEFAULT, $type = NULL);
 
   /**
-   *  Construct a Point
+   * Construct a Point
    *
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoPoint
+   *
+   * @ingroup ogc-sfs
    */
   public function pointFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -54,6 +57,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoLinestring
+   *
+   * @ingroup ogc-sfs
    */
   public function lineFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -63,6 +68,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function polyfromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -72,6 +79,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoMultiPoint
+   *
+   * @ingroup ogc-sfs
    */
   public function mPointFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -81,6 +90,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoMultiLineString
+   *
+   * @ingroup ogc-sfs
    */
   public function mLineFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -90,6 +101,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoMultiPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function mPolyFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -99,6 +112,8 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoGeometryCollection
+   *
+   * @ingroup ogc-sfs
    */
   public function geomCollFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -109,16 +124,20 @@ interface GeoInterface {
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function bdPolyFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
   /**
-   *  Construct a MultiPolygon given an arbitrary collection of closed linestrings
-   *  as a MultiLineString text representation
+   * Construct a MultiPolygon given an arbitrary collection of closed 
+   * linestrings as a MultiLineString text representation
    *
    *  @param string $wkt Well Known Text
    *  @param integer $srid
    *  @return GeoMultiPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function bdMPolyFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
@@ -137,6 +156,8 @@ interface GeoInterface {
    *
    *  This function differs from the OGC specification by specifying an additional
    *  parameter for $type.
+   *
+   * @ingroup ogc-sfs
    */
   public function geomFromWKB($wkb, $srid = GEO_SRID_DEFAULT, $type = NULL);
 
@@ -155,6 +176,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeoLinestring
+   *
+   * @ingroup ogc-sfs
    */
   public function lineFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -164,6 +187,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeoPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function polyFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -173,6 +198,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeoMultiPoint
+   *
+   * @ingroup ogc-sfs
    */
   public function mPointFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -182,6 +209,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeoMultiLineString
+   *
+   * @ingroup ogc-sfs
    */
   public function mLineFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -191,6 +220,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeoMultiPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function mPolyFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -200,6 +231,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeometryCollection
+   *
+   * @ingroup ogc-sfs
    */
   public function geomCollFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -210,6 +243,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeometryPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function bdPolyFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -220,6 +255,8 @@ interface GeoInterface {
    *  @param string $wkb Well Known Binary
    *  @param integer $srid
    *  @return GeometryMultiPolygon
+   *
+   * @ingroup ogc-sfs
    */
   public function bdMPolyFromWKB($wkb, $srid = GEO_SRID_DEFAULT);
 
@@ -228,6 +265,8 @@ interface GeoInterface {
    *
    * @param Geometry $g
    * @return string Well-known Text
+   *
+   * @ingroup ogc-sfs
    */
   public function asText($g);
 
@@ -236,6 +275,8 @@ interface GeoInterface {
    *
    * @param Geometry $g
    * @return binary Well-known Binary
+   *
+   * @ingroup ogc-sfs
    */
   public function asBinary($g);
 
@@ -245,6 +286,8 @@ interface GeoInterface {
    *
    * @param Geometry $g
    * @return integer
+   *
+   * @ingroup ogc-sfs
    */
   public function dimension($g);
 
@@ -258,6 +301,8 @@ interface GeoInterface {
    *  This function differs from the OGC specification by permitting the
    *  Geometry parameter to be NULL.  If this parameter is omitted, the
    *  function should return the default geometryType of the instance.
+   *
+   * @ingroup ogc-sfs
    */
   public function geometryType($g = NULL);
 
@@ -270,6 +315,8 @@ interface GeoInterface {
    *  This function differs from the OGC specification by permitting the
    *  Geometry parameter to be NULL.  If this parameter is omitted, the
    *  function should return the default SRID of the instance.
+   *
+   * @ingroup ogc-sfs
    */
   public function SRID($g = NULL);
 
@@ -489,18 +536,46 @@ interface GeoGeometryMultiPolygon extends GeoGeometryMultiSurface {
 class Geometry implements GeoGeometry{
 
   protected $handler;
+  public $wkt;
+  public $wkb;
+  public $parsed = FALSE;
 
   // Determine whether another item's handler is compatible with this one.
   public function geoCompatible($g) {
     return $this->call('geoCompatible');
   }
 
+  public function geoType() {
+    return $this->geo_type;
+  }
+
   // Call my handler's version of the requested function, including additional args.
-  // TODO! this is important and useful.
   protected function call() {
     $args = func_get_args();
     $function = array_shift($args);
-    return $this->handler->$function($this, $args);
+
+    array_unshift($args, $this);
+
+    if (isset($this->handler)) {
+      //return $this->handler->$function($this, $args);
+      return call_user_func_array(array($this->handler, $function), $args);
+    }
+    else {
+      //return GeoSimple::$function($this, $args);
+      return call_user_func_array(array('GeoSimple', $function), $args);
+    }
+  }
+
+  public function setHandler($handler) {
+    $this->handler = $handler;
+  }
+
+  public function setWKT($wkt) {
+    $this->wkt = $wkt;
+  }
+
+  public function setWKB($wkb) {
+    $this->wkb = $wkb;
   }
 
   public function dimension() {
@@ -544,12 +619,26 @@ class GeometryPoint extends Geometry implements GeoGeometryPoint{
   protected $geo_type = GEO_TYPE_POINT;
   protected $geo_dimension = 0;
 
-  protected $x;
-  protected $y;
+  public $x;
+  public $y;
+  public $z;
+  public $m;
 
   function __construct($x, $y) { // TODO is this kosher?
     $this->x = $x;
     $this->y = $y;
+  }
+
+  function setX($value) {
+    $this->x = $this->lon = $value;
+  }
+
+  function setY($value) {
+    $this->y = $this->lat = $value;
+  }
+
+  function setZ($value) {
+    $this->z = $this->ele = $value;
   }
 
   function x() {
@@ -565,7 +654,7 @@ class GeometryCurve extends Geometry implements GeoGeometryCurve {
   protected $geo_type = GEO_TYPE_CURVE;
   protected $geo_dimension = 1;
 
-  protected $points = array();
+  public $points = array();
 
   function addPoint($point, $position = NULL) {
     return $this->call('addPoint', $point);
@@ -626,6 +715,13 @@ class GeometryPolygon extends GeometrySurface implements GeoGeometryPolygon {
   protected $geo_type = GEO_TYPE_POLYGON;
   protected $geo_dimension = 2;
 
+  public $rings = array();
+
+  // Not part of spec.
+  function addGeometry($linestring) { 
+    $this->rings[] = $linestring;
+  }
+
   function exteriorRing() {
     return $this->call('exteriorRing');
   }
@@ -642,6 +738,13 @@ class GeometryPolygon extends GeometrySurface implements GeoGeometryPolygon {
 class GeometryCollection extends Geometry implements GeoGeometryCollection {
   protected $geo_type = GEO_TYPE_COLLECTION;
 
+  public $geometries = array();
+
+  // Not part of spec.
+  function addGeometry($g) { 
+    $this->geometries[] = $g;
+  }
+
   public function numGeometries() {
     return $this->call('numGeometries');
   }
@@ -655,6 +758,8 @@ class GeometryCollection extends Geometry implements GeoGeometryCollection {
 class GeometryMultipoint extends GeometryCollection implements GeoGeometryMultipoint {
   protected $geo_type = GEO_TYPE_MULTIPOINT;
   protected $geo_dimension = 0;
+
+  public $points = array();
 }
 
 class GeometryMulticurve extends GeometryCollection implements GeoGeometryMulticurve {

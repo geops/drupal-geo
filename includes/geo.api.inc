@@ -19,38 +19,6 @@ define('GEO_TYPE_MULTIPOLYGON', 11);
 define('GEO_UNKNOWN', -1);
 
 /**
- * Call an API function from the geo backend databases.
- * This function will find and load the database backend files, and call
- * the requested op from the backend or the default library, as needed.
- *
- * @return mixed
- *  The result of the database operation execution.
- *
- *  TODO THERE IS A VERY GOOD CHANCE THIS WILL BE DEPRECATED!
- */
-function geo($op = NULL) {
-  static $backend;
-
-  // Load common functions.
-  module_load_include('inc', 'geo');
-
-  // Call the appropriate API function: If geo_$backend_$op exists, call that.
-  // Otherwise, resort to geo_$op.  This creates a sort of inheritence system.
-  $args = func_get_args();
-  if($args) {
-    $op = array_shift($args);
-    if (!function_exists($func = 'geo_'. $backend .'_'. $op)) {
-      $func = 'geo_'. $op;
-    }
-    if (!function_exists($func)) {
-      drupal_set_message(t('Call to undefined geo operation %op', array('%op' => $op)), 'error');
-      return FALSE;
-    }
-    return call_user_func_array($func, $args);
-  }
-}
-
-/**
  * API Function: Return a type constant for named geo type.
  */
 function geo_type($name) {
@@ -148,7 +116,7 @@ function geo_list($reset = FALSE) {
 /**
  * API function: Load a geometry dataset.
  */
-function geo_load($values) {
+function geo_load($values = NULL) {
   // Already loaded, simply return it.
   if (is_object($values) && method_exists($values, 'gid')) {
     return $values;
@@ -397,19 +365,40 @@ function geo_value($input, $output_format, $input_format = 'wkb') {
   // Nothing to do here.
   if ($output_format == $input_format) return $input;
 
+  $geo = geo_load();
+
+  // Set up the geometry object based on the input parameter.
   switch ($input_format) {
+    case 'geo':
+      $g = $input;
+      break;
+
     case 'wkb':
-      $value = geo_wkb_get_data($input, $output_format);
-      return $value['value'];
+      $g = $geo->geomFromWKB($input);
+      break;
 
     case 'wkt':
+      $g = $geo->geomFromText($input);
       break;
 
     case 'array':
-      if ($output_format == 'wkt') {
-        return geo('wkt_from_point', $input['lat'], $input['lon']);
-      }
+      $g = $geo->point($input['lon'], $input['lat']);
       break;
+  }
+
+  // Return the requested format.
+  switch ($output_format) {
+    case 'geo':
+      return $g;
+
+    case 'wkb':
+      return $geo->asBinary($g);
+
+    case 'wkt':
+      return $geo->asText($g);
+
+    default:
+      return $geo->parseWKB($g, $output_format);
   }
 }
 
@@ -471,4 +460,3 @@ function geo_input_element_info($name) {
   $inputs = geo_inputs();
   return $inputs[$name]['element'];
 }
-

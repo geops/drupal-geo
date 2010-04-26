@@ -426,7 +426,7 @@ class GeoSQL implements GeoInterface {
   }
 
   // Geo type constructors.
-  public function point($x, $y) {
+  public function point($x = NULL, $y = NULL) {
     return $this->unimplemented();
   }
 

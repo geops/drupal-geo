@@ -334,6 +334,12 @@ function geo_views_plugins() {
         'path' => drupal_get_path('module', 'geo') .'/includes/views',
       ),
     ),
+    'argument default' => array(
+      'geo' => array(
+        'title' => t('Location of current node'),
+        'handler' => 'geo_plugin_argument_default',
+      ),
+    ),
   );
 }
 
