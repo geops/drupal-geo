@@ -52,6 +52,11 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
   // Shape file headers are stored in the first 100 bytes of the shp/shx files.
   $headers += _shp_headers(zip_entry_read($files['shp'], 100));
 
+  // Add the geo column that will contain shape data.
+  $geo = geo_sql_load();
+  $schema['fields'] = array_merge($schema['fields'], $geo->sqlFieldDefinition('geo', geo_type($headers['geo_type'])));
+  $schema['fields']['geo']['not null'] = TRUE;
+
   // Create a geo dataset.
   $name = preg_replace('/^geo_data_/', '', $table_name);
   $values = array(
@@ -62,16 +67,9 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
     'geo_type' => geo_type($headers['geo_type']),
     'srid' => $srid,
     'indexed' => TRUE,
+    'schema' => array($table_name => $schema),
   );
-  $geo = geo_create_dataset($values);
-
-  // Add the geo column that will contain shape data.
-  $schema['fields'] = array_merge($schema['fields'], $geo->sqlFieldDefinition('geo'));
-  $schema['fields']['geo']['not null'] = TRUE;
-
-  $geo->setSchema($schema);
-
-  // TODO indexed, correctly deal with 'create_table' flag.
+  $geo = geo_create_dataset($values, $create_table);
 
   $row_count = 0;
   while ($shp = _shp_get_record($files['shp'])) {
