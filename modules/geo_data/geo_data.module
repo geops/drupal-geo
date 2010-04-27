@@ -164,6 +164,11 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
     case 'load':
       $geo = geo_load(array('table_name' => $field['geo_data_table']));
 
+      // If we didn't find a valid dataset, unset this field's value.
+      if (!$geo->gid()) {
+        return array($field['field_name'] => array());
+      }
+
       $select = array();
 
       // Add the key and value columns to the table query.
