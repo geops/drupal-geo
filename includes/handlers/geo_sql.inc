@@ -105,7 +105,7 @@ class GeoSQL implements GeoInterface {
     }
   }
 
-  function sqlFieldDefinition($column_name = NULL, $geo_type = GEO_UNKNOWN) {
+  function sqlFieldDefinition($column_name = NULL, $geo_type = NULL) {
     if (is_null($column_name)) $column_name = $this->columnName();
     if (is_null($geo_type)) $geo_type = $this->geoType();
 
