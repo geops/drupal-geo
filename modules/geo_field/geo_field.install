@@ -1,8 +1,14 @@
 <?php
+/**
+ * @file
+ * Install, update and uninstall functions for the geo_field module.
+ *
+ */
+
 // $Id$
 
 /**
- * Implementation of hook_install().
+ * Implements hook_install().
  */
 function geo_field_install() {
   drupal_load('module', 'content');
@@ -10,7 +16,7 @@ function geo_field_install() {
 }
 
 /**
- * Implementation of hook_uninstall().
+ * Implements hook_uninstall().
  */
 function geo_field_uninstall() {
   drupal_load('module', 'content');

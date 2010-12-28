@@ -7,7 +7,7 @@
  */
 
 /**
- * Implementation of hook_field_info().
+ * Implements hook_field_info().
  */
 function geo_field_info() {
   return array(
@@ -19,7 +19,7 @@ function geo_field_info() {
 }
 
 /**
- * Implementation of hook_field_settings().
+ * Implements hook_field_settings().
  */
 function geo_field_settings($op, $field) {
   if (!$geo = geo_load(array('name' => $field['field_name']))) {
@@ -93,6 +93,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       $delta = $field['multiple'] ? ', delta' : '';
 
       // Result from CCK's select was garbage.  Re-query with AsBinary().
+      // TODO Please convert this statement to the D7 database API syntax.
       $res = db_query("SELECT " . $geo->AsBinary($geo) . ' AS geo ' . $delta . "
         FROM {" . $geo->tableName() . "} WHERE vid = %d", $node->vid);
 
@@ -145,7 +146,7 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
 
           // Convert the WKT to binary data before the insert. This allows the
           // input to pass through the binary query substitutions.
-          $items[$k]['geo'] = db_result(db_query("SELECT GeomFromText('%s', %d)", $wkt, $field['srid']));
+          $items[$k]['geo'] = db_query("SELECT GeomFromText('%s', %d)", $wkt, $field['srid'])->fetchField();
         }
       }
       return;
@@ -161,7 +162,7 @@ function geo_content_is_empty($item, $field) {
 }
 
 /**
- * Implementation of hook_widget_info().
+ * Implements hook_widget_info().
  */
 function geo_field_widget_info() {
   $widget_info = array();
@@ -177,7 +178,7 @@ function geo_field_widget_info() {
 }
 
 /**
- * Implementation of hook_widget().
+ * Implements hook_widget().
  */
 function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
   $widget_info  = _content_widget_types();
