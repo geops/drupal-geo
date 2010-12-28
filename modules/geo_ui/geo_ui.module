@@ -9,7 +9,7 @@
  */
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function geo_ui_menu() {
   module_load_include('menu.inc', 'geo_ui', 'includes/geo_ui');
@@ -17,14 +17,14 @@ function geo_ui_menu() {
 }
 
 /**
- * Implementation of hook_perm()
+ * Implements hook_permission()
  */
-function geo_ui_perm() {
+function geo_ui_permission() {
   return array('administer geospatial data');
 }
 
 /**
- * Implementation of hook_theme().
+ * Implements hook_theme().
  */
 function geo_ui_theme() {
   module_load_include('theme.inc', 'geo_ui', 'theme/geo_ui');

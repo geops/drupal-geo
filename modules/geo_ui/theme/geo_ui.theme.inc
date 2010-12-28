@@ -20,6 +20,7 @@ function geo_ui_theme_theme() {
  * Theme function for the geo_data table listing.
  */
 function theme_geo_ui_admin_tables($form) {
+  // TODO: Should this theme geo_ui_admin_tables be declared in hook_theme()?
   $hdrs = array(
     t('Name'),
     t('Table'),
@@ -36,7 +37,7 @@ function theme_geo_ui_admin_tables($form) {
     $rows[] = $row;
   }
 
-  $output = theme('table', $hdrs, $rows);
+  $output = theme('table', array('header' => $hdrs, 'rows' => $rows));
   $output .= drupal_render($form);
 
   return $output;

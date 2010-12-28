@@ -22,7 +22,7 @@ function geo_ui_admin_list() {
     $rows[] = $row;
   }
 
-  $output = theme('table', $hdrs, $rows);
+  $output = theme('table', array('header' => $hdrs, 'rows' => $rows));
   $output .= drupal_render($form);
   return $output;
 }

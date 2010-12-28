@@ -3,8 +3,8 @@
 
 function geo_ui_menu_menu() {
   return array(
-    'admin/build/geo' => array(
-      'path' => 'admin/build/geo',
+    'admin/structure/geo' => array(
+      'path' => 'admin/structure/geo',
       'title' => t('Geospatial data'),
       'description' => t('Manage geographic information'),
       'page callback' => 'drupal_get_form',

@@ -3,4 +3,7 @@ name = Geo UI
 description = An interface for working with geospatial data.
 package = Geo
 dependencies[] = geo
-core = 6.x
+core = 7.x
+
+files[] = geo_ui.install
+files[] = geo_ui.module
