@@ -45,7 +45,7 @@ function geo_data_field_info() {
  */
 function geo_data_field_settings($op, $field) {
 
-// TODO upgrade path for geo_data_table.
+  // TODO upgrade path for geo_data_table.
   switch ($op) {
     case 'form':
       $form = array();
@@ -59,7 +59,9 @@ function geo_data_field_settings($op, $field) {
         if ($table = $geo->tableName()) {
 
           // For now, let's not use data from existing fields.
-          if (substr($geo->name(), 0, 6) == 'field_') continue;
+          if (substr($geo->name(), 0, 6) == 'field_') {
+            continue;
+          }
 
           $schema = drupal_get_schema($table);
           $columns = array('' => t('Select a column'));
@@ -103,7 +105,7 @@ function geo_data_field_settings($op, $field) {
           $form['geo_data'][$name]['options'] = array(
             '#type' => 'fieldset',
             '#title' => t('Settings for %title', array('%title' => $geo->title())),
-            '#attributes' => array('class' => 'geo-data-'. $name),
+            '#attributes' => array('class' => 'geo-data-' . $name),
           );
           $form['geo_data'][$name]['options']['required'] = array(
             '#type' => 'checkbox',
@@ -179,16 +181,22 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
           $label = current($field['geo_data_value']);
         }
       }
-      if ($select = join(',', $select)) $select = ', '. $select;
+      if ($select = join(',', $select)) {
+        $select = ', ' . $select;
+      }
 
       foreach ($items as $delta => $item) {
-        if (!$item) continue;
+        if (!$item) {
+          continue;
+        }
 
-        $res = db_query("SELECT ". $geo->AsBinary($geo) ." AS geo $select
-          FROM {". $geo->tableName() ."} WHERE $key = '%s'", $item['value']);
+        $res = db_query("SELECT " . $geo->AsBinary($geo) . " AS geo $select
+          FROM {" . $geo->tableName() . "} WHERE $key = '%s'", $item['value']);
         if ($row = db_fetch_array($res)) {
           $item = array_merge($row, $item);
-          if ($label) $item['label'] = $item[$label];
+          if ($label) {
+            $item['label'] = $item[$label];
+          }
           $item['geo'] = $item['wkb'] = db_decode_blob($item['geo']);
           $items[$delta] = $item;
         }
@@ -254,7 +262,9 @@ function geo_data_allowed_values($field) {
   $select = array();
   $select[] = $key = db_escape_string(check_plain($field['geo_data_key']));
 
-  if (!$table || !$key) return $options;
+  if (!$table || !$key) {
+    return $options;
+  }
 
   if (is_array($field['geo_data_value'])) {
     foreach ($field['geo_data_value'] as $val) {
@@ -263,7 +273,7 @@ function geo_data_allowed_values($field) {
   }
   $orderby = count($select) > 1 ? $select[1] : $select[0];
 
-  $sql = "SELECT ". join(',', $select) ." FROM {". $table ."}";
+  $sql = "SELECT " . join(',', $select) . " FROM {" . $table . "}";
   $sql .= " ORDER BY $orderby";
   $res = db_query(db_distinct_field($table, $key, $sql));
   while ($row = db_fetch_array($res)) {

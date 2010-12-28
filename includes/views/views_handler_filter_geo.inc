@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 class views_handler_filter_geo extends views_handler_filter_numeric {
 
@@ -111,7 +112,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
       $form_state['input'][$key] = $this->value;
     }
 
-    $form[$key] = array( '#tree' => TRUE );
+    $form[$key] = array('#tree' => TRUE);
 
     if ($this->options['expose']['show_value'] == 'none') {
       $form[$key]['value'] = array(
@@ -185,7 +186,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
     $this->geo_target = $target;
 
     $table = $this->ensure_my_table();
-    $this->field_alias = $this->field .'_'. $function;
+    $this->field_alias = $this->field . '_' . $function;
 
     // Ensure that the query acts on the table and column aliases defined here.
     $this->geo->setTableName($table);
@@ -200,7 +201,7 @@ class views_handler_filter_geo extends views_handler_filter_numeric {
 
     // Adopt the behavior of the views_filter_numeric parent class.
     if ($info['returns'] == 'float') {
-   		// TODO Add a bounding box filter to leverage the geo index for performance
+      // TODO Add a bounding box filter to leverage the geo index for performance
 
       // Convert the limiting values to meters.
       if ($units = $this->value['units']) {

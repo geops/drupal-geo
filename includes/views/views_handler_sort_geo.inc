@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 class views_handler_sort_geo extends views_handler_sort {
 
@@ -41,11 +42,11 @@ class views_handler_sort_geo extends views_handler_sort {
     if (is_object($target)) {
       $orderby = $target->columnName();
     }
-   
+
     // Otherwise, add and use the sort value.
     else {
       $table = $this->ensure_my_table();
-      $this->field_alias = $this->field .'_'. $function;
+      $this->field_alias = $this->field . '_' . $function;
 
       // Ensure that the query acts on the table and column aliases defined here.
       $this->geo->setTableName($table);

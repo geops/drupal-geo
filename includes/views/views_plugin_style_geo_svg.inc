@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 /**
  * @file
  * Contains the Geo XML style plugin.
@@ -17,7 +18,9 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
   var $max_x = 0;
   var $max_y = 0;
 
-  function xml_type() { return 'image/svg+xml'; }
+  function xml_type() {
+    return 'image/svg+xml';
+  }
 
   /**
    * The SVG DOMDOCUMENT type.
@@ -58,7 +61,7 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
 
     $url = url($this->view->get_url(NULL, $path), $url_options);
 
-    $attachment = '<embed width="500" height="300" src="'. $url .'"
+    $attachment = '<embed width="500" height="300" src="' . $url . '"
         pluginspage="http://www.adobe.com/svg/viewer/install/" />';
 
     $this->view->attachment_before .= $attachment;
@@ -69,29 +72,38 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
     if (isset($bbox)) {
       $data = geo_wkb_get_data($bbox, 'text');
       $bbox = explode(' ', $data['value']);
-      if($bbox[0] < $this->min_y || !$this->min_y) $this->min_y = $bbox[0];
-      if($bbox[1] < $this->min_x || !$this->min_x) $this->min_x = $bbox[1];
-      if($bbox[4] > $this->max_y || !$this->max_y) $this->max_y = $bbox[4];
-      if($bbox[5] > $this->max_x || !$this->max_x) $this->max_x = $bbox[5];
+      if ($bbox[0] < $this->min_y || !$this->min_y) {
+        $this->min_y = $bbox[0];
+      }
+      if ($bbox[1] < $this->min_x || !$this->min_x) {
+        $this->min_x = $bbox[1];
+      }
+      if ($bbox[4] > $this->max_y || !$this->max_y) {
+        $this->max_y = $bbox[4];
+      }
+      if ($bbox[5] > $this->max_x || !$this->max_x) {
+        $this->max_x = $bbox[5];
+      }
     }
     else {
-      return $this->min_y .' '. $this->min_x .' '.
-        ($this->max_y - $this->min_y) .' ' . ($this->max_x - $this->min_x);
+      return $this->min_y . ' ' . $this->min_x . ' ' .
+        ($this->max_y - $this->min_y) . ' ' . ($this->max_x - $this->min_x);
     }
   }
 
   function pre_render() {
     parent::pre_render();
 
-    $width = 500; $height = 300;  // TODO options.
+    $width = 500;
+    $height = 300; // TODO options.
 
-    $this->doc->setAttribute('width', $width .'px');
-    $this->doc->setAttribute('height', $height .'px');
+    $this->doc->setAttribute('width', $width . 'px');
+    $this->doc->setAttribute('height', $height . 'px');
 
     // Set a transformation to correctly orient the results.
     $g = $this->doc->appendChild($this->xml->createElement('g'));
-    $g->setAttribute('transform', 'rotate(-90,'.(($width)/2) .','.(($height)/2).')');
-    
+    $g->setAttribute('transform', 'rotate(-90,' . (($width) / 2) . ',' . (($height) / 2) . ')');
+
     // Set the viewbox for the output.  We may need to modify this later.
     $this->svg = $g->appendChild($this->xml->createElement('svg'));
     $this->svg->setAttribute('id', 'geo_box');
@@ -121,10 +133,10 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
             $item->setAttribute('r', '.5%');
 
             $item->setAttribute('fill', 'black');
-  
+
             $this->doc->appendChild($item);
             break;
- 
+
           case 'linestring':
             $item = $this->xml->createElement('polyline');
             $item->setAttribute('points', $data['value']);
@@ -138,7 +150,7 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
 
           case 'polygon':
             $item = $this->xml->createElement('path');
-            $item->setAttribute('d', 'M'. $data['value'] .'z');
+            $item->setAttribute('d', 'M' . $data['value'] . 'z');
             $item->setAttribute('fill', 'red');
 
             $item->setAttribute('stroke', 'blue');

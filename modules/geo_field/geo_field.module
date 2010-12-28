@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * @file
@@ -46,8 +47,13 @@ function geo_field_settings($op, $field) {
       );
 
       // TODO pick the SRID for this column
-      if (!$field['srid']) $field['srid'] = GEO_SRID_DEFAULT;
-      $form['srid'] = array('#type' => 'value', '#value' => $field['srid']);
+      if (!$field['srid']) {
+        $field['srid'] = GEO_SRID_DEFAULT;
+      }
+      $form['srid'] = array(
+        '#type' => 'value',
+        '#value' => $field['srid'],
+      );
 
       return $form;
 
@@ -77,7 +83,9 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
   switch ($op) {
 
     case 'load':
-      if (!$items) return;
+      if (!$items) {
+        return;
+      }
 
       $geo = geo_load(array('name' => $field['field_name']));
 
@@ -85,8 +93,8 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       $delta = $field['multiple'] ? ', delta' : '';
 
       // Result from CCK's select was garbage.  Re-query with AsBinary().
-      $res = db_query("SELECT ". $geo->AsBinary($geo) .' AS geo '. $delta ."
-        FROM {". $geo->tableName() ."} WHERE vid = %d", $node->vid);
+      $res = db_query("SELECT " . $geo->AsBinary($geo) . ' AS geo ' . $delta . "
+        FROM {" . $geo->tableName() . "} WHERE vid = %d", $node->vid);
 
       while ($row = db_fetch_array($res)) {
         $delta = isset($row['delta']) ? $row['delta'] : 0;
@@ -96,8 +104,10 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       }
 
       // Unset the value if it's not actually populated.
-      foreach($items as $delta => $item) {
-        if (empty($item['geo'])) unset($items[$delta]);
+      foreach ($items as $delta => $item) {
+        if (empty($item['geo'])) {
+          unset($items[$delta]);
+        }
       }
       return array($field['field_name'] => $items);
 
@@ -105,7 +115,9 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
       foreach ($items as $k => $item) {
 
         // Nothing to see here.
-        if(geo_content_is_empty($item, $field)) return;
+        if (geo_content_is_empty($item, $field)) {
+          return;
+        }
 
         // Convert to a geometry and validate it.
         $input_format = $gis_input ? $gis_input : 'wkt';
@@ -121,13 +133,15 @@ function geo_field($op, &$node, $field, &$items, $teaser, $page) {
 
     case 'presave':
       foreach ($items as $k => $item) {
-        if(!geo_content_is_empty($item, $field)) {
+        if (!geo_content_is_empty($item, $field)) {
 
           // Convert to WKT (TODO we don't have direct-to-wkb functions yet!)
           if ($gis_input) {
             $wkt = geo_value($item['geo'], 'wkt', $gis_input);
           }
-          else $wkt = $item['geo'];
+          else {
+            $wkt = $item['geo'];
+          }
 
           // Convert the WKT to binary data before the insert. This allows the
           // input to pass through the binary query substitutions.
@@ -152,10 +166,12 @@ function geo_content_is_empty($item, $field) {
 function geo_field_widget_info() {
   $widget_info = array();
   foreach (geo_inputs() as $name => $info) {
-    if (!$info['safe reverse']) continue;
+    if (!$info['safe reverse']) {
+      continue;
+    }
     $widget_info[$name] = $info;
     $widget_info[$name]['field types'] = array_keys(geo_field_info());
-// TODO handle multiple?
+    // TODO handle multiple?
   }
   return $widget_info;
 }
@@ -170,12 +186,12 @@ function geo_field_widget(&$form, &$form_state, $field, $items, $delta = 0) {
   foreach ($items as $key => $item) {
     // Convert from the storage format (wkb) to the element's expected format.
     //if (!isset($item['geo'])) {
-      if ($info['gis input']) {
-        if (isset($item['wkb'])) {
-          $data = geo_wkb_get_data($item['wkb'], $info['gis input']);
-          $items[$key]['geo'] = $data['value'];
-        }
+    if ($info['gis input']) {
+      if (isset($item['wkb'])) {
+        $data = geo_wkb_get_data($item['wkb'], $info['gis input']);
+        $items[$key]['geo'] = $data['value'];
       }
+    }
     //}
   }
 

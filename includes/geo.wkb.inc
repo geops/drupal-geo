@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 function geo_wkb_types($key = NULL) {
   $geo_types = array(
@@ -10,7 +11,9 @@ function geo_wkb_types($key = NULL) {
     6 => 'multipolygon',
   );
 
-  if ($key) return $geo_types[$key];
+  if ($key) {
+    return $geo_types[$key];
+  }
   return $geo_types;
 }
 
@@ -23,7 +26,9 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
   $data = array();
 
   if (!$fp) {
-    if (empty($wkb)) return;
+    if (empty($wkb)) {
+      return;
+    }
     // Put our WKB data into memory so we can cruise around with fread.
     $fp = fopen("php://memory", 'r+');
     fputs($fp, $wkb);
@@ -38,11 +43,13 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
     $data['type'] = geo_wkb_types($data['type']);
   }
 
-  $func = 'geo_wkb_get_'. $format;
+  $func = 'geo_wkb_get_' . $format;
 
-  if (!isset($type)) $type = $data['type'];
+  if (!isset($type)) {
+    $type = $data['type'];
+  }
 
-  switch($type) {
+  switch ($type) {
 
     case 'point': // Contains x, y decimal values.
       $tmp = fread($fp, 16);
@@ -59,7 +66,9 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
 
       $data = array_merge($data, $point);
       $data['value'] = $func($data);
-      if (function_exists($post = $func .'_post')) $data = $post($data);
+      if (function_exists($post = $func . '_post')) {
+        $data = $post($data);
+      }
       return $data;
 
     case 'linestring': // Contains count * (point) values.
@@ -68,7 +77,9 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
         $point = _geo_wkb_get_data(NULL, $format, $fp, 'point', $byte_order);
         $data['value'] = $func($point, $data['value']);
       }
-      if (function_exists($post = $func .'_post')) $data = $post($data);
+      if (function_exists($post = $func . '_post')) {
+        $data = $post($data);
+      }
       return $data;
 
     case 'polygon': // Contains count * (linestring) items.
@@ -77,7 +88,9 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
         $line = _geo_wkb_get_data(NULL, $format, $fp, 'linestring', $byte_order);
         $data['value'] = $func($line, $data['value']);
       }
-      if (function_exists($post = $func .'_post')) $data = $post($data);
+      if (function_exists($post = $func . '_post')) {
+        $data = $post($data);
+      }
       return $data;
   }
 }
@@ -88,15 +101,17 @@ function _geo_wkb_get_data($wkb = NULL, $format = 'text', $fp = NULL, $type = NU
 function geo_wkb_get_wkt($data, $items = NULL) {
   $out = '';
   if (isset($data['x']) && isset($data['y'])) {
-    $out = $data['x'] .' '. $data['y'];
-    if (isset($data['z'])) $out .= ' '. $data['z'];
+    $out = $data['x'] . ' ' . $data['y'];
+    if (isset($data['z'])) {
+      $out .= ' ' . $data['z'];
+    }
   }
   elseif (isset($data['value'])) {
     $out = $data['value'];
   }
 
   if (isset($items)) {
-    return $items .= ', '. $out;
+    return $items .= ', ' . $out;
   }
   return $out;
 }
@@ -104,8 +119,10 @@ function geo_wkb_get_wkt($data, $items = NULL) {
 function geo_wkb_get_wkt_post($data) {
   if (isset($data['value'])) {
     $value = '';
-    if (isset($data['type'])) $value = strtoupper($data['type']);
-    $data['value'] = $value .'('. $data['value'] .')';
+    if (isset($data['type'])) {
+      $value = strtoupper($data['type']);
+    }
+    $data['value'] = $value . '(' . $data['value'] . ')';
   }
   return $data;
 }
@@ -116,15 +133,17 @@ function geo_wkb_get_wkt_post($data) {
 function geo_wkb_get_text($data, $items = NULL) {
   $out = '';
   if (isset($data['x']) && isset($data['y'])) {
-    $out = $data['y'] .' '. $data['x'];
-    if (isset($data['z'])) $out .= ' '. $data['z'];
+    $out = $data['y'] . ' ' . $data['x'];
+    if (isset($data['z'])) {
+      $out .= ' ' . $data['z'];
+    }
   }
   elseif (isset($data['value'])) {
     $out = $data['value'];
   }
 
   if (isset($items)) {
-    return $items .= ' '. $out;
+    return $items .= ' ' . $out;
   }
   return $out;
 }
@@ -134,7 +153,10 @@ function geo_wkb_get_text($data, $items = NULL) {
  */
 function geo_wkb_get_array($data, $items = NULL) {
   if (isset($data['x']) && isset($data['y'])) {
-    $ret = array('lon' => $data['x'], 'lat' => $data['y']);
+    $ret = array(
+      'lon' => $data['x'],
+      'lat' => $data['y'],
+    );
   }
   elseif (isset($data['value'])) {
     $ret = $data['value'];
@@ -161,15 +183,17 @@ function geo_wkb_get_array_post($data, $items = NULL) {
 function geo_wkb_get_kml($data, $items = NULL) {
   $out = '';
   if (isset($data['x']) && isset($data['y'])) {
-    $out = $data['x'] .','. $data['y'];
-    if (isset($data['z'])) $out .= ','. $data['z'];
+    $out = $data['x'] . ',' . $data['y'];
+    if (isset($data['z'])) {
+      $out .= ',' . $data['z'];
+    }
   }
   elseif (isset($data['value'])) {
     $out = $data['value'];
   }
 
   if (isset($items)) {
-    return $items .= "\n". $out;
+    return $items .= "\n" . $out;
   }
   return $out;
 }

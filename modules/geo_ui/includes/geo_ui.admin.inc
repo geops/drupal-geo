@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Put together a form of all the spatial columns.
@@ -65,7 +66,10 @@ function geo_ui_admin($form_state) {
     '#description' => t('Check this box to import the shapefile into a new table.'),
   );
 
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Import Shapefile'));
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Import Shapefile'),
+  );
   return $form;
 }
 
@@ -73,7 +77,7 @@ function geo_ui_admin_submit($form, &$form_state) {
   if (isset($_FILES['files']['name']['import'])) {
     module_load_include('inc', 'geo', 'includes/shp2sql');
     $file = $_FILES['files']['tmp_name']['import'];
-    $table_name = 'geo_data_'. $form_state['values']['import']['table_name'];
+    $table_name = 'geo_data_' . $form_state['values']['import']['table_name'];
     $create = $form_state['values']['import']['create'];
     $srid = $form_state['values']['import']['srid'];
     geo_shp2sql($file, $table_name, $create, $srid);

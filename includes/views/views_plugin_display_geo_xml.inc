@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * @file
@@ -6,7 +7,9 @@
  */
 
 class views_plugin_display_geo_xml extends views_plugin_display_feed {
-  function get_style_type() { return 'geo_xml'; }
+  function get_style_type() {
+    return 'geo_xml';
+  }
 
   function option_definition() {
     $options = parent::option_definition();

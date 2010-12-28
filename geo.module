@@ -1,11 +1,12 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Geo: Geospatial storage and retrieval.
  */
 
 // The Geo API should always be available.
-require (dirname(__FILE__)) .'/includes/geo.api.inc';
+require (dirname(__FILE__)) . '/includes/geo.api.inc';
 
 /**
  * Implementation of hook_init().
@@ -25,12 +26,14 @@ function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       // Append microformats on geo node feeds.
       $rss = array();
       foreach (geo_fields() as $field_name => $field) {
-        if (!isset($node->$field_name)) continue;
+        if (!isset($node->$field_name)) {
+          continue;
+        }
 
         foreach ($node->$field_name as $item) {
           $data = geo_wkb_get_data($item['wkb'], 'text');
           $rss[] = array(
-            'key' => 'georss:'. strtolower($data['type']),
+            'key' => 'georss:' . strtolower($data['type']),
             'value' => $data['value'],
             'namespace' => array('xmlns:georss' => 'http://www.georss.org/georss'),
           );
@@ -59,7 +62,7 @@ function geo_theme() {
  * Implementation of hook_geo_handler_info().
  */
 function geo_geo_handler_info() {
-  $path = drupal_get_path('module', 'geo') .'/includes/handlers';
+  $path = drupal_get_path('module', 'geo') . '/includes/handlers';
   $handlers = array(
     'GeoSimple' => array(
       'title' => t('Simple geometry library'),
@@ -226,6 +229,6 @@ function geo_content_fieldapi($op, $field) {
 function geo_views_api() {
   return array(
     'api' => 2,
-    'path' => drupal_get_path('module', 'geo') .'/includes/views',
+    'path' => drupal_get_path('module', 'geo') . '/includes/views',
   );
 }

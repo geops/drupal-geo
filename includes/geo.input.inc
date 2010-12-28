@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Implementation of hook_elements().

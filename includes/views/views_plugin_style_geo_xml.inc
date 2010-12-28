@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 /**
  * @file
  * Contains the Geo XML style plugin.
@@ -16,12 +17,16 @@ class views_plugin_style_geo_xml extends views_plugin_style {
   /**
    * Permit "normal" items here, which may be rendered into XML.
    */
-  function get_style_type() { return 'normal'; }
+  function get_style_type() {
+    return 'normal';
+  }
 
   /**
    * The XML mime type for this type of output.
    */
-  function xml_type() { return 'text/xml'; }
+  function xml_type() {
+    return 'text/xml';
+  }
 
   /**
    * The DOM Document type for this type of output.
@@ -31,8 +36,7 @@ class views_plugin_style_geo_xml extends views_plugin_style {
   /**
    * Override this to provide a root element.
    */
-  function xml_root() {
-  }
+  function xml_root() { }
 
   function attach_to($display_id, $path, $title) {
     $display = $this->view->display[$display_id]->handler;
@@ -58,7 +62,7 @@ class views_plugin_style_geo_xml extends views_plugin_style {
         'rel' => 'alternate',
         'type' => $this->xml_type(),
         'title' => $title,
-        'href' => $url
+        'href' => $url,
       ));
     }
   }
@@ -66,8 +70,14 @@ class views_plugin_style_geo_xml extends views_plugin_style {
   function option_definition() {
     $options = parent::option_definition();
 
-    $options['description'] = array('default' => '', 'translatable' => TRUE);
-    $options['mission_description'] = array('default' => '', 'translatable' => TRUE);
+    $options['description'] = array(
+      'default' => '',
+      'translatable' => TRUE,
+    );
+    $options['mission_description'] = array(
+      'default' => '',
+      'translatable' => TRUE,
+    );
 
     return $options;
   }
@@ -126,14 +136,13 @@ class views_plugin_style_geo_xml extends views_plugin_style {
     foreach ($this->view->result as $row) {
       $this->add_row($this->doc, $row);
     }
-   
+
     // Handle any last-minute modifications.
     $this->xml_post_render();
 
-    drupal_set_header('Content-Type: '. $this->xml_type());
+    drupal_set_header('Content-Type: ' . $this->xml_type());
     return $this->xml->saveXML();
   }
 
-  function xml_post_render() {
-  }
+  function xml_post_render() { }
 }

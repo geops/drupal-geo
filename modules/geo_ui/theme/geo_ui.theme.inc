@@ -1,10 +1,11 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Implementation of hook_theme().
  */
 function geo_ui_theme_theme() {
-  $path = drupal_get_path('module', 'geo_ui') .'/theme';
+  $path = drupal_get_path('module', 'geo_ui') . '/theme';
 
   return array(
     'geo_ui_admin_tables' => array(

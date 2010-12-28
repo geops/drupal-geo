@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 /**
  * @file
  * A simple SQL implementation of the Geo API.
@@ -28,12 +29,12 @@ class GeoSQL implements GeoInterface {
   function __construct($values = NULL) {
     $current = get_object_vars($this);
     if ($values) {
-      foreach ((array)$values as $name => $val) {
+      foreach ((array) $values as $name => $val) {
         if ($name == 'data' && !empty($val) && is_scalar($val)) {
           $this->__construct(unserialize($val));
         }
         elseif (array_key_exists($name, $current) && !is_null($val)) {
-          $func = 'set'. str_replace('_', '', $name);
+          $func = 'set' . str_replace('_', '', $name);
           if (method_exists($this, $func)) {
             $this->$func($val);
           }
@@ -61,7 +62,7 @@ class GeoSQL implements GeoInterface {
       GEO_TYPE_MULTIPOLYGON => 'multipolygon',
     );
   }
- 
+
   function unimplemented() {
     drupal_set_message(t('Attempt to call an unimplemented function'));
     return FALSE;
@@ -87,7 +88,7 @@ class GeoSQL implements GeoInterface {
             $wkt = GeoSimple::asText($g);
           }
         }
-        elseif(is_string($g)) {
+        elseif (is_string($g)) {
           $wkt = $g;
         }
         if (isset($wkt)) {
@@ -101,13 +102,17 @@ class GeoSQL implements GeoInterface {
 
   function sqlTableAlias() {
     if (($table = $this->tableName()) && ($column = $this->columnName())) {
-      return '{'. $table .'}.'. $column;
+      return '{' . $table . '}.' . $column;
     }
   }
 
   function sqlFieldDefinition($column_name = NULL, $geo_type = NULL) {
-    if (is_null($column_name)) $column_name = $this->columnName();
-    if (is_null($geo_type)) $geo_type = $this->geoType();
+    if (is_null($column_name)) {
+      $column_name = $this->columnName();
+    }
+    if (is_null($geo_type)) {
+      $geo_type = $this->geoType();
+    }
 
     return array(
       $column_name => array(
@@ -548,13 +553,17 @@ class GeoSQL implements GeoInterface {
 
   public function geometryType($g = NULL) {
     // Use the GeoSimple function, which maintains the constant -> name mappings.
-    if (!$g) return GeoSimple::geometryType($this);
+    if (!$g) {
+      return GeoSimple::geometryType($this);
+    }
 
     return $this->unimplemented();
   }
 
   public function SRID($g = NULL) {
-    if (!$g) return $this->srid;
+    if (!$g) {
+      return $this->srid;
+    }
 
     return $this->unimplemented();
   }

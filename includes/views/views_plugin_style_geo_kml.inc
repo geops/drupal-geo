@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 /**
  * @file
  * Contains the Geo XML style plugin.
@@ -76,6 +77,5 @@ class views_plugin_style_geo_kml extends views_plugin_style_geo_xml {
     }
   }
 
-  function xml_post_render() {
-  }
+  function xml_post_render() { }
 }

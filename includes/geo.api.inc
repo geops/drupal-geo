@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 
 define('GEO_SRID_DEFAULT', 4326);
@@ -23,8 +24,8 @@ define('GEO_UNKNOWN', -1);
  */
 function geo_type($name) {
   $name = strtoupper($name);
-  if (defined('GEO_TYPE_'. $name)) {
-    return constant('GEO_TYPE_'. $name);
+  if (defined('GEO_TYPE_' . $name)) {
+    return constant('GEO_TYPE_' . $name);
   }
 }
 
@@ -33,7 +34,9 @@ function geo_type($name) {
  */
 function geo_gis_type($type) {
   foreach (GeoSimple::geometryTypes() as $constant => $name) {
-    if ($constant == $type) return $name;
+    if ($constant == $type) {
+      return $name;
+    }
   }
 }
 
@@ -46,7 +49,6 @@ function geo_field_types() {
     // TODO move this to geo_field and geo_data proper.
     $field_types = array(
       'geo' => array(
-
       ),
       'geo_data' => array(
       ),
@@ -276,18 +278,22 @@ function geo_handler_load($name) {
   }
 
   // Already loaded.
-  if (isset($cache[$name])) return $cache[$name];
+  if (isset($cache[$name])) {
+    return $cache[$name];
+  }
 
   $handlers = geo_handlers();
   if ($name && $handler = $handlers[$name]) {
     // Ensure the parent is loaded.
-    if (isset($handler['parent'])) geo_handler_load($handler['parent']);
+    if (isset($handler['parent'])) {
+      geo_handler_load($handler['parent']);
+    }
 
     // Respect the 'path' element that may have been specified.
-    $file = isset($handler['path']) ? $handler['path'] .'/' : '';
+    $file = isset($handler['path']) ? $handler['path'] . '/' : '';
     $file .= $handler['file'];
 
-    $cache[$name] = require_once $file;
+    $cache[$name] = $file;
     return $cache[$name];
   }
 }
@@ -307,7 +313,7 @@ function geo_units($unit = NULL) {
   $units = array(
     'mi' => t('Miles'),
     'km' => t('Kilometers'),
-    'm'  => t('Meters'),
+    'm' => t('Meters'),
   );
 
   return $unit ? $units[$unit] : $units;
@@ -363,7 +369,9 @@ function geo_unit_convert($val, $from_unit, $to_unit) {
 function geo_value($input, $output_format, $input_format = 'wkb') {
 
   // Nothing to do here.
-  if ($output_format == $input_format) return $input;
+  if ($output_format == $input_format) {
+    return $input;
+  }
 
   $geo = geo_load();
 
@@ -421,10 +429,12 @@ function geo_formatter_input($name, $field_type) {
   $formatter = _content_get_formatter($name, $field_type);
 
   // The formatter has defined a 'gis input' value.
-  if (isset($formatter['gis input'])) return $formatter['gis input'];
+  if (isset($formatter['gis input'])) {
+    return $formatter['gis input'];
+  }
 
   // Perhaps the theme has defined a 'gis input' value.  Let's check!
-  return geo_theme_input($formatter['module'] .'_formatter_'. $name);
+  return geo_theme_input($formatter['module'] . '_formatter_' . $name);
 }
 
 /**
@@ -433,17 +443,21 @@ function geo_formatter_input($name, $field_type) {
 function geo_inputs() {
   static $inputs;
   if (!isset($inputs)) {
-    $inputs = module_invoke_all('gis_input_info') ;
+    $inputs = module_invoke_all('gis_input_info');
     foreach ($inputs as $name => $info) {
       // Ignore nonexistent element types.
-      if (!$element = _element_info($info['element']['#type'])) continue;
+      if (!$element = _element_info($info['element']['#type'])) {
+        continue;
+      }
 
       // Build out the element from its system defaults and from the hook.
       $element = array_merge($element, $info['element']);
       $element['#gis_input'] = $info['gis input'];
 
       unset($element['#parents']);
-      if (!$element['#tree']) unset($element['#tree']);
+      if (!$element['#tree']) {
+        unset($element['#tree']);
+      }
 
       $inputs[$name]['element'] = $element;
     }

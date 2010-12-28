@@ -1,7 +1,8 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
- * This handler exists for one reason only: to provide a filter group for geo 
+ * This handler exists for one reason only: to provide a filter group for geo
  * data, which can be 'OR'ed.
  */
 

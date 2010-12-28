@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * @file
@@ -30,7 +31,9 @@ class GeoSimple implements GeoInterface {
       GEO_TYPE_MULTIPOLYGON => 'multipolygon',
     );
     if (!is_null($value)) {
-      if (is_numeric($value)) return $types[$value];
+      if (is_numeric($value)) {
+        return $types[$value];
+      }
       return array_search($value, $types);
     }
     return $types;
@@ -122,8 +125,8 @@ class GeoSimple implements GeoInterface {
 
   public function geomFromText($wkt, $srid = GEO_SRID_DEFAULT, $type = NULL) {
     preg_match('/^\s*(\D+)\W/Ui', $wkt, $m);
-    if (defined('GEO_TYPE_'. ($name = strtoupper($m[1])))) {
-      $geo_type = constant('GEO_TYPE_'. $name);
+    if (defined('GEO_TYPE_' . ($name = strtoupper($m[1])))) {
+      $geo_type = constant('GEO_TYPE_' . $name);
     }
 
     // Can't determine the geo_type from this WKT string.
@@ -256,7 +259,9 @@ class GeoSimple implements GeoInterface {
   }
 
   public function asBinary($g) {
-    if (isset($g->wkb)) return $g->wkb;
+    if (isset($g->wkb)) {
+      return $g->wkb;
+    }
 
     // Make sure the geometry is fully-formed.
     GeoSimple::parseWKT($g);
@@ -308,12 +313,16 @@ class GeoSimple implements GeoInterface {
   }
 
   public function geometryType($g = NULL) {
-    if (is_null($g)) $g = $this;
+    if (is_null($g)) {
+      $g = $this;
+    }
     return GeoSimple::geometryTypes($g->geoType());
   }
 
   public function SRID($g = NULL) {
-    if (isset($g->srid)) return $g->srid;
+    if (isset($g->srid)) {
+      return $g->srid;
+    }
     return GEO_UNKNOWN;
   }
 
@@ -523,8 +532,7 @@ class GeoSimple implements GeoInterface {
   }
 
   // Not part of the spec, but too handy to pass up.
-  function simplify($g, $tolerance = 10) {
-  }
+  function simplify($g, $tolerance = 10) { }
 
   // Implementation-specfic functions: useful primarily to this application.
   function setGID($value = NULL) {
@@ -586,12 +594,14 @@ class GeoSimple implements GeoInterface {
    */
   public function parseGeometry($g) {
     // Already done.
-    if ($g->parsed) return $g;
+    if ($g->parsed) {
+      return $g;
+    }
 
     if (!isset($g->wkb)) {
       if (isset($g->wkt)) {
-       // Convert the well-known text to an object.
-       GeoSimple::parseWKT($g);
+        // Convert the well-known text to an object.
+        GeoSimple::parseWKT($g);
       }
 
       // Convert the object to WKB.
@@ -620,10 +630,14 @@ class GeoSimple implements GeoInterface {
   }
 
   public function parseWKT($g, $wkt = NULL) {
-    if (!isset($wkt)) $wkt = $g->wkt;
+    if (!isset($wkt)) {
+      $wkt = $g->wkt;
+    }
 
     // Already done.
-    if ($g->parsed) return;
+    if ($g->parsed) {
+      return;
+    }
 
     // The WKT for a point will be short and sweet.  Parse it and quit.
     if ($g->geometryType() == 'point') {
@@ -655,10 +669,12 @@ class GeoSimple implements GeoInterface {
               $g->addPoint(GeoSimple::parseWKTPointData($text));
               $text = '';
 
-              if ($c == ')') $done = TRUE;
+              if ($c == ')') {
+                $done = TRUE;
+              }
               break;
 
-            // A nested collection of points, e.g. POLYGON((1 2, 3 4)).
+              // A nested collection of points, e.g. POLYGON((1 2, 3 4)).
             case 'polygon':
             case 'multilinestring':
               if (strlen($text) > 1 && isset($line)) {
@@ -671,16 +687,18 @@ class GeoSimple implements GeoInterface {
                 }
                 $line = GeoSimple::linestring();
               }
-              if ($text == ')') $done = TRUE;
+              if ($text == ')') {
+                $done = TRUE;
+              }
 
               break;
 
-            // A nested collection of complex, e.g. MULTIPOLYGON(((1 2, 3 4))).
+              // A nested collection of complex, e.g. MULTIPOLYGON(((1 2, 3 4))).
             case 'multipolygon': // TODO
               break;
 
-            // A nested collection of WKT strings, e.g.
-            // GEOMETRYCOLLECTION(POINT(4 6),LINESTRING(4 6,7 10))
+              // A nested collection of WKT strings, e.g.
+              // GEOMETRYCOLLECTION(POINT(4 6),LINESTRING(4 6,7 10))
             case 'collection': // TODO
               break;
           }
@@ -717,7 +735,9 @@ class GeoSimple implements GeoInterface {
    */
   public function parseWKB($g, $format = NULL) {
     $format = strtolower($format);
-    if (isset($g->$format)) return $g->$format;
+    if (isset($g->$format)) {
+      return $g->$format;
+    }
     $result = geo_wkb_get_data($g->asBinary(), $format);
     return $g->$format = $result['value'];
   }

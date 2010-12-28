@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 class views_handler_relationship_geo extends views_handler_relationship {
   function query() {
@@ -8,3 +9,4 @@ class views_handler_relationship_geo extends views_handler_relationship {
 }
 
 ?>
+

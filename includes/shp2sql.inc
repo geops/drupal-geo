@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * CREDITS
@@ -46,7 +47,10 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
   }
 
   // Get headers and table definition from the dbf file.
-  $schema = array('description' => t('Geo data table'), 'fields' => array());
+  $schema = array(
+    'description' => t('Geo data table'),
+    'fields' => array(),
+  );
   $headers = _dbf_headers($files['dbf'], $schema);
 
   // Shape file headers are stored in the first 100 bytes of the shp/shx files.
@@ -76,7 +80,7 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
     $values = array();
     $dbf_data = zip_entry_read($files['dbf'], $headers['record_size']);
     $dbf_data = substr($dbf_data, 1); // Remove "record deleted" flag.
-    foreach($headers['field_lengths'] as $name => $length) {
+    foreach ($headers['field_lengths'] as $name => $length) {
       $value = substr($dbf_data, 0, $length);
       $dbf_data = substr($dbf_data, $length);
 
@@ -100,7 +104,7 @@ function _shp_geo_types($key = null) {
   $geo_types = array(
     0 => 'none',
     1 => 'point',
-    3 => 'linestring',  //TODO this is specified as 'polyline' in the standard.
+    3 => 'linestring', //TODO this is specified as 'polyline' in the standard.
     5 => 'polygon',
     8 => 'multipoint',
     11 => 'pointz',
@@ -114,7 +118,9 @@ function _shp_geo_types($key = null) {
     31 => 'multipatch',
   );
 
-  if ($key) return $geo_types[$key];
+  if ($key) {
+    return $geo_types[$key];
+  }
   return $geo_types;
 }
 
@@ -125,7 +131,7 @@ function _dbf_headers(&$fp, &$schema) {
 
   // Set basic headers.
   $headers = unpack('H2db_id/Cy/Cm/Cd/Lcount/Sheader_size/Srecord_size', $data);
-  $date = $headers['m'] .'/'. $headers['d'] .'/'. $headers['y'] + 1900;
+  $date = $headers['m'] . '/' . $headers['d'] . '/' . $headers['y'] + 1900;
   $headers['date'] = strtotime($date);
 
   // Get the remainder of the dbf headers.
@@ -163,23 +169,36 @@ function _dbf_headers(&$fp, &$schema) {
 
     // Datatype.
     $type = isset($type_map[$d['type']]) ? $type_map[$d['type']] : 'varchar';
-    if ($type == 'char' && $d['length'] > 3) $type = 'varchar';
+    if ($type == 'char' && $d['length'] > 3) {
+      $type = 'varchar';
+    }
 
     // Default data processing function, which will escape and UTF8 convert.
     $filter = '_shp_data_text';
 
     // Use all-purpose PHP functions for standard numeric types.
-    if (in_array($type, array('float', 'decimal'))) $filter = 'floatval';
-    if (in_array($type, array('int', 'timestamp', 'serial'))) $filter = 'intval';
-    if ($type == 'date') $filter = '_shp_data_date';
+    if (in_array($type, array('float', 'decimal'))) {
+      $filter = 'floatval';
+    }
+    if (in_array($type, array('int', 'timestamp', 'serial'))) {
+      $filter = 'intval';
+    }
+    if ($type == 'date') {
+      $filter = '_shp_data_date';
+    }
 
     // Special case for boolean, convert to int.
-    if ($d['type'] == 'L') $filter = '_shp_data_bool';
+    if ($d['type'] == 'L') {
+      $filter = '_shp_data_bool';
+    }
 
     $headers['field_filters'][$name] = $filter;
 
     // Datatype futzing.
-    $schema['fields'][$name] = array('type' => $type, 'length' => $d['length']);
+    $schema['fields'][$name] = array(
+      'type' => $type,
+      'length' => $d['length'],
+    );
     if ($d['precision']) {
       $schema['fields'][$name]['not null'] = TRUE;
       $schema['fields'][$name]['default'] = 0.0;
@@ -222,14 +241,16 @@ function _shp_headers($data) {
 }
 
 function _shp_get_record(&$fp) {
-  if (!$row_header = zip_entry_read($fp, 12)) return FALSE;
+  if (!$row_header = zip_entry_read($fp, 12)) {
+    return FALSE;
+  }
 
   $row = unpack('Nnumber/Nlength/igeo_type', $row_header);
   $row['geo_type'] = _shp_geo_types($row['geo_type']);
 
   // Look for _shp_get_point(), _shp_get_linestring(), etc.
-  if (!function_exists($func = '_shp_get_'. $row['geo_type'])) {
-    drupal_set_message(t('Unsupported geo type %type found in file.', array('%type' =>  $row['geo_type'])), 'error');
+  if (!function_exists($func = '_shp_get_' . $row['geo_type'])) {
+    drupal_set_message(t('Unsupported geo type %type found in file.', array('%type' => $row['geo_type'])), 'error');
     return FALSE;
   }
 
@@ -239,17 +260,17 @@ function _shp_get_record(&$fp) {
 
 function _shp_get_point_data(&$fp) {
   $data = unpack('dx/dy', zip_entry_read($fp, 16));
-  return (float) $data['x'] .' '. (float) $data['y'];
+  return (float) $data['x'] . ' ' . (float) $data['y'];
   return join(' ', $data);
 }
 
 function _shp_get_point(&$fp) {
-  return 'POINT('. _shp_get_point_data($fp) .')';
+  return 'POINT(' . _shp_get_point_data($fp) . ')';
 }
 
 function _shp_get_linestring(&$fp) {
   $data = array(
-    'bbox'  => unpack('dmin_x/dmin_y/dmax_x/dmax_y', zip_entry_read($fp, 32)),
+    'bbox' => unpack('dmin_x/dmin_y/dmax_x/dmax_y', zip_entry_read($fp, 32)),
     'part_count' => current(unpack('i', zip_entry_read($fp, 4))),
     'point_count' => current(unpack('i', zip_entry_read($fp, 4))),
   );
@@ -260,7 +281,7 @@ function _shp_get_linestring(&$fp) {
 
   // Go through all of the points and collect them.
   for ($i = 1; $i <= $data['point_count']; $i++) {
-    $data['wkt'] .= _shp_get_point_data($fp) .',';
+    $data['wkt'] .= _shp_get_point_data($fp) . ',';
   }
   $data['wkt'] = substr($data['wkt'], 0, -1) . ')';
 
@@ -269,7 +290,7 @@ function _shp_get_linestring(&$fp) {
 
 function _shp_get_polygon(&$fp) {
   $data = array(
-    'bbox'  => array(
+    'bbox' => array(
       'min_x' => _shp_data_fetch('d', $fp),
       'min_y' => _shp_data_fetch('d', $fp),
       'max_x' => _shp_data_fetch('d', $fp),
@@ -281,7 +302,9 @@ function _shp_get_polygon(&$fp) {
 
   $wkt = '';
 
-  $points_counted = 0; $point_count; $last_offset = 0;
+  $points_counted = 0;
+  $point_count;
+  $last_offset = 0;
   $parts = array();
   for ($i = 0; $i < ($data['part_count']); $i++) {
     $parts[] = _shp_data_fetch('i', $fp);
@@ -289,23 +312,25 @@ function _shp_get_polygon(&$fp) {
 
   $points_counted = 0;
   foreach ($parts as $i => $offset) {
-    if ($next_offset = $parts[$i+1]) {
+    if ($next_offset = $parts[$i + 1]) {
       $points_counted += $point_count = ($next_offset - $offset);
     }
     else {
       $point_count = $data['point_count'] - $points_counted;
     }
 
-    if (!$point_count) continue;
+    if (!$point_count) {
+      continue;
+    }
 
     // Gather the point data for each part segment.
     $wkt .= '(';
     for ($j = 1; $j <= $point_count; $j++) {
-      $wkt .= _shp_get_point_data($fp) .',';
+      $wkt .= _shp_get_point_data($fp) . ',';
     }
     $wkt = substr($wkt, 0, -1) . '),';
   }
-  $data['wkt'] = 'POLYGON('. substr($wkt, 0, -1) .')';
+  $data['wkt'] = 'POLYGON(' . substr($wkt, 0, -1) . ')';
   return $data;
 }
 
@@ -313,7 +338,7 @@ function _shp_data_fetch($type, &$fp, $offset = null) {
   if (in_array($type, array('i', 'N'))) {
     $length = 4;
   }
-  elseif (in_array($type, array('d' ))) {
+  elseif (in_array($type, array('d'))) {
     $length = 8;
   }
   if (is_string($fp)) {

@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 interface GeoInterface {
 
@@ -33,7 +34,7 @@ interface GeoInterface {
    *  @param $type
    *  @return GeoGeometry
    *
-   *  This function differs from the OGC specification by specifying an 
+   *  This function differs from the OGC specification by specifying an
    *  additional parameter for $type.
    *
    * @ingroup ogc-sfs
@@ -130,7 +131,7 @@ interface GeoInterface {
   public function bdPolyFromText($wkt, $srid = GEO_SRID_DEFAULT);
 
   /**
-   * Construct a MultiPolygon given an arbitrary collection of closed 
+   * Construct a MultiPolygon given an arbitrary collection of closed
    * linestrings as a MultiLineString text representation
    *
    *  @param string $wkt Well Known Text
@@ -447,7 +448,7 @@ interface GeoGeometry {
   public function envelope();
 }
 
-Interface GeoGeometryPoint extends GeoGeometry {
+interface GeoGeometryPoint extends GeoGeometry {
 
   public function x();
 
@@ -480,7 +481,7 @@ interface GeoGeometryLinestring extends GeoGeometryCurve {
 
 interface GeoGeometrySurface extends GeoGeometry {
 
-  public function centroid ();
+  public function centroid();
 
   public function pointOnSurface();
 
@@ -503,8 +504,7 @@ interface GeoGeometryCollection extends GeoGeometry {
   public function geometryN($n);
 }
 
-interface GeoGeometryMultipoint extends GeoGeometryCollection {
-}
+interface GeoGeometryMultipoint extends GeoGeometryCollection { }
 
 interface GeoGeometryMultiCurve extends GeoGeometryCollection {
 
@@ -513,8 +513,7 @@ interface GeoGeometryMultiCurve extends GeoGeometryCollection {
   public function length();
 }
 
-interface GeoGeometryMultiLinestring extends GeoGeometry {
-}
+interface GeoGeometryMultiLinestring extends GeoGeometry { }
 
 interface GeoGeometryMultiSurface extends GeoGeometry {
 
@@ -525,15 +524,14 @@ interface GeoGeometryMultiSurface extends GeoGeometry {
   public function area();
 }
 
-interface GeoGeometryMultiPolygon extends GeoGeometryMultiSurface {
-}
+interface GeoGeometryMultiPolygon extends GeoGeometryMultiSurface { }
 
 /**
  * Implementations of specific geometry types.
  *
  * These should not need to be overridden,
  */
-class Geometry implements GeoGeometry{
+class Geometry implements GeoGeometry {
 
   protected $handler;
   public $wkt;
@@ -615,7 +613,7 @@ class Geometry implements GeoGeometry{
   }
 }
 
-class GeometryPoint extends Geometry implements GeoGeometryPoint{
+class GeometryPoint extends Geometry implements GeoGeometryPoint {
   protected $geo_type = GEO_TYPE_POINT;
   protected $geo_dimension = 0;
 
@@ -718,7 +716,7 @@ class GeometryPolygon extends GeometrySurface implements GeoGeometryPolygon {
   public $rings = array();
 
   // Not part of spec.
-  function addGeometry($linestring) { 
+  function addGeometry($linestring) {
     $this->rings[] = $linestring;
   }
 
@@ -741,7 +739,7 @@ class GeometryCollection extends Geometry implements GeoGeometryCollection {
   public $geometries = array();
 
   // Not part of spec.
-  function addGeometry($g) { 
+  function addGeometry($g) {
     $this->geometries[] = $g;
   }
 

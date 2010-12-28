@@ -1,4 +1,5 @@
-<?php //$Id$
+<?php
+//$Id$
 
 class views_handler_field_geo extends views_handler_field {
 
@@ -37,7 +38,9 @@ class views_handler_field_geo extends views_handler_field {
 
     // The GIS Function we'll be using to query the database.
     $function = $this->options['function'];
-    if (!$function) return;
+    if (!$function) {
+      return;
+    }
 
     // Figure out whether or not we need a target value to compare against.
     if (FALSE === ($target = geo_views_set_target($this, $this->value))) {
@@ -49,7 +52,7 @@ class views_handler_field_geo extends views_handler_field {
     $this->geo->setTableName($table);
     $this->geo->setColumnName($this->real_field);
 
-    $alias = $this->real_field .'_'. strtolower($function);
+    $alias = $this->real_field . '_' . strtolower($function);
 
     // Add the field, using the Geo API method for getting it.
     $field = $this->geo->$function($this->geo, $target);

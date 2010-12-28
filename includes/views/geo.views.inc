@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Views related functionality for the geo module
@@ -20,7 +21,9 @@ function geo_views_data() {
   foreach (geo_list() as $geo) {
 
     // Do not process Geo CCK fields, these will be handled separately.
-    if (in_array($geo->name(), $geo_fields)) continue;
+    if (in_array($geo->name(), $geo_fields)) {
+      continue;
+    }
 
     // Create an all-purpose Geo base table.
     if (!isset($data['geo'])) {
@@ -41,9 +44,15 @@ function geo_views_data() {
     }
 
     // Only the SQL backends are likely to have these methods.
-    if (method_exists($geo, 'tableName')) $table = $geo->tableName();
-    if (method_exists($geo, 'columnName')) $column = $geo->columnName();
-    if (method_exists($geo, 'schema')) $schema = $geo->schema();
+    if (method_exists($geo, 'tableName')) {
+      $table = $geo->tableName();
+    }
+    if (method_exists($geo, 'columnName')) {
+      $column = $geo->columnName();
+    }
+    if (method_exists($geo, 'schema')) {
+      $schema = $geo->schema();
+    }
 
     // There's a geometry column. Set up fields relationships between geo data.
     if ($table && $column) {
@@ -172,7 +181,7 @@ function geo_views_data() {
 
             if ($views_field) {
               // Set some common values.
-              $views_field['title'] = $geo->title() .' - '. $field_name;
+              $views_field['title'] = $geo->title() . ' - ' . $field_name;
               $views_field['help'] = '';
 
               // Specify the table and field names in the Views field definition,
@@ -199,7 +208,9 @@ function geo_field_settings_alter(&$data, $op, $field) {
     if (in_array($field['field_name'], geo_field_names())) {
 
       // No views data from the field module.  Start with CCK defaults
-      if (!$data) $data = content_views_field_views_data($field);
+      if (!$data) {
+        $data = content_views_field_views_data($field);
+      }
 
       // Load the geo handler that controls this dataset.
       if ($geo = geo_load(array('name' => $field['field_name']))) {
@@ -223,7 +234,7 @@ function geo_field_settings_alter(&$data, $op, $field) {
 
             // Set all field handlers to Geo's built-in versions.
             foreach (array('field', 'filter', 'argument', 'sort') as $item) {
-              $handler = 'views_handler_'. $item .'_geo';
+              $handler = 'views_handler_' . $item . '_geo';
               $data[$table][$field][$item]['handler'] = $handler;
               $data[$table][$field][$item]['geo_gid'] = $geo->gid();
             }
@@ -241,7 +252,7 @@ function geo_field_settings_alter(&$data, $op, $field) {
 function geo_views_handlers() {
   return array(
     'info' => array(
-      'path' => drupal_get_path('module', 'geo') .'/includes/views',
+      'path' => drupal_get_path('module', 'geo') . '/includes/views',
     ),
     'handlers' => array(
       'views_join_geo' => array(
@@ -252,28 +263,27 @@ function geo_views_handlers() {
         'join_handler' => 'views_join_geo',
       ),
       'views_handler_field_geo' => array(
-       'parent' => 'views_handler_field',
-       'gis input' => 'array',
+        'parent' => 'views_handler_field',
+        'gis input' => 'array',
       ),
       'views_handler_filter_geo' => array(
-       'parent' => 'views_handler_filter_numeric',
-       'gis input' => 'array',
+        'parent' => 'views_handler_filter_numeric',
+        'gis input' => 'array',
       ),
       'views_handler_sort_geo' => array(
-       'parent' => 'views_handler_sort',
+        'parent' => 'views_handler_sort',
       ),
-
       'views_handler_filter_string_geo' => array(
-       'parent' => 'views_handler_filter_string',
+        'parent' => 'views_handler_filter_string',
       ),
       'views_handler_filter_numeric_geo' => array(
-       'parent' => 'views_handler_filter_numeric',
+        'parent' => 'views_handler_filter_numeric',
       ),
       'views_handler_argument_string_geo' => array(
-       'parent' => 'views_handler_argument_string',
+        'parent' => 'views_handler_argument_string',
       ),
       'views_handler_argument_numeric_geo' => array(
-       'parent' => 'views_handler_argument_numeric',
+        'parent' => 'views_handler_argument_numeric',
       ),
     ),
   );
@@ -291,7 +301,7 @@ function geo_views_plugins() {
         'help' => t('XML output formats from Geo'),
         'handler' => 'views_plugin_display_geo_xml',
         'parent' => 'feed',
-        'path' => drupal_get_path('module', 'geo') .'/includes/views',
+        'path' => drupal_get_path('module', 'geo') . '/includes/views',
         'uses hook menu' => TRUE,
         'use ajax' => FALSE,
         'use pager' => FALSE,
@@ -309,7 +319,7 @@ function geo_views_plugins() {
         'uses fields' => TRUE,
         'uses options' => TRUE,
         'type' => 'geo_xml',
-        'path' => drupal_get_path('module', 'geo') .'/includes/views',
+        'path' => drupal_get_path('module', 'geo') . '/includes/views',
       ),
       'geo_kml' => array(
         'title' => t('KML'),
@@ -320,7 +330,7 @@ function geo_views_plugins() {
         'uses row plugin' => FALSE,
         'uses options' => TRUE,
         'type' => 'geo_xml',
-        'path' => drupal_get_path('module', 'geo') .'/includes/views',
+        'path' => drupal_get_path('module', 'geo') . '/includes/views',
       ),
       'geo_svg' => array(
         'title' => t('SVG'),
@@ -331,7 +341,7 @@ function geo_views_plugins() {
         'uses row plugin' => FALSE,
         'uses options' => TRUE,
         'type' => 'geo_xml',
-        'path' => drupal_get_path('module', 'geo') .'/includes/views',
+        'path' => drupal_get_path('module', 'geo') . '/includes/views',
       ),
     ),
     'argument default' => array(
@@ -352,7 +362,7 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
   $functions = $handler->geo->functionNames($group);
   $form['function'] = array(
     '#type' => 'radios',
-    '#title' => t($group .' function to use'),
+    '#title' => t($group . ' function to use'),
     '#default_value' => $handler->options['function'],
     '#options' => $functions,
   );
@@ -373,17 +383,17 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
     }
   }
 
-    // Hide the value form if
+  // Hide the value form if
   $form['op_val_start']['#type'] = 'hidden';
   $form['op_val_start']['#prefix'] = '<div>';
   $form['op_val_start']['#process'] = array('views_process_dependency');
-  $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions );
+  $form['op_val_start']['#dependency'] = array('radio:options[function]' => $num_functions);
   $form['op_val_end']['#type'] = 'hidden';
   $form['op_val_end']['#suffix'] = '</div><br clear="all" />';
 
-    // The value form contained units.  Hide these if N/A.
+  // The value form contained units.  Hide these if N/A.
   $form['value']['units']['#process'] = array('views_process_dependency');
-  $form['value']['units']['#dependency'] = array('radio:options[function]' => $dst_functions );
+  $form['value']['units']['#dependency'] = array('radio:options[function]' => $dst_functions);
 
   $form['target_prefix'] = array(
     '#type' => 'hidden',
@@ -418,7 +428,7 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
         if (isset($filter->geo)) {
           $func = $handler->geo->functionInfo($filter->options['function']);
           if ($func['requires target']) {
-            $form['input']['#options']['geo_filter:'.$name] = $filter->ui_name(TRUE);
+            $form['input']['#options']['geo_filter:' . $name] = $filter->ui_name(TRUE);
           }
         }
       }
@@ -455,7 +465,9 @@ function geo_views_target_form(&$form, &$form_state, &$handler, $group) {
 function geo_views_set_target(&$handler, $value = NULL) {
   $target = NULL;
 
-  if (!$value) $value = $handler->options['target'][$handler->options['input']];
+  if (!$value) {
+    $value = $handler->options['target'][$handler->options['input']];
+  }
 
   $info = $handler->geo->functionInfo($handler->options['function']);
 
@@ -479,12 +491,14 @@ function geo_views_set_target(&$handler, $value = NULL) {
 
       // TODO this is not how we should be handling this.
       if ($func = $input['gis callback']) {
-        $target = $func($input, $value, 'wkt:'. $handler->geo->geometryType());
+        $target = $func($input, $value, 'wkt:' . $handler->geo->geometryType());
       }
       else {
         $target = geo_value($value, 'wkt', 'array'); // TODO assumption of array
       }
-      if (!$target) $target = FALSE;
+      if (!$target) {
+        $target = FALSE;
+      }
     }
   }
 

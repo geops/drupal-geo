@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Install and populate the newly-created geo_data schema.
@@ -71,10 +72,12 @@ function geo_data_update_2() {
           AND TABLE_NAME LIKE 'geo_data_%'
           ORDER BY TABLE_NAME, ORDINAL_POSITION");
 
-        while($row = db_fetch_object($res)) {
+        while ($row = db_fetch_object($res)) {
           $table = $row->TABLE_NAME;
           $column = $row->COLUMN_NAME;
-          if (!isset($tables[$table])) $tables[$table] = array('fields' => array());
+          if (!isset($tables[$table])) {
+            $tables[$table] = array('fields' => array());
+          }
           $tables[$table]['fields'][$column] = array(
             'type' => $row->DATA_TYPE,
             'not null' => ($row->IS_NULLABLE == 'NO'),
@@ -84,7 +87,9 @@ function geo_data_update_2() {
           }
           if (isset($row->COLUMN_DEFAULT)) {
             // Cast as numeric.
-            if (!in_array($type, array('float', 'int'))) $row->COLUMN_DEFAULT += 0;
+            if (!in_array($type, array('float', 'int'))) {
+              $row->COLUMN_DEFAULT += 0;
+            }
 
             $tables[$table]['fields'][$column]['default'] = $row->COLUMN_DEFAULT;
           }
@@ -97,20 +102,46 @@ function geo_data_update_2() {
       case 'pgsql':
         $geo = geo_sql_load();
         $map = array(
-          'character' => array('type' => 'char', 'length' => NULL),
-          'character varying' => array('type' => 'varchar', 'length' => NULL),
+          'character' => array(
+            'type' => 'char',
+            'length' => NULL,
+          ),
+          'character varying' => array(
+            'type' => 'varchar',
+            'length' => NULL,
+          ),
           'integer' => array('type' => 'int'),
-          'int_unsigned' => array('type' => 'int', 'unsigned' => TRUE),
-          'smallint' => array('type' => 'int', 'size' => 'small'),
-          'smallint_unsigned' => array('type' => 'int', 'size' => 'small', 'unsigned' => TRUE),
-          'bigint' => array('type' => 'int', 'size' => 'big'),
-          'bigint_unsigned' => array('type' => 'int', 'size' => 'big', 'unsigned' => TRUE),
+          'int_unsigned' => array(
+            'type' => 'int',
+            'unsigned' => TRUE,
+          ),
+          'smallint' => array(
+            'type' => 'int',
+            'size' => 'small',
+          ),
+          'smallint_unsigned' => array(
+            'type' => 'int',
+            'size' => 'small',
+            'unsigned' => TRUE,
+          ),
+          'bigint' => array(
+            'type' => 'int',
+            'size' => 'big',
+          ),
+          'bigint_unsigned' => array(
+            'type' => 'int',
+            'size' => 'big',
+            'unsigned' => TRUE,
+          ),
           'text' => array('type' => 'text'),
           'date' => array('type' => 'date'),
           'timestamp without time zone' => array('type' => 'datetime'),
           'numeric' => array('type' => 'numeric'),
           'real' => array('type' => 'float'),
-          'double precision' => array('type' => 'float', 'size' => 'big'),
+          'double precision' => array(
+            'type' => 'float',
+            'size' => 'big',
+          ),
           'geometry' => current($geo->sqlFieldDefinition('geo', 'polygon')),
         );
 
@@ -133,14 +164,17 @@ function geo_data_update_2() {
           ORDER BY c.relname, a.attnum
         ");
 
-        while($row = db_fetch_object($res)) {
+        while ($row = db_fetch_object($res)) {
           $table = $row->table;
           $column = $row->column;
-          if (!isset($tables[$table])) $tables[$table] = array('fields' => array());
+          if (!isset($tables[$table])) {
+            $tables[$table] = array('fields' => array());
+          }
 
           $type = $row->type;
           if (preg_match('/(.+)?\((\d+)\)/', $type, $m)) {
-            $type = $m[1]; $length = $m[2];
+            $type = $m[1];
+            $length = $m[2];
           }
           if (isset($map[$type])) {
             $spec = $map[$type];
@@ -151,7 +185,7 @@ function geo_data_update_2() {
             }
 
             if (!is_null($row->default)) {
-              if(substr($row->default, 0, 7) == 'nextval') {
+              if (substr($row->default, 0, 7) == 'nextval') {
                 $spec['type'] = 'serial';
               }
               elseif (preg_match('/\'((.*)?)\'/', $row->default, $m)) {

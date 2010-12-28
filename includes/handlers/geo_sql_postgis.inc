@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 class GeoSQLPostGIS extends GeoSQL {
 
@@ -7,19 +8,19 @@ class GeoSQLPostGIS extends GeoSQL {
   private function postgisGeometryColumnInfo() {
     if (!isset($this->$geometry_columns_info)) {
       $res = db_query("SELECT * FROM geometry_columns
-        WHERE f_table_name = '{". $this->tableName() ."}'
+        WHERE f_table_name = '{" . $this->tableName() . "}'
         AND f_geometry_column = '%s'", $this->columnName());
       $this->geometry_columns_info = db_fetch_object($res);
     }
     return $this->geometry_columns_info;
   }
 
-   /**
-    * Return a list of columns that contain Geospatial information.
-    *
-    * @return array
-    *  an array of fields
-    */
+  /**
+   * Return a list of columns that contain Geospatial information.
+   *
+   * @return array
+   *  an array of fields
+   */
   private function postgisColumnList() {
     static $columns;
 
@@ -63,7 +64,7 @@ class GeoSQLPostGIS extends GeoSQL {
           // GeometryType: CHECK (geometrytype(the_geom) = 'POINT'::text OR the_geom IS NULL)"
           elseif (strpos($c, "geometrytype($column)")) {
             $row['geometry_type'] = preg_replace('/.*\'(\w+)\'.*/', '$1', $c);
-            $row['geo_type'] = constant('GEO_TYPE_'. $row['geometry_type']);
+            $row['geo_type'] = constant('GEO_TYPE_' . $row['geometry_type']);
           }
 
           // SRID: "CHECK (srid(the_geom) = 26915)"
@@ -90,7 +91,7 @@ class GeoSQLPostGIS extends GeoSQL {
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
       $this->srid = db_result(db_query("SELECT SRID(%s)
-        FROM {". $table ."} LIMIT 1", $column));
+        FROM {" . $table . "} LIMIT 1", $column));
     }
   }
 
@@ -106,31 +107,35 @@ class GeoSQLPostGIS extends GeoSQL {
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
       $type = db_result(db_query("SELECT GeometryType(%s)
-        FROM {". $table ."} LIMIT 1", $column));
+        FROM {" . $table . "} LIMIT 1", $column));
     }
 
     // Convert from a named type to Geo API's constant value.
     if (isset($type)) {
-      $this->geo_type = constant('GEO_TYPE_'. $type);
+      $this->geo_type = constant('GEO_TYPE_' . $type);
     }
   }
 
   protected function addIndex() {
-    if (!$this->indexed) return;
+    if (!$this->indexed) {
+      return;
+    }
 
-    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
-      db_query("CREATE INDEX $name ON  {". $this->tableName() ."}
+      db_query("CREATE INDEX $name ON  {" . $this->tableName() . "}
         USING gist(%s)", $this->columnName());
     }
   }
 
   protected function dropIndex() {
-    if ($this->indexed) return;
+    if ($this->indexed) {
+      return;
+    }
 
-    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
-      db_query("CREATE SPATIAL INDEX $name ON  {". $this->tableName() ."}
+      db_query("CREATE SPATIAL INDEX $name ON  {" . $this->tableName() . "}
         USING gist(%s)", $this->columnName());
     }
   }

@@ -1,4 +1,5 @@
-<?php // $Id$
+<?php
+// $Id$
 
 class GeoSQLMySQL extends GeoSQL {
 
@@ -21,7 +22,7 @@ class GeoSQLMySQL extends GeoSQL {
       $args[] = $g;
     }
 
-    return $this->sql($function ."(", join(', ', $sql) .")", $args);
+    return $this->sql($function . "(", join(', ', $sql) . ")", $args);
   }
 
   public function setSRID($value = NULL) {
@@ -32,7 +33,7 @@ class GeoSQLMySQL extends GeoSQL {
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
       if ($srid = db_result(db_query("SELECT SRID(%s)
-          FROM {". $table ."} LIMIT 1", $column))) {
+          FROM {" . $table . "} LIMIT 1", $column))) {
 
         $this->srid = $srid;
       }
@@ -47,30 +48,34 @@ class GeoSQLMySQL extends GeoSQL {
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
       $type = db_result(db_query("SELECT GeometryType(%s)
-        FROM {". $table ."} LIMIT 1", $column));
+        FROM {" . $table . "} LIMIT 1", $column));
 
       // MySQL returns a named type (POINT, POLYGON, etc.)  Convert it.
-      if (defined('GEO_TYPE_'. $type)) {
-        $this->geo_type = constant('GEO_TYPE_'. $type);
+      if (defined('GEO_TYPE_' . $type)) {
+        $this->geo_type = constant('GEO_TYPE_' . $type);
       }
     }
   }
 
   protected function addIndex() {
-    if (!$this->indexed) return;
+    if (!$this->indexed) {
+      return;
+    }
 
-    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
-      db_query("CREATE SPATIAL INDEX $name ON  {". $this->tableName() ."} (%s)", $this->columnName());
+      db_query("CREATE SPATIAL INDEX $name ON  {" . $this->tableName() . "} (%s)", $this->columnName());
     }
   }
 
   protected function dropIndex() {
-    if ($this->indexed) return;
+    if ($this->indexed) {
+      return;
+    }
 
-    $name = $this->tableName() .'__'. $this->columnName(). '_idx';
+    $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
-      db_query("DROP INDEX $name ON  {". $this->tableName() ."}");
+      db_query("DROP INDEX $name ON  {" . $this->tableName() . "}");
     }
   }
 
@@ -176,12 +181,16 @@ class GeoSQLMySQL extends GeoSQL {
   }
 
   public function dimension($g) {
-    if ($g) return $this->sql("Dimension(%g)", array($g));
+    if ($g) {
+      return $this->sql("Dimension(%g)", array($g));
+    }
     return $this->geo_dimension;
   }
 
   public function geometryType($g = NULL) {
-    if ($g) return $this->sql("GeometryType(%g)", array($g));
+    if ($g) {
+      return $this->sql("GeometryType(%g)", array($g));
+    }
 
     // If the geometry is NULL, derive the geometrytype for this instance.
     $this->setGeoType();
@@ -190,7 +199,9 @@ class GeoSQLMySQL extends GeoSQL {
   }
 
   public function SRID($g = NULL) {
-    if ($g) return $this->sql("SRID(%g)", array($g));
+    if ($g) {
+      return $this->sql("SRID(%g)", array($g));
+    }
 
     // If the geometry is NULL, derive the SRID for this instance.
     $this->setSRID();
@@ -323,12 +334,12 @@ class GeoSQLMySQL extends GeoSQL {
    */
   public function distance($g1, $g2) {
     // Convert $g2 to a point and get its x and y coordinates.
-    list($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+    list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
       $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
 
     // Perhaps it wasn't a point.  Try with a centroid.
     if (!$x && !$y) {
-      list ($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+      list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
         $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
     }
 
@@ -356,12 +367,12 @@ class GeoSQLMySQL extends GeoSQL {
    */
   public function distanceSpheroid($g1, $g2) {
     // Convert $g2 to a point and get its x and y coordinates.
-    list($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+    list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
       $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
 
     // Perhaps it wasn't a point.  Try with a centroid.
     if (!$x && !$y) {
-      list ($x, $y) = array_values(db_fetch_array(db_query("SELECT ".
+      list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
         $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
     }
 
@@ -374,7 +385,7 @@ class GeoSQLMySQL extends GeoSQL {
     // Offsets, in meters.
     $ysin = sin($y / $d);
     $ycos = cos($y / $d);
-    $xd   = $x/$d;
+    $xd   = $x / $d;
 
     $g = ($g1->geoType() == GEO_TYPE_POINT ) ? '%g' : 'Centroid(%g)';
 

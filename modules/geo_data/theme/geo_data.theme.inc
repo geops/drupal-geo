@@ -1,10 +1,11 @@
-<?php // $Id$
+<?php
+// $Id$
 
 /**
  * Implementation of hook_theme().
  */
 function geo_data_theme_theme() {
-  $path = drupal_get_path('module', 'geo_data') .'/theme';
+  $path = drupal_get_path('module', 'geo_data') . '/theme';
 
   return array(
     'geo_data_formatter_default' => array(
@@ -52,7 +53,7 @@ function theme_geo_data_select($element) {
 }
 
 function theme_geo_data_field_settings(&$form) {
-  drupal_add_js(drupal_get_path('module', 'geo_data') .'/theme/geo_data_field_settings.js', 'module');
+  drupal_add_js(drupal_get_path('module', 'geo_data') . '/theme/geo_data_field_settings.js', 'module');
   $hdrs = array(t('Data table'), t('Display value'), t('Key columns'));
   foreach (element_children($form) as $key) {
     $row = array();
@@ -62,7 +63,7 @@ function theme_geo_data_field_settings(&$form) {
     unset($form[$key]['label']['#title']);
     $row[] = drupal_render($form[$key]['label']);
 
-    foreach(array('key1', 'key2', 'key3') as $col) {
+    foreach (array('key1', 'key2', 'key3') as $col) {
       unset($form[$key][$col]['#title']);
       $row[] = drupal_render($form[$key][$col]);
     }

@@ -1,7 +1,8 @@
-<?php // $Id$
+<?php
+// $Id$
 
 function geo_theme_theme() {
-  $path = drupal_get_path('module', 'geo') .'/theme';
+  $path = drupal_get_path('module', 'geo') . '/theme';
 
   return array(
     'geo_formatter_default' => array(
@@ -54,26 +55,30 @@ function theme_geo_formatter_default($element) {
 }
 
 function theme_geo_formatter_lat($element) {
-  if ($element['#item']['array']) return $element['#item']['array']['lat'];
+  if ($element['#item']['array']) {
+    return $element['#item']['array']['lat'];
+  }
 }
 
 function theme_geo_formatter_lon($element) {
-  if ($element['#item']['array']) return $element['#item']['array']['lon'];
+  if ($element['#item']['array']) {
+    return $element['#item']['array']['lon'];
+  }
 }
 
 function theme_geo_formatter_georss($element) {
   $item = $element['#item'];
 
   if (in_array($item['gis type'], array('point', 'line', 'polygon'))) {
-    $tag = 'georss:'. $item['gis type'];
+    $tag = 'georss:' . $item['gis type'];
     $value = $item['text'];
   }
-  elseif($item['bbox']) {
+  elseif ($item['bbox']) {
     $tag = 'georss:bbox';
     $value = $item['text'];
   }
   if (isset($tag)) {
-    return '<'. $tag .'>' . $value .'</'. $tag .'>';
+    return '<' . $tag . '>' . $value . '</' . $tag . '>';
   }
 }
 
@@ -82,6 +87,6 @@ function theme_geo_fields($element) {
 }
 
 function theme_geo_latlon($element) {
-  $output = '<div class="container-inline">'. $element['#children'] .'</div>';
+  $output = '<div class="container-inline">' . $element['#children'] . '</div>';
   return theme('form_element', $element, $output);
 }
