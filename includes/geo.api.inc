@@ -128,7 +128,7 @@ function geo_load($values = NULL) {
     if (is_numeric($values)) {
       // It's the gid of a known geometry dataset.
       $values = db_fetch_array(db_query("SELECT * FROM {geo}
-        WHERE gid = %d", $values));
+        WHERE gid = :gid", array(':gid' => $values)));
     }
     else {
       // It's the name of a handler. Load it with defaults.
@@ -141,18 +141,18 @@ function geo_load($values = NULL) {
     if (!isset($values['handler'])) {
       if (isset($values['gid'])) {
         $values = array_merge($values, db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE gid = %d", $values['gid'])));
+          FROM {geo} WHERE gid = :gid", array(':gid' => $values['gid']))));
       }
       elseif (isset($values['name'])) {
         if ($handler_values = db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE name = '%s'", $values['name']))) {
+          FROM {geo} WHERE name = :name", array(':name' => $values['name'])))) {
 
           $values = array_merge($values, $handler_values);
         }
       }
       elseif (isset($values['table_name'])) {
         if ($handler_values = db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE table_name = '%s'", $values['table_name']))) {
+          FROM {geo} WHERE table_name = :table_name", array(':table_name' => $values['table_name'])))) {
 
           $values = array_merge($values, $handler_values);
         }
@@ -195,7 +195,7 @@ function geo_create_dataset($values = array(), $create = TRUE) {
 
   if ($create && is_array($schema = $geo->schema())) {
     foreach ($schema as $table => $info) {
-      db_create_table($ret, $table, $info);
+      db_create_table($table, $info);
     }
     $geo->setIndexed($geo->indexed(), TRUE);
     drupal_get_schema(NULL, TRUE);
@@ -248,7 +248,11 @@ function geo_delete($geo) {
     $geo->delete();
   }
   if ($gid = $geo->gid()) {
-    db_query("DELETE FROM {geo} WHERE gid = %d", $gid);
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("DELETE FROM {geo} WHERE gid = %d", $gid) */
+    db_delete('geo')
+  ->condition('gid', $gid)
+  ->execute();
   }
 }
 

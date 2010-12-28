@@ -2,11 +2,12 @@
 // $Id$
 
 /**
+ * @file
  * Geo: Geospatial storage and retrieval.
  */
 
 // The Geo API should always be available.
-require (dirname(__FILE__)) . '/includes/geo.api.inc';
+require DRUPAL_ROOT . '/' . (dirname(__FILE__)) . '/includes/geo.api.inc';
 
 /**
  * Implementation of hook_init().
@@ -17,6 +18,8 @@ function geo_init() {
 
 /**
  * Implementation of hook_nodeapi().
+ * TODO hook_nodeapi has been split into a number of smaller hooks.
+ * TODO Removed $op "rss item" from hook_nodeapi in favor of NODE_BUILD_RSS.
  */
 function geo_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 

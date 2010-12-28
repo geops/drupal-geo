@@ -7,6 +7,7 @@ class GeoSQLPostGIS extends GeoSQL {
 
   private function postgisGeometryColumnInfo() {
     if (!isset($this->$geometry_columns_info)) {
+      // TODO Please convert this statement to the D7 database API syntax.
       $res = db_query("SELECT * FROM geometry_columns
         WHERE f_table_name = '{" . $this->tableName() . "}'
         AND f_geometry_column = '%s'", $this->columnName());
@@ -34,9 +35,9 @@ class GeoSQLPostGIS extends GeoSQL {
         FROM pg_catalog.pg_attribute a
         INNER JOIN pg_catalog.pg_class c ON a.attrelid = c.oid
         INNER JOIN pg_catalog.pg_namespace s ON c.relnamespace = s.oid
-        WHERE pg_catalog.format_type(a.atttypid, a.atttypmod) = 'geometry'
-        AND  c.relname != 'geometry_dump'
-        ORDER BY s.nspname, c.relname, a.attnum");
+        WHERE pg_catalog.format_type(a.atttypid, a.atttypmod) = :a.atttypmod)
+        AND  c.relname != :c.relname
+        ORDER BY s.nspname, c.relname, a.attnum", array(':a.atttypmod)' => 'geometry', ':c.relname' => 'geometry_dump'));
 
       while ($row = db_fetch_array($res)) {
         $table = $row['table'];
@@ -49,8 +50,8 @@ class GeoSQLPostGIS extends GeoSQL {
           $res2 = db_query("SELECT pg_catalog.pg_get_constraintdef(r.oid, true)
             FROM pg_catalog.pg_constraint r
             LEFT JOIN pg_catalog.pg_class c ON r.conrelid = c.oid
-            WHERE c.relname = '%s' AND r.contype = 'c'", $table);
-          while ($constraint = db_result($res2)) {
+            WHERE c.relname = :c.relname AND r.contype = :r.contype", array(':c.relname' => $table, ':r.contype' => 'c'));
+          while ($constraint = $res2->fetchField()) {
             $tables[$table][] = $constraint;
           }
         }
@@ -90,8 +91,9 @@ class GeoSQLPostGIS extends GeoSQL {
     // Attempt to retreive the the SRID from one of the data values.
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $this->srid = db_result(db_query("SELECT SRID(%s)
-        FROM {" . $table . "} LIMIT 1", $column));
+      // TODO Please convert this statement to the D7 database API syntax.
+      $this->srid = db_query("SELECT SRID(%s)
+        FROM {" . $table . "} LIMIT 1", $column)->fetchField();
     }
   }
 
@@ -106,8 +108,9 @@ class GeoSQLPostGIS extends GeoSQL {
     // Attempt to retreive the the geo_type from one of the data values.
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $type = db_result(db_query("SELECT GeometryType(%s)
-        FROM {" . $table . "} LIMIT 1", $column));
+      // TODO Please convert this statement to the D7 database API syntax.
+      $type = db_query("SELECT GeometryType(%s)
+        FROM {" . $table . "} LIMIT 1", $column)->fetchField();
     }
 
     // Convert from a named type to Geo API's constant value.
@@ -123,6 +126,7 @@ class GeoSQLPostGIS extends GeoSQL {
 
     $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
+      // TODO Please convert this statement to the D7 database API syntax.
       db_query("CREATE INDEX $name ON  {" . $this->tableName() . "}
         USING gist(%s)", $this->columnName());
     }
@@ -135,6 +139,7 @@ class GeoSQLPostGIS extends GeoSQL {
 
     $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
+      // TODO Please convert this statement to the D7 database API syntax.
       db_query("CREATE SPATIAL INDEX $name ON  {" . $this->tableName() . "}
         USING gist(%s)", $this->columnName());
     }

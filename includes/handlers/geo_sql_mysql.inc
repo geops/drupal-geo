@@ -32,8 +32,9 @@ class GeoSQLMySQL extends GeoSQL {
     // Attempt to retreive the the SRID from one of the data values.
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      if ($srid = db_result(db_query("SELECT SRID(%s)
-          FROM {" . $table . "} LIMIT 1", $column))) {
+      // TODO Please convert this statement to the D7 database API syntax.
+      if ($srid = db_query("SELECT SRID(%s)
+          FROM {" . $table . "} LIMIT 1", $column)->fetchField()) {
 
         $this->srid = $srid;
       }
@@ -47,8 +48,9 @@ class GeoSQLMySQL extends GeoSQL {
     // Attempt to retreive the the geo_type from one of the data values.
     // note that this only works when the column has data.
     elseif (($table = $this->tableName()) && ($column = $this->columnName())) {
-      $type = db_result(db_query("SELECT GeometryType(%s)
-        FROM {" . $table . "} LIMIT 1", $column));
+      // TODO Please convert this statement to the D7 database API syntax.
+      $type = db_query("SELECT GeometryType(%s)
+        FROM {" . $table . "} LIMIT 1", $column)->fetchField();
 
       // MySQL returns a named type (POINT, POLYGON, etc.)  Convert it.
       if (defined('GEO_TYPE_' . $type)) {
@@ -64,6 +66,7 @@ class GeoSQLMySQL extends GeoSQL {
 
     $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
+      // TODO Please convert this statement to the D7 database API syntax.
       db_query("CREATE SPATIAL INDEX $name ON  {" . $this->tableName() . "} (%s)", $this->columnName());
     }
   }
@@ -75,6 +78,7 @@ class GeoSQLMySQL extends GeoSQL {
 
     $name = $this->tableName() . '__' . $this->columnName() . '_idx';
     if (strlen($name) > 6) {
+      // TODO Please convert this statement to the D7 database API syntax.
       db_query("DROP INDEX $name ON  {" . $this->tableName() . "}");
     }
   }
@@ -334,11 +338,13 @@ class GeoSQLMySQL extends GeoSQL {
    */
   public function distance($g1, $g2) {
     // Convert $g2 to a point and get its x and y coordinates.
+    // TODO Please convert this statement to the D7 database API syntax.
     list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
       $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
 
     // Perhaps it wasn't a point.  Try with a centroid.
     if (!$x && !$y) {
+      // TODO Please convert this statement to the D7 database API syntax.
       list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
         $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
     }
@@ -367,11 +373,13 @@ class GeoSQLMySQL extends GeoSQL {
    */
   public function distanceSpheroid($g1, $g2) {
     // Convert $g2 to a point and get its x and y coordinates.
+    // TODO Please convert this statement to the D7 database API syntax.
     list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
       $this->sql("X(%g), Y(%g)", array($g2, $g2)))));
 
     // Perhaps it wasn't a point.  Try with a centroid.
     if (!$x && !$y) {
+      // TODO Please convert this statement to the D7 database API syntax.
       list($x, $y) = array_values(db_fetch_array(db_query("SELECT " .
         $this->sql("X(Centroid(%g)), Y(Centroid(%g))", array($g2, $g2)))));
     }

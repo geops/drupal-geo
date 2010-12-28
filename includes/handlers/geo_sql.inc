@@ -415,7 +415,7 @@ class GeoSQL implements GeoInterface {
   function setCount() {
     if (!isset($this->count)) {
       if ($table = $this->tableName()) {
-        $this->count = db_result(db_query("SELECT COUNT(1) FROM {%s}", $table));
+        $this->count = db_query("SELECT COUNT(1) FROM {%s}", $table)->fetchField();
       }
     }
   }

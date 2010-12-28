@@ -59,6 +59,7 @@ class views_plugin_style_geo_svg extends views_plugin_style_geo_xml {
       $url_options['query'] = $input;
     }
 
+    // TODO The second parameter to this function call should be an array.
     $url = url($this->view->get_url(NULL, $path), $url_options);
 
     $attachment = '<embed width="500" height="300" src="' . $url . '"

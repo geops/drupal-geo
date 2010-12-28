@@ -7,7 +7,7 @@
  * @package geo
  */
 
-require_once dirname(__FILE__) . '/views_join_geo.inc';
+require_once DRUPAL_ROOT . '/' . dirname(__FILE__) . '/views_join_geo.inc';
 
 /**
  * Implementation of hook_views_data().

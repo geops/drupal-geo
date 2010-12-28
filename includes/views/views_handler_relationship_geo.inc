@@ -7,6 +7,3 @@ class views_handler_relationship_geo extends views_handler_relationship {
     return parent::query();
   }
 }
-
-?>
-

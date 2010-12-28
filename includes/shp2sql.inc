@@ -90,7 +90,7 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
     }
 
     // TODO NOT EFFICIENT
-    $values['geo'] = db_result(db_query("SELECT GeomFromText('%s', %d)", $shp['data']['wkt'], $srid));
+    $values['geo'] = db_query("SELECT GeomFromText('%s', %d)", $shp['data']['wkt'], $srid)->fetchField();
 
     drupal_write_record($table_name, $values);
 
@@ -100,7 +100,7 @@ function geo_shp2sql($filename, $table_name = '', $create_table = TRUE, $srid = 
   drupal_set_message(t('Import complete. @count rows imported into @table', array('@count' => $row_count, '@table' => $table_name)));
 }
 
-function _shp_geo_types($key = null) {
+function _shp_geo_types($key = NULL) {
   $geo_types = array(
     0 => 'none',
     1 => 'point',
@@ -334,7 +334,7 @@ function _shp_get_polygon(&$fp) {
   return $data;
 }
 
-function _shp_data_fetch($type, &$fp, $offset = null) {
+function _shp_data_fetch($type, &$fp, $offset = NULL) {
   if (in_array($type, array('i', 'N'))) {
     $length = 4;
   }

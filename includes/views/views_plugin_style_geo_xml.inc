@@ -46,6 +46,7 @@ class views_plugin_style_geo_xml extends views_plugin_style {
       $url_options['query'] = $input;
     }
 
+    // TODO The second parameter to this function call should be an array.
     $url = url($this->view->get_url(NULL, $path), $url_options);
     if ($display->has_path()) {
       if (empty($this->preview)) {
@@ -57,7 +58,7 @@ class views_plugin_style_geo_xml extends views_plugin_style {
         $this->view->feed_icon = '';
       }
 
-      $this->view->feed_icon .= theme('feed_icon', $url, $title);
+      $this->view->feed_icon .= theme('feed_icon', array('url' => $url, 'title' => $title));
       drupal_add_link(array(
         'rel' => 'alternate',
         'type' => $this->xml_type(),
@@ -140,7 +141,7 @@ class views_plugin_style_geo_xml extends views_plugin_style {
     // Handle any last-minute modifications.
     $this->xml_post_render();
 
-    drupal_set_header('Content-Type: ' . $this->xml_type());
+    drupal_add_http_header('Content-Type', $this->xml_type());
     return $this->xml->saveXML();
   }
 

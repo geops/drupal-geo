@@ -59,6 +59,7 @@ function geo_schema() {
 
   // The table already exists. Query it to locate any additional tables.
   if (db_table_exists('geo')) {
+    // TODO Please convert this statement to the D7 database API syntax.
     $res = db_query("SELECT * FROM {geo} WHERE table_name IS NOT NULL");
     while ($row = db_fetch_array($res)) {
       $geo = geo_load($row);
@@ -97,8 +98,8 @@ function geo_update_1() {
  */
 function geo_update_2() {
   $ret = array();
-  if (db_column_exists('geo', 'geo_dimension')) {
-    db_drop_field($ret, 'geo', 'geo_dimension');
+  if (db_field_exists('geo', 'geo_dimension')) {
+    db_drop_field('geo', 'geo_dimension');
   }
   return $ret;
 }

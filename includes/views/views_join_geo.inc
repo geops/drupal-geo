@@ -54,6 +54,3 @@ class views_join_geo extends views_join {
 
   }
 }
-
-?>
-
