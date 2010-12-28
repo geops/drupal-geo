@@ -3,4 +3,7 @@ name = Geo Data
 description = Interface with external GIS data, providing views and field integration
 package = Geo
 dependencies[] = geo
-core = 6.x
+core = 7.x
+
+files[] = geo_data.install
+files[] = geo_data.module

@@ -35,6 +35,7 @@ function geo_data_theme_theme() {
  * Default field theme function: return value field.
  */
 function theme_geo_data_formatter_default($element) {
+  // TODO: Should this theme geo_data_formatter_default be declared in hook_theme()?
   return check_plain($element['#item']['label']);
 }
 
@@ -42,6 +43,7 @@ function theme_geo_data_formatter_default($element) {
  * Default field theme function: return key field.
  */
 function theme_geo_data_formatter_key($element) {
+  // TODO: Should this theme geo_data_formatter_key be declared in hook_theme()?
   return check_plain($element['#item']['value']);
 }
 
@@ -49,11 +51,17 @@ function theme_geo_data_formatter_key($element) {
  * Theme function for the geo_data select element.
  */
 function theme_geo_data_select($element) {
+  // TODO: Should this theme geo_data_select be declared in hook_theme()?
   return $element['#children'];
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function theme_geo_data_field_settings(&$form) {
-  drupal_add_js(drupal_get_path('module', 'geo_data') . '/theme/geo_data_field_settings.js', 'module');
+  // TODO: Should this theme geo_data_field_settings be declared in hook_theme()?
+  drupal_add_js(drupal_get_path('module', 'geo_data') . '/theme/geo_data_field_settings.js');
   $hdrs = array(t('Data table'), t('Display value'), t('Key columns'));
   foreach (element_children($form) as $key) {
     $row = array();
@@ -73,5 +81,5 @@ function theme_geo_data_field_settings(&$form) {
     $output .= drupal_render($form[$key]['options']);
   }
 
-  return theme('table', $hdrs, $rows) . $output;
+  return theme('table', array('header' => $hdrs, 'rows' => $rows)) . $output;
 }

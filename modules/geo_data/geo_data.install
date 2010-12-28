@@ -45,7 +45,7 @@ function geo_data_update_2() {
       geo_save($geo);
     }
 
-    db_drop_table($ret, 'geo_data');
+    db_drop_table('geo_data');
   }
 
   // update_1 did not run. Find any geo_data tables that were already
@@ -68,9 +68,9 @@ function geo_data_update_2() {
             NUMERIC_PRECISION,
             NUMERIC_SCALE
           FROM information_schema.columns
-          WHERE TABLE_SCHEMA = database()
+          WHERE TABLE_SCHEMA = :TABLE_SCHEMA
           AND TABLE_NAME LIKE 'geo_data_%'
-          ORDER BY TABLE_NAME, ORDINAL_POSITION");
+          ORDER BY TABLE_NAME, ORDINAL_POSITION", array(':TABLE_SCHEMA' => database()));
 
         while ($row = db_fetch_object($res)) {
           $table = $row->TABLE_NAME;
@@ -152,17 +152,17 @@ function geo_data_update_2() {
             a.attnotnull AS not_null,
             d.adsrc AS default
           FROM pg_class c
-          LEFT JOIN pg_attribute a ON (a.attrelid = c.oid)
+          LEFT JOIN pg_attribute a ON (a.attrelid = :a.attrelid)
           LEFT OUTER JOIN pg_attrdef d ON (d.adrelid = c.oid AND d.adnum = a.attnum)
           WHERE c.relname LIKE 'geo_data_%'
           AND c.relname NOT LIKE '%_seq'
           AND c.relname NOT LIKE '%_pkey'
           AND c.relname NOT LIKE '%_idx'
-          AND a.attnum > 0
+          AND a.attnum > :a.attnum
           AND NOT a.attisdropped
-          AND a.attrelid = c.oid
+          AND a.attrelid = :a.attrelid
           ORDER BY c.relname, a.attnum
-        ");
+        ", array(':a.attnum' => 0, ':a.attrelid' => c . oid));
 
         while ($row = db_fetch_object($res)) {
           $table = $row->table;
@@ -198,9 +198,12 @@ function geo_data_update_2() {
             }
 
             if ($type == 'geometry') {
-              $spec['srid'] = db_result(db_query("SELECT SRID($column) FROM $table LIMIT 1"));
-              $spec['dimensions'] = db_result(db_query("SELECT NDIMS($column) FROM $table LIMIT 1"));
-              $spec['gis type'] = strtolower(db_result(db_query("SELECT GeometryType($column) FROM $table LIMIT 1")));
+              // TODO Please convert this statement to the D7 database API syntax.
+              $spec['srid'] = db_query("SELECT SRID($column) FROM $table LIMIT 1")->fetchField();
+              // TODO Please convert this statement to the D7 database API syntax.
+              $spec['dimensions'] = db_query("SELECT NDIMS($column) FROM $table LIMIT 1")->fetchField();
+              // TODO Please convert this statement to the D7 database API syntax.
+              $spec['gis type'] = strtolower(db_query("SELECT GeometryType($column) FROM $table LIMIT 1")->fetchField());
             }
 
             $tables[$table]['fields'][$column] = $spec;

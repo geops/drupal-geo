@@ -190,6 +190,7 @@ function geo_data_field($op, &$node, $field, &$items, $teaser, $page) {
           continue;
         }
 
+        // TODO Please convert this statement to the D7 database API syntax.
         $res = db_query("SELECT " . $geo->AsBinary($geo) . " AS geo $select
           FROM {" . $geo->tableName() . "} WHERE $key = '%s'", $item['value']);
         if ($row = db_fetch_array($res)) {
@@ -275,6 +276,7 @@ function geo_data_allowed_values($field) {
 
   $sql = "SELECT " . join(',', $select) . " FROM {" . $table . "}";
   $sql .= " ORDER BY $orderby";
+  // TODO Please convert this statement to the D7 database API syntax.
   $res = db_query(db_distinct_field($table, $key, $sql));
   while ($row = db_fetch_array($res)) {
     $key = array_shift($row);
