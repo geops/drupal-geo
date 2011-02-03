@@ -127,8 +127,8 @@ function geo_load($values = NULL) {
   if (is_scalar($values)) {
     if (is_numeric($values)) {
       // It's the gid of a known geometry dataset.
-      $values = db_fetch_array(db_query("SELECT * FROM {geo}
-        WHERE gid = :gid", array(':gid' => $values)));
+      $values = db_query("SELECT * FROM {geo}
+        WHERE gid = :gid", array(':gid' => $values))->fetchAll();
     }
     else {
       // It's the name of a handler. Load it with defaults.
@@ -140,25 +140,27 @@ function geo_load($values = NULL) {
     $values = (array) $values;
     if (!isset($values['handler'])) {
       if (isset($values['gid'])) {
-        $values = array_merge($values, db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE gid = :gid", array(':gid' => $values['gid']))));
+        $values = array_merge($values, db_query("SELECT *
+          FROM {geo} WHERE gid = :gid", array(':gid' => $values['gid']))->fetchAssoc());
       }
       elseif (isset($values['name'])) {
-        if ($handler_values = db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE name = :name", array(':name' => $values['name'])))) {
+        if ($handler_values = db_query("SELECT *
+          FROM {geo} WHERE name = :name", array(':name' => $values['name']))->fetchAssoc()) {
 
           $values = array_merge($values, $handler_values);
         }
       }
       elseif (isset($values['table_name'])) {
-        if ($handler_values = db_fetch_array(db_query("SELECT *
-          FROM {geo} WHERE table_name = :table_name", array(':table_name' => $values['table_name'])))) {
+        if ($handler_values = db_query("SELECT *
+          FROM {geo} WHERE table_name = :table_name", array(':table_name' => $values['table_name']))->fetchAssoc()) {
 
           $values = array_merge($values, $handler_values);
         }
       }
     }
-    $handler = $values['handler'];
+    if (isset($values['handler'])) {
+      $handler = $values['handler'];
+    }
   }
 
   // Use the default non-database handler, which is GeoSimple by default.

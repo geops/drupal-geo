@@ -59,9 +59,8 @@ function geo_schema() {
 
   // The table already exists. Query it to locate any additional tables.
   if (db_table_exists('geo')) {
-    // TODO Please convert this statement to the D7 database API syntax.
-    $res = db_query("SELECT * FROM {geo} WHERE table_name IS NOT NULL");
-    while ($row = db_fetch_array($res)) {
+    $result = db_query("SELECT * FROM {geo} WHERE table_name IS NOT NULL")->fetchAll();
+    foreach ($result as $row) {
       $geo = geo_load($row);
       if (method_exists($geo, 'schema') && $item = $geo->schema()) {
         $schema = array_merge($schema, $item);
@@ -69,20 +68,6 @@ function geo_schema() {
     }
   }
   return $schema;
-}
-
-/**
- * Implementation of hook_install().
- */
-function geo_install() {
-  drupal_install_schema('geo');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-function geo_uninstall() {
-  drupal_uninstall_schema('geo');
 }
 
 /**

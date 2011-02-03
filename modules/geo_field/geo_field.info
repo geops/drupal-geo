@@ -1,9 +1,9 @@
 ; $Id$
 name = Geo Field
-description = Provides a CCK field for Geospatial data. 
+description = Provides a field for Geospatial data. 
 package = Geo
 dependencies[] = geo
-dependencies[] = content
+dependencies[] = field
 core = 7.x
 
 files[] = geo_field.install

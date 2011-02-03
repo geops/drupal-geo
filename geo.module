@@ -7,7 +7,7 @@
  */
 
 // The Geo API should always be available.
-require DRUPAL_ROOT . '/' . (dirname(__FILE__)) . '/includes/geo.api.inc';
+require (dirname(__FILE__)) . '/includes/geo.api.inc';
 
 /**
  * Implementation of hook_init().
@@ -145,7 +145,7 @@ function geo_gis_input_info($gis_type = NULL) {
 /**
  * Implementation of hook_field_formatter_info().
  */
-function geo_field_formatter_info() {
+function geo_field_field_formatter_info() {
   // TODO some other formatters: asKML, asGML, asGeoRSS, etc
   return array(
     'default' => array(

@@ -1,25 +1,25 @@
 <?php
+// $Id$
+
 /**
  * @file
  * Install, update and uninstall functions for the geo_field module.
  *
  */
 
-// $Id$
-
 /**
- * Implements hook_install().
+ * Implements hook_field_schema().
  */
-function geo_field_install() {
-  drupal_load('module', 'content');
-  content_notify('install', 'geo');
-}
+function geo_field_field_schema($field) {
 
-/**
- * Implements hook_uninstall().
- */
-function geo_field_uninstall() {
-  drupal_load('module', 'content');
-  content_notify('uninstall', 'geo');
-}
+  $columns = array(
+    'geo' => array(
+      'pgsql_type' => 'geometry',
+      'not null' => FALSE,
+    ),
+  );
 
+  return array(
+    'columns' => $columns,
+  );
+}
